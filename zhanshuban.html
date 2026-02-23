@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>加西亚战术板</title>
+    <script src="https://cdn.tailwindcss.com "></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js "></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js "></script>
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: #0f172a;
+            color: #fff;
+            overflow: hidden;
+            touch-action: none;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        
+        /* 球场容器 */
+        .pitch-container {
+            background: linear-gradient(180deg, #2d5a3d 0%, #1e3d2f 100%);
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            max-width: 450px;
+            aspect-ratio: 3/4;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            margin: 0 auto;
+        }
+        
+        /* 草地纹理 */
+        .grass-texture {
+            position: absolute;
+            inset: 0;
+            background-image: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 40px,
+                    rgba(255,255,255,0.03) 40px,
+                    rgba(255,255,255,0.03) 80px
+                );
+            pointer-events: none;
+        }
+        
+        /* 球场线条 */
+        .pitch-line {
+            position: absolute;
+            border: 1.5px solid rgba(255,255,255,0.6);
+            pointer-events: none;
+        }
+        
+        .center-line {
+            top: 50%;
+            left: 5%;
+            right: 5%;
+            height: 0;
+            border-top: 1.5px solid rgba(255,255,255,0.6);
+        }
+        
+        .center-circle {
+            width: 18%;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 1.5px solid rgba(255,255,255,0.6);
+        }
+        
+        .center-spot {
+            width: 4px;
+            height: 4px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            position: absolute;
+        }
+        
+        .penalty-area-top {
+            top: 0;
+            left: 22%;
+            right: 22%;
+            height: 14%;
+            border-bottom-left-radius: 6px;
+            border-bottom-right-radius: 6px;
+            border-top: none;
+        }
+        
+        .penalty-area-bottom {
+            bottom: 0;
+            left: 22%;
+            right: 22%;
+            height: 14%;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+            border-bottom: none;
+        }
+        
+        .goal-area-top {
+            top: 0;
+            left: 37%;
+            right: 37%;
+            height: 5%;
+            border-bottom-left-radius: 3px;
+            border-bottom-right-radius: 3px;
+            border-top: none;
+        }
+        
+        .goal-area-bottom {
+            bottom: 0;
+            left: 37%;
+            right: 37%;
+            height: 5%;
+            border-top-left-radius: 3px;
+            border-top-right-radius: 3px;
+            border-bottom: none;
+        }
+        
+        .goal-top {
+            top: -0.5%;
+            left: 43%;
+            right: 43%;
+            height: 2.5%;
+            background: rgba(255,255,255,0.3);
+            border: 1.5px solid rgba(255,255,255,0.6);
+            border-top: none;
+            border-bottom-left-radius: 3px;
+            border-bottom-right-radius: 3px;
+        }
+        
+        .goal-bottom {
+            bottom: -0.5%;
+            left: 43%;
+            right: 43%;
+            height: 2.5%;
+            background: rgba(255,255,255,0.3);
+            border: 1.5px solid rgba(255,255,255,0.6);
+            border-bottom: none;
+            border-top-left-radius: 3px;
+            border-top-right-radius: 3px;
+        }
+        
+        /* 球员圆盘 */
+        .player-disc {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid white;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.1);
+            cursor: grab;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s, box-shadow 0.2s;
+            touch-action: none;
+            left: 0;
+            top: 0;
+        }
+        
+        .player-disc:active {
+            cursor: grabbing;
+            transform: translate(-50%, -50%) scale(1.15);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 0 2px rgba(74, 222, 128, 0.6);
+            z-index: 100;
+        }
+        
+        .player-disc.dragging {
+            opacity: 0.9;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        
+        .player-disc img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            pointer-events: none;
+        }
+        
+        /* 修复：去掉黑色背景 */
+        .player-label {
+            position: absolute;
+            top: 42px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            white-space: nowrap;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.9);
+            pointer-events: none;
+            line-height: 1.3;
+            padding: 2px 0;
+            min-width: 60px;
+            /* 去掉 background: rgba(0,0,0,0.6); */
+        }
+        
+        .player-stats {
+            font-size: 9px;
+            color: #fde047;
+            font-weight: 600;
+            display: block;
+            margin-top: 1px;
+            text-shadow: 0 2px 3px rgba(0,0,0,0.9);
+        }
+        
+        /* 底部面板 */
+        .bottom-panel {
+            background: #1e293b;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        
+        /* 球队标签 */
+        .team-tabs {
+            display: flex;
+            overflow-x: auto;
+            gap: 8px;
+            padding: 10px 12px;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+            flex-shrink: 0;
+            white-space: nowrap;
+            cursor: grab;
+            user-select: none;
+        }
+        
+        .team-tabs:active {
+            cursor: grabbing;
+        }
+        
+        .team-tabs::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .team-tab {
+            display: inline-flex;
+            flex-shrink: 0;
+            padding: 6px 16px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            color: #cbd5e1;
+        }
+        
+        .team-tab.active {
+            background: #16a34a;
+            color: white;
+            border-color: #22c55e;
+        }
+        
+        /* 球员网格 */
+        .players-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 8px;
+            padding: 10px 12px;
+            overflow-y: auto;
+            flex: 1;
+            align-content: start;
+        }
+        
+        .player-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            padding: 6px 4px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .player-item:active {
+            transform: scale(0.95);
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .player-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: white;
+            overflow: hidden;
+            border: 1.5px solid rgba(255,255,255,0.3);
+            margin-bottom: 4px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        
+        .player-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .player-name-text {
+            font-size: 11px;
+            text-align: center;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #e2e8f0;
+            font-weight: 500;
+            line-height: 1.2;
+        }
+        
+        .player-ca-pa {
+            font-size: 9px;
+            color: #64748b;
+            margin-top: 1px;
+        }
+        
+        /* 顶部栏 */
+        .header {
+            background: #0f172a;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            flex-shrink: 0;
+            z-index: 20;
+        }
+        
+        /* 按钮样式 */
+        .btn-primary {
+            background: #16a34a;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary:active {
+            transform: translateY(1px);
+            background: #15803d;
+        }
+        
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-danger:active {
+            background: rgba(239, 68, 68, 0.3);
+        }
+        
+        /* 加载动画 */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: #0f172a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.3s;
+        }
+        
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #22c55e;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 提示 */
+        .toast {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(0,0,0,0.85);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1000;
+            pointer-events: none;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        /* 垃圾桶 - 恢复并在右下角 */
+        .trash-zone {
+            position: fixed;
+            right: 12px;
+            bottom: 220px; /* 在底部面板上方 */
+            width: 48px;
+            height: 48px;
+            background: rgba(239, 68, 68, 0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 50;
+            border: 2px solid white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            pointer-events: none;
+        }
+        
+        .trash-zone.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .trash-zone.active {
+            transform: scale(1.15);
+            background: #dc2626;
+        }
+        
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+            font-size: 13px;
+            grid-column: 1 / -1;
+        }
+        
+        /* 初始提示 */
+        .initial-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.6);
+            color: rgba(255,255,255,0.8);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            pointer-events: none;
+            white-space: nowrap;
+            backdrop-filter: blur(4px);
+            z-index: 5;
+        }
+        
+        /* 球场包装器 */
+        .pitch-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1a2f1a;
+            padding: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+        
+        .modal-overlay.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            width: 100%;
+            max-width: 320px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .modal-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        
+        .modal-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            margin-bottom: 16px;
+            outline: none;
+        }
+        
+        .modal-input:focus {
+            border-color: #22c55e;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .modal-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .modal-btn-primary {
+            background: #16a34a;
+            color: white;
+        }
+        
+        .modal-btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: #cbd5e1;
+        }
+        
+        /* 截图用底部信息栏样式 */
+        .capture-footer {
+            background: #1e3d2f;
+            padding: 20px;
+            text-align: center;
+            color: white;
+            border-top: 2px solid rgba(255,255,255,0.1);
+        }
+        
+        .capture-title {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+        
+        .capture-meta {
+            font-size: 14px;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 12px;
+        }
+        
+        .capture-brand {
+            font-size: 16px;
+            color: #4ade80;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <!-- 加载画面 -->
+    <div id="loading" class="loading-overlay">
+        <div class="spinner"></div>
+        <p class="mt-3 text-gray-400 text-sm">加载球员数据中...</p>
+    </div>
+
+    <!-- 提示 -->
+    <div id="toast" class="toast"></div>
+
+    <!-- 标题输入Modal -->
+    <div id="titleModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-title">填写阵容标题（可选）</div>
+            <input type="text" id="titleInput" class="modal-input" placeholder="例如：主力阵容、4-3-3攻击阵型..." maxlength="30">
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-secondary" onclick="closeModal()">跳过</button>
+                <button class="modal-btn modal-btn-primary" onclick="confirmGenerate()">生成图片</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 顶部栏 -->
+    <header class="header px-3 py-2.5 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <button onclick="history.back()" class="text-gray-400 hover:text-white transition-colors p-1">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+            </button>
+            <h1 class="text-base font-bold text-white">战术板</h1>
+        </div>
+        
+        <div class="flex items-center gap-2">
+            <button onclick="clearPitch()" class="btn-danger text-xs flex items-center gap-1" id="clearBtn">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+                清空
+            </button>
+            <button onclick="openTitleModal()" class="btn-primary text-xs flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                生成图片
+            </button>
+        </div>
+    </header>
+
+    <!-- 战术板区域 -->
+    <div class="pitch-wrapper" id="pitchWrapper">
+        <div id="capture-area" class="pitch-container relative">
+            <div class="grass-texture"></div>
+            
+            <!-- 球场线条 -->
+            <div class="pitch-line center-line"></div>
+            <div class="pitch-line center-circle"></div>
+            <div class="center-spot"></div>
+            <div class="pitch-line penalty-area-top"></div>
+            <div class="pitch-line penalty-area-bottom"></div>
+            <div class="pitch-line goal-area-top"></div>
+            <div class="pitch-line goal-area-bottom"></div>
+            <div class="pitch-line goal-top"></div>
+            <div class="pitch-line goal-bottom"></div>
+            
+            <!-- 球员容器 -->
+            <div id="pitch-players" class="absolute inset-0">
+                <div id="initial-hint" class="initial-hint">
+                    点击下方球员添加到场上
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 垃圾桶 - 恢复并置于右下角 -->
+    <div id="trashZone" class="trash-zone">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+        </svg>
+    </div>
+
+    <!-- 底部面板 -->
+    <div class="bottom-panel">
+        <!-- 球队标签 -->
+        <div class="team-tabs" id="teamTabs">
+            <div class="text-gray-400 text-sm py-2">加载中...</div>
+        </div>
+
+        <!-- 球员列表 -->
+        <div class="players-grid" id="playersGrid">
+            <div class="col-span-full empty-state">请选择球队</div>
+        </div>
+    </div>
+
+    <script>
+        // 默认图片（当球队图片无法显示时使用）
+        const DEFAULT_TEAM_LOGO = 'https://angreoli-fagioli-garciatest-html.static.hf.space/1500px-Naval_Flag_of_the_Kingdom_of_France_(Civil_Ensign).svg.png';
+
+        // 球队Logo映射
+        const teamLogos = {
+            '南太平洋大学色温校区': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E5%8D%97%E5%A4%AA%E5%A4%A7%E6%96%B0%E6%B3%B0.png',
+            '三宝敦': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E4%B8%89%E5%AE%9D%E6%95%A6.png',
+            '东平雄鹰': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E4%B8%9C%E5%B9%B3%E9%9B%84%E9%B9%B0.png',
+            '伊丽莎白女王镇联合': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E4%BC%8A%E4%B8%BD%E8%8E%8E%E7%99%BD%E8%81%94%E5%90%88.png',
+            '泰克马联合': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E4%BC%8A%E6%96%AF%E7%89%B9%E4%BC%8D%E5%BE%B7%E8%81%94%E5%90%88%E6%96%B02.png',
+            '首都守护者': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E5%93%88%E5%8D%A1%E6%8B%89%E6%89%98%E7%89%B9%E5%8D%A111.png',
+            '哈贾丹太平洋人': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E5%93%88%E8%B4%BE%E4%B8%B9%E5%A4%AA%E5%B9%B3%E6%B4%8B%E4%BA%BA.png',
+            '坎布尔新吕伐登': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E5%9D%8E%E5%B8%83%E5%B0%94%E6%96%B0%E5%90%95%E4%BC%90%E7%99%BB.png',
+            '大同拜仁皇家加西亚': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E5%A4%A7%E5%90%8C%E6%8B%9C%E4%BB%81%E7%9A%87%E5%AE%B6%E5%8A%A0%E8%A5%BF%E4%BA%9A.png',
+            '奥顿兰富力': 'https://fclogo.top/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2F11hmdf08%2Fproduction%2Feb9a55f184d71696f341ee3f8cd0a3bbcc0efc56-800x800.png%3Fw%3D800%26fm%3Dwebp%26q%3D80&w=828&q=75',
+            '奥顿兰海鸥': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E5%A5%A5%E9%A1%BF%E5%85%B0%E6%B5%B7%E6%B8%AF.png',
+            '东木市职业': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E5%AD%94%E6%81%A9%E5%BA%A6%E5%8D%A2FC.png',
+            '安倍萨镇': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E5%AE%89%E5%80%8D%E8%90%A8%E5%9F%8E.png',
+            '拉阿纳': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E6%8B%89%E9%98%BF%E7%BA%B3%E5%9F%8E%E5%B8%82%E7%AB%9E%E6%8A%80.png',
+            '斯波托普城市': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E6%96%AF%E6%B3%A2%E6%89%98%E6%99%AE%E5%9F%8E%E5%B8%82.png',
+            '新吕伐登猫头鹰镇': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E6%96%B0%E5%90%95%E4%BC%90%E7%99%BB%E7%8C%AB%E5%A4%B4%E9%B9%B0.png',
+            '新南城': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E6%96%B0%E6%B3%B0%E6%96%B03.png',
+            '坎布尔新吕伐登B': 'https://free.boltp.com/2026/02/18/699491722d260.webp',
+            '新达华哈海岸': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E6%96%B0%E8%BE%BE%E5%8D%8E%E5%93%88%E6%B5%B7%E5%B2%B8.png',
+            '泰克马职业': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E6%B3%B0%E5%85%8B%E9%A9%AC%E8%81%8C%E4%B8%9A.png',
+            '泰克马队': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E6%B3%B0%E5%85%8B%E9%A9%AC%E9%98%9F.png',
+            '瓦巴萨朱树鸦': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E7%93%A6%E5%B7%B4%E8%90%A8%E6%9C%B1%E6%A0%91%E9%B8%A6.png',
+            '新泰泰山': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E7%93%A6%E5%B7%B4%E8%90%A8%E6%9C%B1%E8%89%BE%E5%A5%A5%E7%BA%B3%E5%B0%94.png',
+            '皇家萨乌萨乌': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E7%9A%87%E5%AE%B6%E8%90%A8%E4%B9%8C%E8%90%A8%E4%B9%8C.png',
+            '穆拉哈西部': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E7%A9%86%E6%8B%89%E5%93%88%E8%A5%BF%E9%83%A8.png',
+            '色温岱州东岳': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E8%89%B2%E6%B8%A9%E5%B2%B1%E5%B7%9E%E4%B8%9C%E5%B2%B3.png',
+            '巴峰': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E8%90%A8%E4%B9%8C%E8%90%A8%E4%B9%8C%E6%96%B0.png',
+            '诺维奇港': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E8%AF%BA%E7%BB%B4%E5%A5%87%E6%B8%AF%E6%96%B0.png',
+            '北泰克马': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E9%87%8C%E6%8B%89%E8%B5%AB%E9%A3%9E%E7%87%95.png',
+            '阿尔特弗雷奇流浪者': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E9%98%BF%E5%B0%94%E7%89%B9%E5%BC%97%E9%9B%B7%E5%A5%87%E6%B5%81%E6%B5%AA%E8%80%85.png',
+            '马雷克青春之城': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E9%A9%AC%E9%9B%B7%E5%85%8B%E6%96%B0.png',
+            '哈克竞技': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E5%93%88%E5%8D%A1%E6%8B%89%E6%89%98%E7%89%B9%E5%8D%A1.png',
+            '比列竞技': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E6%AF%94%E5%88%97%E7%AB%9E%E6%8A%80%E6%96%B0.png',
+            '朱马蓝色协进': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E6%9C%B1%E9%A9%AC%E8%93%9D%E8%89%B2%E5%8D%8F%E8%BF%9B.png',
+            '伊斯特伍德竞技': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E4%BC%8A%E6%96%AF%E7%89%B9%E4%BC%8D%E5%BE%B7%E4%BF%B1%E4%B9%90%E9%83%A8.png',
+            '比斯恰捍卫者': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E6%AF%94%E6%96%AF%E6%81%B0%E6%8D%8D%E5%8D%AB%E8%80%85.png',
+            '新利雅得胜利': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E6%99%AE%E6%8B%89%E5%B8%82%E6%B0%91.png',
+            '南比斯恰城市': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E5%8D%97%E6%AF%94%E6%96%AF%E6%81%B0%E5%9F%8E%E5%B8%82.png',
+            '岱州东岳': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E8%89%B2%E6%B8%A9%E5%B2%B1%E5%B7%9E%E4%B8%9C%E5%B2%B3.png',
+            '新利雅得新月': 'https://fclogo.top/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2F11hmdf08%2Fproduction%2F8b173e002d366de185a0b51b67e71d230f63b72e-800x800.png%3Fw%3D800%26fm%3Dwebp%26q%3D80&w=828&q=75',
+            '马雷克海岸线': 'https://free.boltp.com/2026/02/17/6994906fb09c8.webp',
+            '伊斯特伍德海岸线': 'https://free.boltp.com/2026/02/18/6995d0f5765c8.webp',
+            '瓦巴萨朱城市': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E7%93%A6%E5%B7%B4%E8%90%A8%E6%9C%B1%E8%89%BE%E5%A5%A5%E7%BA%B3%E5%B0%94.png',
+            '瓦巴萨朱树鸦B': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E7%93%A6%E5%B7%B4%E8%90%A8%E6%9C%B1%E6%A0%91%E9%B8%A6.png',
+            '三宝敦乐邦战士': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E7%BB%B4%E5%B0%94%E5%9B%BE%E9%92%A2%E7%AE%A1.png',
+            '首都-东木联合B': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E5%93%88%E5%8D%A1%E6%8B%89%E6%89%98%E7%89%B9%E5%8D%A111.png',
+            '首都B': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E5%93%88%E5%8D%A1%E6%8B%89%E6%89%98%E7%89%B9%E5%8D%A111.png',
+            '比列地平线': 'https://fclogo.top/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2F11hmdf08%2Fproduction%2F2d2c10be4e5d9a91aada5021b9b551ebd88f3bdc-800x800.png%3Fw%3D800%26fm%3Dwebp%26q%3D80&w=828&q=75',
+            '新法鲁大里斯本联盟': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E6%96%B0%E6%B3%95%E9%B2%81%E6%96%B0.png',
+            '新法鲁联盟': 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E6%96%B0%E6%B3%95%E9%B2%81%E6%96%B0.png',
+            '新利雅得阿尔希拉尔': 'https://fclogo.top/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2F11hmdf08%2Fproduction%2F8b173e002d366de185a0b51b67e71d230f63b72e-800x800.png%3Fw%3D800%26fm%3Dwebp%26q%3D80&w=828&q=75',
+            '加西亚国青队': 'https://angreoli-fagioli-garciatest-html.static.hf.space/1500px-Naval_Flag_of_the_Kingdom_of_France_(Civil_Ensign).svg.png',
+            '自由球员': 'https://angreoli-fagioli-garciatest-html.static.hf.space/1500px-Naval_Flag_of_the_Kingdom_of_France_(Civil_Ensign).svg.png'
+        };
+
+        let playersData = [];
+        let teams = {};
+        let currentTeam = null;
+        let playerCounter = 0;
+        let draggedElement = null;
+        let isDragging = false;
+
+        // 初始化
+        async function init() {
+            try {
+                await loadPlayersData();
+                renderTeamTabs();
+                setupTeamTabsScroll();
+                setupGlobalEvents();
+                
+                setTimeout(() => {
+                    const loading = document.getElementById('loading');
+                    loading.style.opacity = '0';
+                    setTimeout(() => loading.style.display = 'none', 300);
+                }, 500);
+            } catch (e) {
+                console.error(e);
+                showToast('加载失败，请刷新重试');
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // 处理球员名字
+        function processPlayerName(fullName) {
+            if (!fullName) return '';
+            if (fullName.includes('·')) {
+                const parts = fullName.split('·');
+                return parts[parts.length - 1];
+            }
+            if (fullName.includes('-')) {
+                const parts = fullName.split('-');
+                return parts[parts.length - 1];
+            }
+            if (fullName.includes(' ')) {
+                const parts = fullName.split(' ');
+                return parts[parts.length - 1];
+            }
+            return fullName;
+        }
+
+        // 加载球员数据
+        async function loadPlayersData() {
+            const urlsToTry = [
+                'https://angreoli-fagioli-garciatest-html.static.hf.space/GarciaDatabase26.xlsx',
+                'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://angreoli-fagioli-garciatest-html.static.hf.space/GarciaDatabase26.xlsx'),
+                'https://corsproxy.io/?' + encodeURIComponent('https://angreoli-fagioli-garciatest-html.static.hf.space/GarciaDatabase26.xlsx')
+            ];
+            
+            let lastError = null;
+            
+            for (const url of urlsToTry) {
+                try {
+                    console.log('Trying URL:', url);
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                        }
+                    });
+                    
+                    if (!response.ok) continue;
+                    
+                    const arrayBuffer = await response.arrayBuffer();
+                    
+                    if (arrayBuffer.byteLength < 100) continue;
+                    
+                    const workbook = XLSX.read(new Uint8Array(arrayBuffer), {type: 'array'});
+                    
+                    if (!workbook.SheetNames || workbook.SheetNames.length === 0) continue;
+                    
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    if (jsonData.length === 0) {
+                        throw new Error('Excel文件为空');
+                    }
+                    
+                    playersData = jsonData.map(row => {
+                        const fullName = row['球员名称'] || row['Name'] || '';
+                        return {
+                            fullName: fullName,
+                            name: processPlayerName(fullName),
+                            team: row['所在球队'] || row['Team'] || row['球队'] || '未知',
+                            ca: row['CA'] || '-',
+                            pa: row['PA'] || '-',
+                            age: row['年龄'] || row['Age'] || '',
+                            position: row['位置'] || row['Position'] || ''
+                        };
+                    }).filter(p => p.fullName && p.fullName !== '未知' && p.fullName !== '球员名称');
+                    
+                    if (playersData.length === 0) {
+                        throw new Error('未找到有效球员数据');
+                    }
+                    
+                    teams = {};
+                    playersData.forEach(player => {
+                        if (!teams[player.team]) {
+                            teams[player.team] = [];
+                        }
+                        teams[player.team].push(player);
+                    });
+                    
+                    const sortedTeams = {};
+                    const teamNames = Object.keys(teams).sort((a, b) => {
+                        if (a === '自由球员') return 1;
+                        if (b === '自由球员') return -1;
+                        return a.localeCompare(b, 'zh-CN');
+                    });
+                    
+                    teamNames.forEach(name => {
+                        sortedTeams[name] = teams[name];
+                    });
+                    teams = sortedTeams;
+                    
+                    console.log(`成功加载 ${playersData.length} 名球员，${teamNames.length} 支球队`);
+                    return;
+                    
+                } catch (error) {
+                    console.warn('URL failed:', url, error.message);
+                    lastError = error;
+                    continue;
+                }
+            }
+            
+            console.error('所有数据源都失败，使用备用数据', lastError);
+            showToast('在线数据加载失败，使用备用数据');
+            
+            teams = {
+                '首都守护者': [
+                    {fullName: '大卫·桑布', name: '桑布', team: '首都守护者', ca: 135, pa: 150},
+                    {fullName: '扎克-维尔霍温', name: '维尔霍温', team: '首都守护者', ca: 128, pa: 140},
+                    {fullName: '李奥·梅西', name: '梅西', team: '首都守护者', ca: 145, pa: 150}
+                ],
+                '泰克马联合': [
+                    {fullName: '奥顿西·奥拉朱旺', name: '奥拉朱旺', team: '泰克马联合', ca: 142, pa: 155},
+                    {fullName: '克里斯蒂亚诺·罗纳尔多', name: 'C罗', team: '泰克马联合', ca: 140, pa: 145}
+                ],
+                '自由球员': [
+                    {fullName: ' available·Player', name: '自由球员1', team: '自由球员', ca: 120, pa: 130},
+                    {fullName: 'Test Player', name: '自由球员2', team: '自由球员', ca: 115, pa: 125}
+                ]
+            };
+        }
+
+        // 设置球队栏拖拽滚动
+        function setupTeamTabsScroll() {
+            const slider = document.getElementById('teamTabs');
+            let isDown = false;
+            let startX;
+            let scrollLeft;
+
+            slider.addEventListener('mousedown', (e) => {
+                isDown = true;
+                slider.style.cursor = 'grabbing';
+                startX = e.pageX - slider.offsetLeft;
+                scrollLeft = slider.scrollLeft;
+                e.preventDefault();
+            });
+
+            slider.addEventListener('mouseleave', () => {
+                isDown = false;
+                slider.style.cursor = 'grab';
+            });
+
+            slider.addEventListener('mouseup', () => {
+                isDown = false;
+                slider.style.cursor = 'grab';
+            });
+
+            slider.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const x = e.pageX - slider.offsetLeft;
+                const walk = (x - startX) * 2;
+                slider.scrollLeft = scrollLeft - walk;
+            });
+        }
+
+        // 设置全局事件
+        function setupGlobalEvents() {
+            document.addEventListener('selectstart', (e) => {
+                if (draggedElement) e.preventDefault();
+            });
+        }
+
+        // 渲染球队标签
+        function renderTeamTabs() {
+            const container = document.getElementById('teamTabs');
+            container.innerHTML = '';
+            
+            const teamNames = Object.keys(teams);
+            if (teamNames.length === 0) {
+                container.innerHTML = '<div class="text-gray-400 text-sm">暂无数据</div>';
+                return;
+            }
+            
+            teamNames.forEach((teamName, index) => {
+                const tab = document.createElement('div');
+                tab.className = `team-tab ${index === 0 ? 'active' : ''}`;
+                tab.textContent = teamName;
+                tab.onclick = () => selectTeam(teamName, tab);
+                container.appendChild(tab);
+            });
+            
+            if (teamNames.length > 0) {
+                selectTeam(teamNames[0], container.children[0]);
+            }
+        }
+
+        // 选择球队
+        function selectTeam(teamName, tabElement) {
+            document.querySelectorAll('.team-tab').forEach(t => t.classList.remove('active'));
+            tabElement.classList.add('active');
+            currentTeam = teamName;
+            renderPlayers(teamName);
+        }
+
+        // 渲染球员列表
+        function renderPlayers(teamName) {
+            const container = document.getElementById('playersGrid');
+            container.innerHTML = '';
+            
+            const players = teams[teamName] || [];
+            if (players.length === 0) {
+                container.innerHTML = '<div class="col-span-full empty-state">该球队暂无球员数据</div>';
+                return;
+            }
+            
+            const logo = teamLogos[teamName] || DEFAULT_TEAM_LOGO;
+            
+            players.forEach(player => {
+                const item = document.createElement('div');
+                item.className = 'player-item';
+                item.onclick = () => addPlayerToPitch(player);
+                
+                item.innerHTML = `
+                    <div class="player-avatar">
+                        <img src="${logo}" alt="${teamName}" onerror="this.src='${DEFAULT_TEAM_LOGO}'">
+                    </div>
+                    <div class="player-name-text" title="${player.name}">${player.name}</div>
+                    <div class="player-ca-pa">${player.ca}/${player.pa}</div>
+                `;
+                
+                container.appendChild(item);
+            });
+        }
+
+        // 添加球员到场上
+        function addPlayerToPitch(player) {
+            const container = document.getElementById('pitch-players');
+            const hint = document.getElementById('initial-hint');
+            if (hint) hint.style.display = 'none';
+            
+            const logo = teamLogos[player.team] || DEFAULT_TEAM_LOGO;
+            playerCounter++;
+            
+            const disc = document.createElement('div');
+            disc.className = 'player-disc';
+            disc.id = `player-${playerCounter}`;
+            
+            disc.innerHTML = `
+                <img src="${logo}" onerror="this.src='${DEFAULT_TEAM_LOGO}'">
+                <div class="player-label">
+                    <div>${player.name}</div>
+                    <div class="player-stats">${player.ca}/${player.pa}</div>
+                </div>
+            `;
+            
+            const containerRect = container.getBoundingClientRect();
+            const startX = containerRect.width / 2 + (Math.random() - 0.5) * 100;
+            const startY = containerRect.height / 2 + (Math.random() - 0.5) * 200;
+            
+            const margin = 25;
+            const finalX = Math.max(margin, Math.min(startX, containerRect.width - margin));
+            const finalY = Math.max(margin, Math.min(startY, containerRect.height - margin));
+            
+            disc.style.left = finalX + 'px';
+            disc.style.top = finalY + 'px';
+            
+            setupDragEvents(disc);
+            container.appendChild(disc);
+            
+            disc.animate([
+                { transform: 'translate(-50%, -50%) scale(0)' },
+                { transform: 'translate(-50%, -50%) scale(1.1)' },
+                { transform: 'translate(-50%, -50%) scale(1)' }
+            ], {
+                duration: 250,
+                easing: 'ease-out'
+            });
+            
+            showToast(`${player.name} 已上场`);
+        }
+
+        // 设置拖动事件
+        function setupDragEvents(element) {
+            let startX, startY, initialLeft, initialTop;
+            let hasMoved = false;
+
+            const handleStart = (e) => {
+                const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+                const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+                
+                isDragging = true;
+                hasMoved = false;
+                draggedElement = element;
+                
+                initialLeft = parseFloat(element.style.left) || 0;
+                initialTop = parseFloat(element.style.top) || 0;
+                startX = clientX;
+                startY = clientY;
+                
+                element.classList.add('dragging');
+                document.getElementById('trashZone').classList.add('show');
+                
+                e.preventDefault();
+                e.stopPropagation();
+            };
+
+            const handleMove = (e) => {
+                if (!isDragging || draggedElement !== element) return;
+                
+                const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+                const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+                
+                const dx = clientX - startX;
+                const dy = clientY - startY;
+                
+                if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+                    hasMoved = true;
+                }
+                
+                const parentRect = element.parentElement.getBoundingClientRect();
+                let newX = initialLeft + dx;
+                let newY = initialTop + dy;
+                
+                const margin = 20;
+                newX = Math.max(margin, Math.min(newX, parentRect.width - margin));
+                newY = Math.max(margin, Math.min(newY, parentRect.height - margin));
+                
+                element.style.left = newX + "px";
+                element.style.top = newY + "px";
+                
+                const trash = document.getElementById('trashZone');
+                const trashRect = trash.getBoundingClientRect();
+                if (clientX >= trashRect.left - 10 && clientX <= trashRect.right + 10 &&
+                    clientY >= trashRect.top - 10 && clientY <= trashRect.bottom + 10) {
+                    trash.classList.add('active');
+                } else {
+                    trash.classList.remove('active');
+                }
+                
+                e.preventDefault();
+            };
+
+            const handleEnd = (e) => {
+                if (!isDragging || draggedElement !== element) return;
+                
+                isDragging = false;
+                element.classList.remove('dragging');
+                
+                const clientX = e.type.includes('touch') ? e.changedTouches[0].clientX : e.clientX;
+                const clientY = e.type.includes('touch') ? e.changedTouches[0].clientY : e.clientY;
+                
+                const trash = document.getElementById('trashZone');
+                const trashRect = trash.getBoundingClientRect();
+                
+                if (clientX >= trashRect.left - 10 && clientX <= trashRect.right + 10 &&
+                    clientY >= trashRect.top - 10 && clientY <= trashRect.bottom + 10) {
+                    element.remove();
+                    showToast('球员已移除');
+                    checkEmptyPitch();
+                }
+                
+                draggedElement = null;
+                trash.classList.remove('show');
+                trash.classList.remove('active');
+            };
+
+            element.addEventListener("touchstart", handleStart, {passive: false});
+            element.addEventListener("touchmove", handleMove, {passive: false});
+            element.addEventListener("touchend", handleEnd);
+            
+            element.addEventListener("mousedown", handleStart);
+            document.addEventListener("mousemove", handleMove);
+            document.addEventListener("mouseup", handleEnd);
+        }
+
+        // 检查场上是否为空
+        function checkEmptyPitch() {
+            const container = document.getElementById('pitch-players');
+            const discs = container.querySelectorAll('.player-disc');
+            
+            if (discs.length === 0) {
+                let hint = document.getElementById('initial-hint');
+                if (!hint) {
+                    hint = document.createElement('div');
+                    hint.id = 'initial-hint';
+                    hint.className = 'initial-hint';
+                    hint.textContent = '点击下方球员添加到场上';
+                    container.appendChild(hint);
+                } else {
+                    hint.style.display = 'block';
+                }
+            }
+        }
+
+        // 清空战术板
+        function clearPitch() {
+            const container = document.getElementById('pitch-players');
+            const discs = Array.from(container.querySelectorAll('.player-disc'));
+            
+            if (discs.length === 0) {
+                showToast('场上已经是空的');
+                return;
+            }
+            
+            if (confirm(`确定要清空场上的${discs.length}名球员吗？`)) {
+                discs.forEach(disc => disc.remove());
+                
+                let hint = document.getElementById('initial-hint');
+                if (!hint) {
+                    hint = document.createElement('div');
+                    hint.id = 'initial-hint';
+                    hint.className = 'initial-hint';
+                    hint.textContent = '点击下方球员添加到场上';
+                    container.appendChild(hint);
+                } else {
+                    hint.style.display = 'block';
+                }
+                
+                showToast('战术板已清空');
+            }
+        }
+
+        // 打开标题输入Modal
+        function openTitleModal() {
+            const container = document.getElementById('pitch-players');
+            const discs = container.querySelectorAll('.player-disc');
+            
+            if (discs.length === 0) {
+                showToast('请先添加球员到场上');
+                return;
+            }
+            
+            document.getElementById('titleModal').classList.add('show');
+            document.getElementById('titleInput').value = '';
+            setTimeout(() => document.getElementById('titleInput').focus(), 100);
+        }
+
+        // 关闭Modal
+        function closeModal() {
+            document.getElementById('titleModal').classList.remove('show');
+            generateImage('');
+        }
+
+        // 确认生成
+        function confirmGenerate() {
+            const title = document.getElementById('titleInput').value.trim();
+            document.getElementById('titleModal').classList.remove('show');
+            generateImage(title);
+        }
+
+        // 辅助函数：将图片转为 Data URL（解决跨域截图问题）
+        async function getImageDataURL(url) {
+            try {
+                const response = await fetch(url, { mode: 'cors' });
+                const blob = await response.blob();
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+            } catch (e) {
+                return url; // 如果失败返回原URL
+            }
+        }
+
+        // 生成图片 - 修复队徽不显示问题
+        async function generateImage(title) {
+            const captureArea = document.getElementById('capture-area');
+            const trashZone = document.getElementById('trashZone');
+            const originalPlayers = document.getElementById('pitch-players');
+            
+            trashZone.style.display = 'none';
+            
+            const pitchRect = captureArea.getBoundingClientRect();
+            
+            // 创建截图容器
+            const screenshotContainer = document.createElement('div');
+            screenshotContainer.style.cssText = `
+                position: absolute;
+                left: -9999px;
+                top: -9999px;
+                width: ${Math.floor(pitchRect.width)}px;
+                z-index: -9999;
+                overflow: visible;
+            `;
+            
+            // 克隆球场
+            const pitchClone = captureArea.cloneNode(true);
+            pitchClone.style.position = 'relative';
+            pitchClone.style.left = '0';
+            pitchClone.style.top = '0';
+            pitchClone.style.width = Math.floor(pitchRect.width) + 'px';
+            pitchClone.style.maxWidth = 'none';
+            pitchClone.style.height = 'auto';
+            pitchClone.style.aspectRatio = '3/4';
+            pitchClone.style.margin = '0';
+            pitchClone.style.transform = 'none';
+            pitchClone.style.overflow = 'hidden';
+            
+            // 处理球员和图片
+            const clonePlayersContainer = pitchClone.querySelector('#pitch-players');
+            clonePlayersContainer.innerHTML = '';
+            
+            const originalDiscs = originalPlayers.querySelectorAll('.player-disc');
+            
+            // 预加载所有图片为 Data URL
+            const imageCache = {};
+            const imagePromises = [];
+            
+            originalDiscs.forEach(disc => {
+                const img = disc.querySelector('img');
+                if (img && img.src) {
+                    if (!imageCache[img.src]) {
+                        imagePromises.push(
+                            getImageDataURL(img.src).then(dataUrl => {
+                                imageCache[img.src] = dataUrl;
+                            }).catch(() => {
+                                imageCache[img.src] = img.src;
+                            })
+                        );
+                    }
+                }
+            });
+            
+            await Promise.all(imagePromises);
+            
+            // 创建球员元素
+            originalDiscs.forEach(originalDisc => {
+                const rect = originalDisc.getBoundingClientRect();
+                const parentRect = originalPlayers.getBoundingClientRect();
+                
+                const relX = rect.left - parentRect.left + rect.width / 2;
+                const relY = rect.top - parentRect.top + rect.height / 2;
+                
+                const newDisc = document.createElement('div');
+                newDisc.className = 'player-disc';
+                newDisc.style.left = relX + 'px';
+                newDisc.style.top = relY + 'px';
+                newDisc.style.transform = 'translate(-50%, -50%)';
+                
+                // 复制 HTML 内容
+                const img = originalDisc.querySelector('img');
+                const label = originalDisc.querySelector('.player-label');
+                
+                if (img) {
+                    const newImg = document.createElement('img');
+                    // 使用缓存的 Data URL 避免跨域问题
+                    newImg.src = imageCache[img.src] || img.src;
+                    newImg.style.width = '36px';
+                    newImg.style.height = '36px';
+                    newImg.style.borderRadius = '50%';
+                    newImg.style.objectFit = 'cover';
+                    newDisc.appendChild(newImg);
+                }
+                
+                if (label) {
+                    const newLabel = document.createElement('div');
+                    newLabel.className = 'player-label';
+                    newLabel.innerHTML = label.innerHTML;
+                    newDisc.appendChild(newLabel);
+                }
+                
+                clonePlayersContainer.appendChild(newDisc);
+            });
+            
+            if (originalDiscs.length === 0) {
+                const hint = document.createElement('div');
+                hint.id = 'initial-hint';
+                hint.className = 'initial-hint';
+                hint.textContent = '点击下方球员添加到场上';
+                clonePlayersContainer.appendChild(hint);
+            }
+            
+            screenshotContainer.appendChild(pitchClone);
+            
+            // 添加底部信息栏
+            const footer = document.createElement('div');
+            footer.className = 'capture-footer';
+            footer.style.width = Math.floor(pitchRect.width) + 'px';
+            
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`;
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            let footerHTML = '';
+            if (title) {
+                footerHTML += `<div class="capture-title">${title}</div>`;
+            }
+            footerHTML += `<div class="capture-meta">${dateStr} ${timeStr}</div>`;
+            footerHTML += `<div class="capture-brand">Proudly Made by Garcia League</div>`;
+            
+            footer.innerHTML = footerHTML;
+            screenshotContainer.appendChild(footer);
+            
+            document.body.appendChild(screenshotContainer);
+            
+            showToast('正在生成高清图片...');
+            
+            try {
+                // 强制回流确保渲染
+                screenshotContainer.offsetHeight;
+                
+                const totalHeight = pitchClone.offsetHeight + footer.offsetHeight;
+                
+                const canvas = await html2canvas(screenshotContainer, {
+                    backgroundColor: '#1e3d2f',
+                    scale: 3,
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: false,
+                    width: Math.floor(pitchRect.width),
+                    height: totalHeight,
+                    x: 0,
+                    y: 0,
+                    scrollX: 0,
+                    scrollY: 0,
+                    windowWidth: Math.floor(pitchRect.width),
+                    windowHeight: totalHeight
+                });
+                
+                const link = document.createElement('a');
+                const fileName = title ? `加西亚战术板_${title}_${Date.now()}.png` : `加西亚战术板_${Date.now()}.png`;
+                link.download = fileName;
+                link.href = canvas.toDataURL('image/png', 1.0);
+                link.click();
+                
+                showToast('高清图片已保存');
+            } catch (error) {
+                console.error('生成图片失败:', error);
+                showToast('生成失败，请重试');
+            } finally {
+                screenshotContainer.remove();
+                trashZone.style.display = '';
+            }
+        }
+
+        // 显示提示
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        // 启动
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

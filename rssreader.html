@@ -1,0 +1,1736 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>足球快讯 Pro - RSS阅读器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1d9bf0',
+                        'primary-hover': '#1a8cd8',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { 
+            background: #cbd5e1; 
+            border-radius: 3px; 
+        }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        
+        /* Animations */
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+        .skeleton {
+            animation: shimmer 2s infinite linear;
+            background: linear-gradient(to right, #f1f5f9 4%, #e2e8f0 25%, #f1f5f9 36%);
+            background-size: 1000px 100%;
+        }
+        .dark .skeleton {
+            background: linear-gradient(to right, #1e293b 4%, #334155 25%, #1e293b 36%);
+            background-size: 1000px 100%;
+        }
+        
+        .translating { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+        
+        /* Smooth transitions */
+        .tweet-card { transition: background-color 0.2s ease; }
+        .tweet-card:hover { background-color: rgba(0, 0, 0, 0.03); }
+        .dark .tweet-card:hover { background-color: rgba(255, 255, 255, 0.03); }
+        
+        .article-card { transition: background-color 0.2s ease; }
+        .article-card:hover { background-color: rgba(0, 0, 0, 0.02); }
+        .dark .article-card:hover { background-color: rgba(255, 255, 255, 0.02); }
+        
+        /* Mobile touch optimization */
+        @media (max-width: 768px) {
+            .no-touch-callout { -webkit-touch-callout: none; }
+        }
+
+        /* Drag and drop styles */
+        .sortable-ghost {
+            opacity: 0.4;
+            background: rgba(29, 155, 240, 0.1);
+        }
+        .sortable-drag {
+            cursor: grabbing;
+        }
+        .drag-handle {
+            cursor: grab;
+        }
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        /* Article content styles */
+        .article-content {
+            line-height: 1.8;
+            font-size: 16px;
+        }
+        .article-content p {
+            margin-bottom: 1em;
+        }
+        .article-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1em 0;
+            display: block;
+        }
+        .article-content img[src=""], .article-content img:not([src]) {
+            display: none;
+        }
+        .article-content h1, .article-content h2, .article-content h3, .article-content h4 {
+            font-weight: bold;
+            margin: 1.5em 0 0.5em;
+            font-size: 1.2em;
+        }
+        .article-content h1 { font-size: 1.5em; }
+        .article-content h2 { font-size: 1.3em; }
+        .article-content a {
+            color: #1d9bf0;
+            text-decoration: underline;
+        }
+        .dark .article-content a {
+            color: #5cb8f0;
+        }
+        .article-content figure {
+            margin: 1em 0;
+        }
+        .article-content figcaption {
+            font-size: 0.9em;
+            color: #666;
+            text-align: center;
+            margin-top: 0.5em;
+        }
+        .article-content blockquote {
+            border-left: 4px solid #1d9bf0;
+            padding-left: 1em;
+            margin: 1em 0;
+            color: #666;
+        }
+        .dark .article-content blockquote {
+            color: #aaa;
+        }
+        
+        /* Bilingual styles */
+        .bilingual-content .original {
+            color: #666;
+            border-left: 3px solid #e5e7eb;
+            padding-left: 1rem;
+            margin-bottom: 0.5rem;
+            font-style: italic;
+        }
+        .dark .bilingual-content .original {
+            color: #9ca3af;
+            border-left-color: #374151;
+        }
+        .bilingual-content .translated {
+            color: #111827;
+            margin-bottom: 1.5rem;
+            padding-left: 1rem;
+            border-left: 3px solid #1d9bf0;
+        }
+        .dark .bilingual-content .translated {
+            color: #f9fafb;
+        }
+        
+        /* Prevent vertical text issues */
+        .article-content * {
+            writing-mode: horizontal-tb !important;
+            text-orientation: mixed !important;
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-black text-gray-900 dark:text-white">
+
+    <!-- Mobile Header - Fixed -->
+    <header class="md:hidden fixed top-0 left-0 right-0 h-14 bg-white/95 dark:bg-black/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 z-50 flex items-center justify-between px-4">
+        <button id="mobileMenuBtn" class="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 transition active:scale-95">
+            <i class="fas fa-bars text-xl text-gray-700 dark:text-gray-300"></i>
+        </button>
+        
+        <div class="flex items-center gap-2">
+            <h1 class="text-lg font-bold tracking-tight">足球快讯</h1>
+            <span id="mobileUpdateDot" class="hidden w-2 h-2 bg-red-500 rounded-full"></span>
+        </div>
+        
+        <div class="flex items-center gap-1">
+            <button onclick="manualRefresh()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 transition active:scale-95 text-gray-700 dark:text-gray-300" title="刷新">
+                <i class="fas fa-sync-alt" id="mobileRefreshIcon"></i>
+            </button>
+            <button onclick="translateVisible()" class="ml-1 px-3 py-1.5 rounded-full bg-primary hover:bg-primary-hover text-white text-sm font-medium transition active:scale-95 flex items-center gap-1">
+                <i class="fas fa-language text-xs"></i>
+                <span>译</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex flex-col md:flex-row min-h-screen">
+        <!-- Sidebar - Desktop Fixed, Mobile Drawer -->
+        <aside id="sidebar" class="fixed inset-y-0 left-0 w-80 bg-white dark:bg-black border-r border-gray-200 dark:border-gray-800 transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40 flex flex-col pt-14 md:pt-0 md:h-screen md:sticky md:top-0">
+            
+            <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold hidden md:block">足球快讯 Pro</h1>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 hidden md:block">RSS 聚合阅读器</p>
+                </div>
+                <button onclick="manualRefresh()" class="hidden md:flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full text-sm font-medium transition" title="全局刷新">
+                    <i class="fas fa-sync-alt" id="desktopRefreshIcon"></i>
+                    <span>刷新全部</span>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">资讯源</h2>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-400" id="sortHint" style="display:none;">拖拽排序</span>
+                        <button onclick="selectAllSources()" class="text-xs text-primary hover:underline font-medium">查看全部</button>
+                    </div>
+                </div>
+                
+                <div id="sourceFilters" class="space-y-1 mb-6">
+                    <!-- Dynamic content -->
+                </div>
+
+                <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">翻译引擎</h3>
+                        <span id="currentEngineBadge" class="text-[10px] px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full font-bold">Google</span>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <button onclick="setEngine('google')" class="engine-btn w-full text-left px-3 py-2.5 rounded-lg text-sm border border-gray-200 dark:border-gray-700 hover:border-primary hover:text-primary transition flex items-center justify-between group bg-white dark:bg-black" data-engine="google">
+                            <div>
+                                <div class="font-medium flex items-center gap-2">
+                                    <i class="fab fa-google text-xs"></i> Google Web
+                                </div>
+                                <div class="text-[10px] text-gray-500 mt-0.5">免Token，推荐首选</div>
+                            </div>
+                            <i class="fas fa-check text-primary opacity-0 group-[.active]:opacity-100"></i>
+                        </button>
+                        
+                        <button onclick="setEngine('bing')" class="engine-btn w-full text-left px-3 py-2.5 rounded-lg text-sm border border-gray-200 dark:border-gray-700 hover:border-primary hover:text-primary transition flex items-center justify-between group bg-white dark:bg-black" data-engine="bing">
+                            <div>
+                                <div class="font-medium flex items-center gap-2">
+                                    <i class="fab fa-microsoft text-xs"></i> Bing
+                                </div>
+                                <div class="text-[10px] text-gray-500 mt-0.5">稳定性较好</div>
+                            </div>
+                            <i class="fas fa-check text-primary opacity-0 group-[.active]:opacity-100"></i>
+                        </button>
+                        
+                        <button onclick="setEngine('mymemory')" class="engine-btn w-full text-left px-3 py-2.5 rounded-lg text-sm border border-gray-200 dark:border-gray-700 hover:border-primary hover:text-primary transition flex items-center justify-between group bg-white dark:bg-black" data-engine="mymemory">
+                            <div>
+                                <div class="font-medium">MyMemory</div>
+                                <div class="text-[10px] text-gray-500 mt-0.5">1000字符/日限额</div>
+                            </div>
+                            <i class="fas fa-check text-primary opacity-0 group-[.active]:opacity-100"></i>
+                        </button>
+                    </div>
+
+                    <button onclick="showApiKeyModal()" class="w-full mt-2 text-xs text-primary hover:underline flex items-center justify-center gap-1 py-1">
+                        <i class="fas fa-key"></i> 配置 Google API Key (可选)
+                    </button>
+                </div>
+
+                <button onclick="toggleDarkMode()" class="mt-6 w-full p-3 rounded-xl border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900 transition flex items-center justify-center gap-2 bg-white dark:bg-black">
+                    <i class="fas fa-moon dark:hidden text-gray-600"></i>
+                    <i class="fas fa-sun hidden dark:inline text-yellow-500"></i>
+                    <span class="text-sm font-medium dark:hidden">深色模式</span>
+                    <span class="text-sm font-medium hidden dark:inline">浅色模式</span>
+                </button>
+                
+                <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
+                    <button onclick="clearCache()" class="w-full p-3 text-xs text-gray-500 hover:text-red-500 transition flex items-center justify-center gap-1">
+                        <i class="fas fa-trash-alt"></i> 清除缓存并重新加载
+                    </button>
+                    <p class="text-[10px] text-center text-gray-400 mt-2">上次更新: <span id="lastUpdateTime">从未</span></p>
+                </div>
+            </div>
+
+            <!-- Progress Panel -->
+            <div id="translationProgress" class="hidden p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
+                <div class="flex items-center justify-between text-xs mb-2">
+                    <span class="font-bold text-gray-700 dark:text-gray-300">正在翻译...</span>
+                    <span id="progressText" class="text-primary font-bold">0/0</span>
+                </div>
+                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
+                    <div id="progressBar" class="bg-primary h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span id="engineStatusText" class="text-[10px] text-gray-500">Google</span>
+                    <button onclick="cancelTranslation()" class="text-[10px] text-red-500 hover:text-red-600 font-medium px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition">取消</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Overlay for mobile sidebar -->
+        <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 hidden md:hidden opacity-0 transition-opacity" onclick="closeSidebar()"></div>
+
+        <!-- Main Content Area - Scrollable -->
+        <main class="flex-1 w-full md:ml-80 md:w-[600px] md:border-r border-gray-200 dark:border-gray-800 h-screen overflow-y-auto pt-14 md:pt-0 scroll-smooth" id="mainContainer">
+            
+            <!-- Desktop Sticky Header -->
+            <div class="sticky top-0 z-20 bg-white/95 dark:bg-black/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <h2 class="text-xl font-bold" id="currentViewTitle">最新动态</h2>
+                    <span class="text-xs text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full" id="itemCount">0 条内容</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="manualRefresh()" class="md:hidden p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 transition text-gray-500" title="手动刷新">
+                        <i class="fas fa-sync-alt text-lg" id="headerRefreshIcon"></i>
+                    </button>
+                    <button onclick="translateVisible()" class="hidden md:flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-5 py-2 rounded-full font-bold transition shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 active:scale-95">
+                        <i class="fas fa-language"></i>
+                        <span>翻译当前内容</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content Stream -->
+            <div id="contentStream" class="divide-y divide-gray-200 dark:divide-gray-800 pb-20 min-h-[calc(100vh-60px)]">
+                <div class="p-12 text-center text-gray-500">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 mb-4">
+                        <i class="fas fa-circle-notch fa-spin text-2xl text-primary"></i>
+                    </div>
+                    <p class="text-lg font-medium mb-1">正在加载内容...</p>
+                    <p class="text-sm text-gray-400">首次加载可能需要几秒钟</p>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden flex-col items-center justify-center py-20 text-gray-500 px-4">
+                <div class="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4 text-3xl">
+                    <i class="fas fa-inbox text-gray-400"></i>
+                </div>
+                <p class="text-lg font-medium mb-2">暂无内容</p>
+                <p class="text-sm text-gray-400 mb-4 text-center">请选择一个资讯源查看内容<br>或点击右上角刷新按钮</p>
+                <button onclick="manualRefresh()" class="px-6 py-2 bg-primary text-white rounded-full text-sm font-medium hover:bg-primary-hover transition">
+                    立即刷新
+                </button>
+            </div>
+
+            <!-- Error State -->
+            <div id="errorState" class="hidden flex-col items-center justify-center py-20 px-4 text-center">
+                <div class="w-20 h-20 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mb-4 text-2xl text-red-500">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <p class="text-lg font-bold text-gray-900 dark:text-white mb-2">加载失败</p>
+                <p id="errorMessage" class="text-sm text-gray-500 mb-6 max-w-xs">网络连接超时或 RSS 源暂时不可用</p>
+                <div class="flex gap-3">
+                    <button onclick="manualRefresh()" class="px-6 py-2 bg-primary text-white rounded-full text-sm font-medium hover:bg-primary-hover transition">
+                        重试
+                    </button>
+                    <button onclick="clearCache()" class="px-6 py-2 border border-gray-300 dark:border-gray-700 rounded-full text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-900 transition">
+                        清除缓存
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading More (Infinite scroll hint) -->
+            <div id="loadingMore" class="hidden py-6 text-center text-gray-400 text-sm">
+                <i class="fas fa-circle-notch fa-spin mr-2"></i> 加载更多...
+            </div>
+        </main>
+    </div>
+
+    <!-- Article Reader Modal -->
+    <div id="articleModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-white dark:bg-black">
+        <div class="sticky top-0 z-10 bg-white/95 dark:bg-black/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
+            <button onclick="closeArticleModal()" class="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-primary transition">
+                <i class="fas fa-arrow-left"></i>
+                <span class="font-medium">返回列表</span>
+            </button>
+            <div class="flex items-center gap-2">
+                <button onclick="translateCurrentArticle()" class="px-4 py-1.5 rounded-full bg-primary hover:bg-primary-hover text-white text-sm font-medium transition">
+                    <i class="fas fa-language mr-1"></i>翻译
+                </button>
+                <a id="articleOriginalLink" href="#" target="_blank" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 text-gray-600 dark:text-gray-300">
+                    <i class="fas fa-external-link-alt"></i>
+                </a>
+            </div>
+        </div>
+        <article class="max-w-2xl mx-auto p-6 md:p-10">
+            <header class="mb-8">
+                <div class="flex items-center gap-2 mb-4 text-sm text-gray-500">
+                    <span id="articleSourceIcon" class="text-lg"></span>
+                    <span id="articleSourceName" class="font-medium"></span>
+                    <span>·</span>
+                    <span id="articleDate"></span>
+                </div>
+                <h1 id="articleTitle" class="text-2xl md:text-3xl font-bold leading-tight mb-4"></h1>
+                <div id="articleTranslationBadge" class="hidden inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full text-xs font-medium mb-4">
+                    <i class="fas fa-check-circle"></i>
+                    <span>已翻译</span>
+                </div>
+            </header>
+            <div id="articleContent" class="article-content text-gray-800 dark:text-gray-200">
+                <!-- Content will be inserted here -->
+            </div>
+            <div id="articleLoading" class="hidden py-12 text-center">
+                <i class="fas fa-circle-notch fa-spin text-3xl text-primary mb-4"></i>
+                <p class="text-gray-500">正在获取全文...</p>
+            </div>
+        </article>
+    </div>
+
+    <!-- API Key Modal -->
+    <div id="apiKeyModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div class="bg-white dark:bg-gray-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-800 transform scale-95 opacity-0 transition-all duration-200" id="apiKeyModalContent">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold">翻译 API 设置</h3>
+                <button onclick="closeApiKeyModal()" class="w-8 h-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center transition">
+                    <i class="fas fa-times text-gray-500"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
+                    <p class="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        免费版 Google Web API 偶尔会有访问限制。如果您有 Google Cloud API Key，可以在此配置以获得更稳定的服务。
+                    </p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Google Cloud API Key</label>
+                    <input type="text" id="googleApiKeyInput" placeholder="AIzaSy..." 
+                           class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-black focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm font-mono">
+                    <p class="mt-1.5 text-xs text-gray-500">留空则使用免费的 Web API (client=gtx)</p>
+                </div>
+                
+                <div class="pt-2">
+                    <button onclick="saveApiKey()" class="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3 rounded-lg transition shadow-lg shadow-blue-500/25">
+                        保存设置
+                    </button>
+                    <button onclick="closeApiKeyModal()" class="w-full mt-2 py-3 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition">
+                        取消
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // RSS Sources with article mode flag
+        const defaultRssSources = [
+            { id: '36kr', name: '36氪', url: 'https://www.36kr.com/feed', icon: '📱', lang: 'zh', isBluesky: false, isArticleMode: true },
+            { id: 'sspai', name: '少数派', url: 'https://sspai.com/feed', icon: '⌨️', lang: 'zh', isBluesky: false, isArticleMode: true },
+            { id: 'infzm', name: '南方周末', url: 'https://rsshub.app/infzm/2', icon: '📰', lang: 'zh', isBluesky: false, isArticleMode: true },
+            { id: 'yystv', name: '游戏研究社', url: 'https://www.yystv.cn/rss/feed', icon: '🎮', lang: 'zh', isBluesky: false, isArticleMode: true },
+            { id: 'chaping', name: '差评', url: 'https://wechat2rss.xlab.app/feed/8d839de8dd3290a1f1be7a94423cccb30c1b087d.xml', icon: '👎', lang: 'zh', isBluesky: false, isArticleMode: true },
+            { id: 'kcna', name: '朝中社', url: 'https://morss.it/:items=%7C%7C*%5Bclass=article-link%5D%7C%7Cli/www.kcna.kp/cn/category/articles/q/1ee9bdb7186944f765208f34ecfb5407.kcmsf', icon: '🇰🇵', lang: 'zh', isBluesky: false, isArticleMode: true },
+            { id: 'guardian', name: '卫报', url: 'https://www.theguardian.com/world/rss', icon: '🏛️', lang: 'en', isBluesky: false, isArticleMode: true },
+            { id: 'nede', name: '内德羽则说', url: 'https://wechat2rss.xlab.app/feed/25ab3bb01cf06dd921fa4887b4cb06c30dc11080.xml', icon: '⚽', lang: 'zh', isBluesky: false, isArticleMode: true },
+            { id: 'skysports', name: '天空体育足球', url: 'https://www.skysports.com/sitemap_news_football.xml', icon: '☁️', lang: 'en', isBluesky: false, isArticleMode: true, isSitemap: true },
+            { id: 'bbc', name: 'BBC足球', url: 'http://feeds.bbci.co.uk/sport/football/rss.xml', icon: '📺', lang: 'en', isBluesky: false, isArticleMode: true },
+            { id: 'jiemian', name: '界面新闻', url: 'https://plink.anyfeeder.com/jiemian/news', icon: '📄', lang: 'zh', isBluesky: false, isArticleMode: true },
+            { id: 'transfermarkt', name: '转会市场网', url: 'https://www.transfermarkt.co.uk/rss/news', icon: '💰', lang: 'en', isBluesky: false, isArticleMode: true },
+            { id: 'caughtoffside', name: '观察越位', url: 'https://www.caughtoffside.com/feed/', icon: '👁️', lang: 'en', isBluesky: false, isArticleMode: true },
+            { id: 'marca', name: '马卡报', url: 'https://e00-marca.uecdn.es/rss/en/index.xml', icon: '🇪🇸', lang: 'es', isBluesky: false, isArticleMode: true },
+            { id: 'footballitalia', name: '足球意大利', url: 'https://football-italia.net/feed/', icon: '🇮🇹', lang: 'en', isBluesky: false, isArticleMode: true },
+            { id: 'juvefc', name: '尤文图斯新闻站', url: 'https://www.juvefc.com/feed/', icon: '⚫⚪', lang: 'en', isBluesky: false, isArticleMode: true },
+            { id: 'getgermany', name: 'GET德国足球新闻网', url: 'https://www.getfootballnewsgermany.com/feed/', icon: '🇩🇪', lang: 'en', isBluesky: false, isArticleMode: true },
+            { id: 'ncaa', name: 'NCAAD1篮球信息', url: 'https://www.ncaa.com/news/basketball-men/d1/rss.xml', icon: '🏀', lang: 'en', isBluesky: false, isArticleMode: true },
+            { id: 'transferleague', name: '足球转会绯闻', url: 'http://feeds.feedburner.com/FootballTransferLeague', icon: '💬', lang: 'en', isBluesky: false, isArticleMode: false },
+            { id: 'norway', name: '挪威足坛转会新闻', url: 'https://bsky.app/profile/did:plc:xvqd75nqekambaybkqlnejtt/rss', icon: '🇳🇴', lang: 'no', isBluesky: true, isArticleMode: false },
+            { id: 'premier', name: '英超新闻', url: 'https://bsky.app/profile/did:plc:vu5uaxuiibiggftt7wu4sutt/rss', icon: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', lang: 'en', isBluesky: true, isArticleMode: false },
+            { id: 'fabrizio', name: 'Fabrizio Romano', url: 'https://bsky.app/profile/did:plc:e35lo4qxz5vo6n5k3m7v5fox/rss', icon: '🔵', lang: 'en', isBluesky: true, isArticleMode: false },
+            { id: 'manutd', name: '曼联球迷组', url: 'https://bsky.app/profile/did:plc:hrerjtl6cy24eellqmrdbl7h/rss', icon: '🔴', lang: 'en', isBluesky: true, isArticleMode: false },
+            { id: 'dortmund', name: '多特新闻站', url: 'https://bsky.app/profile/did:plc:tfe3amdh3nvc7ik7xsomcks4/rss', icon: '🟡', lang: 'de', isBluesky: true, isArticleMode: false },
+            { id: 'villa', name: '阿斯顿维拉新闻站', url: 'https://bsky.app/profile/did:plc:42knfjxyzookbo62xik2e3i4/rss', icon: '🦁', lang: 'en', isBluesky: true, isArticleMode: false },
+            { id: 'pakistan', name: '巴基斯坦足球', url: 'https://bsky.app/profile/did:plc:bdbrfylhpbndmy3yv6rqjfbd/rss', icon: '🇵🇰', lang: 'en', isBluesky: true, isArticleMode: false },
+            { id: 'getgerman', name: 'GET德国足球新闻', url: 'https://bsky.app/profile/did:plc:ydlnjujb2p6oiph3bwwokd5r/rss', icon: '🇩🇪', lang: 'de', isBluesky: true, isArticleMode: false },
+            { id: 'werder', name: '云达不来梅队官方', url: 'https://bsky.app/profile/did:plc:pl76rz7lfiz4mbp6wcwatzos/rss', icon: '🟢', lang: 'de', isBluesky: true, isArticleMode: false },
+            { id: 'ornstein', name: 'David Ornstein', url: 'https://bsky.app/profile/did:plc:j62szermx6ods7lp3xqyembx/rss', icon: '📰', lang: 'en', isBluesky: true, isArticleMode: false },
+            { id: 'fotmob', name: 'FotMob', url: 'https://bsky.app/profile/did:plc:al7sj6uxnzr55ygnhxrj5xkq/rss', icon: '⚽', lang: 'en', isBluesky: true, isArticleMode: false },
+            { id: 'athletic', name: 'The Athletic', url: 'https://bsky.app/profile/did:plc:fa7xejyd32fvuar5hpa2n2yi/rss', icon: '🅰️', lang: 'en', isBluesky: true, isArticleMode: false },
+            { id: 'bundesliga', name: '德甲新闻', url: 'https://bsky.app/profile/did:plc:zh6ehazbgysqkoylzs5mgv7i/rss', icon: '🇩🇪', lang: 'de', isBluesky: true, isArticleMode: false },
+            { id: 'stpauli', name: '圣保利足球俱乐部', url: 'https://bsky.app/profile/did:plc:oqbejnts7vae267t4eu5lxdr/rss', icon: '🟤', lang: 'de', isBluesky: true, isArticleMode: false },
+            { id: 'stuttgart', name: '斯图加特足球俱乐部', url: 'https://bsky.app/profile/did:plc:v4y46iwijb43hzneujmbdsbt/rss', icon: '🔴⚪', lang: 'de', isBluesky: true, isArticleMode: false },
+            { id: 'frankfurt', name: '法兰克福足球俱乐部', url: 'https://bsky.app/profile/did:plc:kqaw5wenmgbyonctl5sehk72/rss', icon: '🔴⚫', lang: 'de', isBluesky: true, isArticleMode: false },
+            { id: 'freiburg', name: '弗莱堡足球俱乐部', url: 'https://bsky.app/profile/did:plc:csvszcab4qzb7u6whrpsi4qg/rss', icon: '⚫🟢', lang: 'de', isBluesky: true, isArticleMode: false }
+        ];
+
+        function loadSourceOrder() {
+            try {
+                const savedOrder = localStorage.getItem('rss_source_order');
+                if (savedOrder) {
+                    const orderIds = JSON.parse(savedOrder);
+                    const ordered = [];
+                    const remaining = [...defaultRssSources];
+                    
+                    orderIds.forEach(id => {
+                        const idx = remaining.findIndex(s => s.id === id);
+                        if (idx !== -1) {
+                            ordered.push(remaining[idx]);
+                            remaining.splice(idx, 1);
+                        }
+                    });
+                    
+                    return [...ordered, ...remaining];
+                }
+            } catch (e) {
+                console.error('Error loading source order:', e);
+            }
+            return defaultRssSources;
+        }
+
+        function saveSourceOrder() {
+            try {
+                const order = rssSources.map(s => s.id);
+                localStorage.setItem('rss_source_order', JSON.stringify(order));
+            } catch (e) {
+                console.error('Error saving source order:', e);
+            }
+        }
+
+        const rssSources = loadSourceOrder();
+
+        const state = {
+            items: [],
+            currentSource: 'all',
+            translations: new Map(),
+            translating: false,
+            abortController: null,
+            engine: localStorage.getItem('translate_engine') || 'google',
+            apiKey: localStorage.getItem('google_cloud_key') || '',
+            darkMode: localStorage.getItem('darkMode') === 'true' || 
+                     (!localStorage.getItem('darkMode') && window.matchMedia('(prefers-color-scheme: dark)').matches),
+            lastRefresh: null,
+            currentArticle: null,
+            sourceSortable: null
+        };
+
+        const storage = {
+            getTranslations() {
+                try {
+                    return new Map(JSON.parse(localStorage.getItem('rss_translations_v5') || '[]'));
+                } catch { return new Map(); }
+            },
+            saveTranslations() {
+                localStorage.setItem('rss_translations_v5', JSON.stringify([...state.translations]));
+            },
+            getCurrentSource() {
+                return localStorage.getItem('rss_current_source') || 'all';
+            },
+            saveCurrentSource() {
+                localStorage.setItem('rss_current_source', state.currentSource);
+            }
+        };
+
+        state.translations = storage.getTranslations();
+        state.currentSource = storage.getCurrentSource();
+
+        const engines = {
+            async google(text, sourceLang = 'en') {
+                if (state.apiKey) {
+                    try {
+                        const url = `https://translation.googleapis.com/language/translate/v2?key=${state.apiKey}`;
+                        const res = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ q: text, target: 'zh', format: 'text' })
+                        });
+                        const data = await res.json();
+                        if (data.data?.translations?.[0]?.translatedText) {
+                            return data.data.translations[0].translatedText;
+                        }
+                    } catch (e) {
+                        console.log('Cloud API failed, using web fallback');
+                    }
+                }
+                
+                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=zh&dt=t&q=${encodeURIComponent(text.substring(0, 1500))}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data && data[0]) {
+                    return data[0].map(item => item[0]).join('');
+                }
+                throw new Error('Google translate failed');
+            },
+
+            async bing(text, sourceLang = 'en') {
+                try {
+                    const url = `https://bing-translator-api.vercel.app/api/translate?text=${encodeURIComponent(text)}&from=${sourceLang}&to=zh`;
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    if (data.translation) return data.translation;
+                } catch (e) {
+                    throw new Error('Bing translation failed');
+                }
+            },
+
+            async mymemory(text, sourceLang = 'en') {
+                const pair = sourceLang === 'zh' ? 'zh|en' : `${sourceLang}|zh`;
+                const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.substring(0, 500))}&langpair=${pair}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data.responseStatus === 429) throw new Error('MyMemory daily limit reached');
+                if (data.responseData?.translatedText) return data.responseData.translatedText;
+                throw new Error('MyMemory failed');
+            }
+        };
+
+        // Enhanced CORS fetching with multiple fallbacks
+        async function fetchWithCors(url, isSitemap = false) {
+            // Try rss2json first for RSS feeds (most reliable)
+            if (!isSitemap && url.includes('http')) {
+                try {
+                    const rss2jsonUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`;
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 10000);
+                    
+                    const res = await fetch(rss2jsonUrl, { signal: controller.signal });
+                    clearTimeout(timeout);
+                    
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.items && data.items.length > 0) {
+                            return { type: 'rss2json', data };
+                        }
+                    }
+                } catch (e) {
+                    console.log('rss2json failed:', e);
+                }
+            }
+
+            // Try allorigins for XML/Sitemap
+            const proxies = [
+                `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+                `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+            ];
+            
+            for (let proxyUrl of proxies) {
+                try {
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 10000);
+                    
+                    const res = await fetch(proxyUrl, { signal: controller.signal });
+                    clearTimeout(timeout);
+                    
+                    if (!res.ok) continue;
+                    
+                    const data = await res.json();
+                    if (data.contents) {
+                        if (isSitemap) {
+                            return { type: 'sitemap', content: data.contents };
+                        }
+                        // Try to parse as RSS
+                        try {
+                            const parser = new DOMParser();
+                            const xmlDoc = parser.parseFromString(data.contents, 'text/xml');
+                            const items = xmlDoc.querySelectorAll('item');
+                            if (items.length > 0) {
+                                return { type: 'xml', content: data.contents };
+                            }
+                        } catch (e) {
+                            // Not valid XML, continue
+                        }
+                    }
+                } catch (e) {
+                    console.log(`Proxy failed: ${proxyUrl}`, e);
+                    continue;
+                }
+            }
+            
+            throw new Error('All proxies failed');
+        }
+
+        // Parse Sitemap XML (for Sky Sports)
+        function parseSitemap(xmlContent) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlContent, 'text/xml');
+            const urls = xmlDoc.querySelectorAll('url');
+            
+            return Array.from(urls).map((url, idx) => {
+                const loc = url.querySelector('loc')?.textContent || '';
+                const news = url.querySelector('news\\:news');
+                let title = '';
+                let pubDate = new Date();
+                
+                if (news) {
+                    title = news.querySelector('news\\:title')?.textContent || '';
+                    const pubDateText = news.querySelector('news\\:publication_date')?.textContent;
+                    if (pubDateText) pubDate = new Date(pubDateText);
+                }
+                
+                // Extract description from URL or title
+                let description = title;
+                
+                return {
+                    id: `skysports_${idx}_${Date.now()}`,
+                    sourceId: 'skysports',
+                    sourceName: '天空体育足球',
+                    sourceIcon: '☁️',
+                    title: title || 'Sky Sports News',
+                    description: description,
+                    link: loc,
+                    pubDate: pubDate,
+                    lang: 'en',
+                    isArticleMode: true
+                };
+            }).filter(item => item.title && item.link); // Only return items with title and link
+        }
+
+        async function fetchRSS(source) {
+            try {
+                const result = await fetchWithCors(source.url, source.isSitemap);
+                
+                if (source.isSitemap && result.type === 'sitemap') {
+                    return parseSitemap(result.content);
+                }
+                
+                if (result.type === 'rss2json') {
+                    return result.data.items.map((item, idx) => ({
+                        id: `${source.id}_${idx}_${Date.now()}`,
+                        sourceId: source.id,
+                        sourceName: source.name,
+                        sourceIcon: source.icon,
+                        title: item.title || '',
+                        description: item.description || item.content || item.title || '',
+                        link: item.link,
+                        pubDate: new Date(item.pubDate || Date.now()),
+                        lang: source.lang,
+                        isArticleMode: source.isArticleMode
+                    }));
+                } else if (result.type === 'xml') {
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(result.content, 'text/xml');
+                    const items = xmlDoc.querySelectorAll('item');
+                    
+                    return Array.from(items).map((item, idx) => {
+                        const title = item.querySelector('title')?.textContent || '';
+                        let desc = item.querySelector('description')?.textContent || title;
+                        let contentEncoded = item.querySelector('content\\:encoded')?.textContent || '';
+                        
+                        if (desc.includes('<![CDATA[')) {
+                            desc = desc.replace(/<!\[CDATA\[(.*?)\]\]>/s, '$1');
+                        }
+                        if (contentEncoded.includes('<![CDATA[')) {
+                            contentEncoded = contentEncoded.replace(/<!\[CDATA\[(.*?)\]\]>/s, '$1');
+                        }
+                        
+                        const finalContent = contentEncoded || desc;
+                        
+                        return {
+                            id: `${source.id}_${idx}_${Date.now()}`,
+                            sourceId: source.id,
+                            sourceName: source.name,
+                            sourceIcon: source.icon,
+                            title,
+                            description: finalContent,
+                            descriptionText: desc.replace(/<[^>]+>/g, ''),
+                            link: item.querySelector('link')?.textContent || '',
+                            pubDate: new Date(item.querySelector('pubDate')?.textContent || Date.now()),
+                            lang: source.lang,
+                            isArticleMode: source.isArticleMode
+                        };
+                    });
+                }
+            } catch (error) {
+                console.error(`Error fetching ${source.name}:`, error);
+                // Return empty array but don't throw to allow other sources to load
+                return [];
+            }
+            return [];
+        }
+
+        async function fetchFullArticle(url, sourceId) {
+            try {
+                // Special handling for different domains
+                const corsProxies = [
+                    `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+                    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+                ];
+                
+                let html = null;
+                for (const proxyUrl of corsProxies) {
+                    try {
+                        const res = await fetch(proxyUrl);
+                        const data = await res.json();
+                        if (data.contents) {
+                            html = data.contents;
+                            break;
+                        }
+                    } catch (e) {
+                        continue;
+                    }
+                }
+                
+                if (!html) throw new Error('No content');
+                
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Enhanced source-specific selectors
+                const sourceSelectors = {
+                    '36kr': ['.article-detail-content', '.article-content', '.content-detail', 'article', '.main-content'],
+                    'sspai': ['#article-content', '.article-detail', '.content', 'article', '.article-body'],
+                    'infzm': ['.article-content', '.content', '#content', 'article', '.article-body'],
+                    'yystv': ['.content-text', 'article', '.article-content', '.post-content', '[class*="content"]'],
+                    'chaping': ['.rich_media_content', '#js_content', 'article', '.article-content', '.content'],
+                    'kcna': ['.article-content', '.content-detail', '.news-content', '.detail-content', 'article'],
+                    'marca': ['.ue-c-article__body', '.ue-c-article__content', 'article'],
+                    'guardian': ['.article-body-commercial-selector', '.content__article-body', 'article'],
+                    'transfermarkt': ['.main-content', '.article-content', '#main'],
+                    'caughtoffside': ['.entry-content', 'article', '.post-content'],
+                    'footballitalia': ['.entry-content', 'article'],
+                    'juvefc': ['.entry-content', 'article'],
+                    'getgermany': ['.entry-content', 'article'],
+                    'skysports': ['.article-body', '.content', 'article', '.article__body', '.sdc-article-body'],
+                    'bbc': ['.article-body', '.content', 'article', '.story-body', '.ssrcss-pv1rh6-ArticleWrapper'],
+                    'jiemian': ['.article-content', '.content', 'article', '.main-content', '.article-body'],
+                    'nede': ['.rich_media_content', '#js_content', 'article']
+                };
+                
+                const selectors = sourceSelectors[sourceId] || [
+                    'article',
+                    '[role="main"]',
+                    '.post-content',
+                    '.entry-content',
+                    '.article-content',
+                    '.content-area',
+                    'main',
+                    '.content',
+                    '#content'
+                ];
+                
+                let content = null;
+                for (let sel of selectors) {
+                    content = doc.querySelector(sel);
+                    if (content) break;
+                }
+                
+                // Special handling for KCNA
+                if (sourceId === 'kcna' && content) {
+                    const langSelector = content.querySelector('.lang-selector, .language-selector, select');
+                    if (langSelector) {
+                        langSelector.remove();
+                    }
+                    if (content.textContent.length < 200 || content.innerHTML.includes('Language') || content.innerHTML.includes('语言')) {
+                        const paragraphs = doc.querySelectorAll('p');
+                        if (paragraphs.length > 3) {
+                            const articleDiv = doc.createElement('div');
+                            paragraphs.forEach(p => {
+                                if (p.textContent.length > 20) {
+                                    articleDiv.appendChild(p.cloneNode(true));
+                                }
+                            });
+                            return articleDiv.innerHTML;
+                        }
+                    }
+                }
+                
+                // For Chinese sites, ensure no vertical text
+                if ((sourceId === 'sspai' || sourceId === 'yystv' || sourceId === 'chaping' || sourceId === 'jiemian' || sourceId === '36kr' || sourceId === 'infzm') && content) {
+                    const navs = content.querySelectorAll('nav, .nav, .navigation, header, .header, .navbar');
+                    navs.forEach(n => n.remove());
+                    
+                    const styles = content.getAttribute('style') || '';
+                    if (styles.includes('writing-mode') || content.innerHTML.includes('vertical')) {
+                        const nestedContent = content.querySelector('[class*="content"], article, .article');
+                        if (nestedContent) content = nestedContent;
+                    }
+                }
+                
+                if (!content) {
+                    content = doc.body;
+                    if (content) {
+                        const toRemove = content.querySelectorAll('script, style, nav, header, footer, aside, .advertisement, .ads, .sidebar, .comments, select');
+                        toRemove.forEach(s => s.remove());
+                    }
+                }
+                
+                if (content) {
+                    const scripts = content.querySelectorAll('script, style, iframe, ins, select');
+                    scripts.forEach(s => s.remove());
+                    
+                    return content.innerHTML;
+                }
+                
+                return doc.body?.innerHTML || null;
+            } catch (error) {
+                console.error('Fetch article error:', error);
+                return null;
+            }
+        }
+
+        function sanitizeHtml(html) {
+            const allowedTags = ['p', 'br', 'strong', 'em', 'b', 'i', 'u', 'a', 'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'figure', 'figcaption', 'div', 'span', 'section', 'article'];
+            const allowedAttributes = ['href', 'src', 'alt', 'title', 'class'];
+            
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            function cleanNode(node) {
+                if (node.nodeType === 3) return node.cloneNode();
+                
+                if (node.nodeType === 1) {
+                    const tagName = node.tagName.toLowerCase();
+                    if (!allowedTags.includes(tagName)) {
+                        const span = doc.createElement('span');
+                        span.textContent = node.textContent;
+                        return span;
+                    }
+                    
+                    const newNode = doc.createElement(tagName);
+                    
+                    allowedAttributes.forEach(attr => {
+                        if (node.hasAttribute(attr)) {
+                            let val = node.getAttribute(attr);
+                            if (attr === 'src' && val && !val.startsWith('http') && !val.startsWith('data:')) {
+                                val = 'https:' + (val.startsWith('//') ? '' : '//') + val;
+                            }
+                            newNode.setAttribute(attr, val);
+                        }
+                    });
+                    
+                    Array.from(node.childNodes).forEach(child => {
+                        newNode.appendChild(cleanNode(child));
+                    });
+                    
+                    return newNode;
+                }
+                
+                return doc.createTextNode('');
+            }
+            
+            const body = doc.body;
+            const cleaned = doc.createElement('div');
+            Array.from(body.childNodes).forEach(node => {
+                cleaned.appendChild(cleanNode(node));
+            });
+            
+            return cleaned.innerHTML;
+        }
+
+        function splitIntoParagraphs(html) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const paragraphs = [];
+            
+            const blocks = doc.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, div');
+            blocks.forEach(block => {
+                const text = block.textContent.trim();
+                if (text.length > 10) {
+                    paragraphs.push(text);
+                }
+            });
+            
+            if (paragraphs.length === 0) {
+                return html.split(/\n\s*\n/).filter(p => p.trim().length > 10);
+            }
+            
+            return paragraphs;
+        }
+
+        function createBilingualHtml(originalHtml, translatedText) {
+            const originalParas = splitIntoParagraphs(originalHtml);
+            const translatedParas = translatedText.split(/\n\s*\n/).filter(p => p.trim());
+            
+            let html = '<div class="bilingual-content">';
+            
+            const maxLen = Math.max(originalParas.length, translatedParas.length);
+            
+            for (let i = 0; i < maxLen; i++) {
+                if (originalParas[i]) {
+                    html += `<div class="original">${escapeHtml(originalParas[i])}</div>`;
+                }
+                if (translatedParas[i]) {
+                    html += `<div class="translated">${escapeHtml(translatedParas[i])}</div>`;
+                }
+            }
+            
+            html += '</div>';
+            return html;
+        }
+
+        function extractTextFromHtml(html) {
+            const tmp = document.createElement('div');
+            tmp.innerHTML = html;
+            return tmp.textContent || tmp.innerText || '';
+        }
+
+        async function loadAllFeeds(showLoading = true) {
+            const stream = document.getElementById('contentStream');
+            const errorState = document.getElementById('errorState');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (showLoading) {
+                stream.innerHTML = `
+                    <div class="p-8 space-y-4">
+                        ${Array(4).fill(0).map(() => `
+                            <div class="flex gap-3 animate-pulse">
+                                <div class="w-10 h-10 bg-gray-200 dark:bg-gray-800 rounded-full skeleton"></div>
+                                <div class="flex-1 space-y-2 py-1">
+                                    <div class="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/3 skeleton"></div>
+                                    <div class="h-3 bg-gray-200 dark:bg-gray-800 rounded w-full skeleton"></div>
+                                    <div class="h-3 bg-gray-200 dark:bg-gray-800 rounded w-2/3 skeleton"></div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            errorState.classList.add('hidden');
+            errorState.classList.remove('flex');
+            emptyState.classList.add('hidden');
+            emptyState.classList.remove('flex');
+
+            try {
+                document.querySelectorAll('.fa-sync-alt').forEach(icon => icon.classList.add('fa-spin'));
+                
+                const promises = rssSources.map(source => fetchRSS(source));
+                const results = await Promise.allSettled(promises);
+                let allItems = [];
+                
+                results.forEach((result, index) => {
+                    if (result.status === 'fulfilled' && result.value.length > 0) {
+                        allItems.push(...result.value);
+                    }
+                });
+                
+                if (allItems.length === 0) {
+                    throw new Error('未能获取任何内容，请检查网络连接或稍后重试');
+                }
+                
+                allItems.sort((a, b) => b.pubDate - a.pubDate);
+                
+                state.items = allItems;
+                state.lastRefresh = new Date();
+                
+                document.getElementById('lastUpdateTime').textContent = 
+                    new Date().toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                
+                renderItems();
+                
+                document.getElementById('mainContainer').scrollTop = 0;
+                
+            } catch (error) {
+                stream.innerHTML = '';
+                errorState.classList.remove('hidden');
+                errorState.classList.add('flex');
+                document.getElementById('errorMessage').textContent = error.message;
+            } finally {
+                setTimeout(() => {
+                    document.querySelectorAll('.fa-sync-alt').forEach(icon => icon.classList.remove('fa-spin'));
+                }, 500);
+            }
+        }
+
+        function manualRefresh() {
+            loadAllFeeds(true);
+        }
+
+        function getFilteredItems() {
+            if (state.currentSource === 'all') {
+                return state.items;
+            }
+            return state.items.filter(i => i.sourceId === state.currentSource);
+        }
+
+        function isArticleModeItem(item) {
+            return item.isArticleMode;
+        }
+
+        function renderItems() {
+            const stream = document.getElementById('contentStream');
+            const filtered = getFilteredItems();
+            const currentSourceObj = rssSources.find(s => s.id === state.currentSource);
+            
+            document.getElementById('currentViewTitle').textContent = 
+                state.currentSource === 'all' ? '全部资讯' : currentSourceObj?.name || '最新动态';
+            document.getElementById('itemCount').textContent = `${filtered.length} 条内容`;
+            
+            if (filtered.length === 0) {
+                stream.innerHTML = '';
+                document.getElementById('emptyState').classList.remove('hidden');
+                document.getElementById('emptyState').classList.add('flex');
+                return;
+            }
+            
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('emptyState').classList.remove('flex');
+            
+            stream.innerHTML = filtered.map(item => {
+                const translation = state.translations.get(item.id);
+                const isArticle = isArticleModeItem(item);
+                
+                if (isArticle) {
+                    const title = translation?.title || item.title;
+                    const content = translation?.content || item.descriptionText || item.description.replace(/<[^>]+>/g, '').substring(0, 200);
+                    const isShortContent = !item.description || item.description.length < 500;
+                    
+                    return `
+                    <article class="article-card p-4 border-b border-gray-200 dark:border-gray-800 cursor-pointer no-touch-callout" 
+                             onclick="openArticle('${item.id}')" data-id="${item.id}">
+                        <div class="flex gap-3">
+                            <div class="flex-shrink-0">
+                                <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                                    ${item.sourceIcon}
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-1.5 text-sm mb-2">
+                                    <span class="font-bold text-gray-900 dark:text-white truncate">${escapeHtml(item.sourceName)}</span>
+                                    <span class="text-gray-400">·</span>
+                                    <span class="text-gray-500 text-xs" title="${item.pubDate.toLocaleString('zh-CN')}">${timeAgo(item.pubDate)}</span>
+                                </div>
+                                
+                                <h3 class="font-bold text-lg mb-2 text-gray-900 dark:text-white leading-snug">${escapeHtml(title)}</h3>
+                                
+                                <div class="text-[15px] leading-relaxed text-gray-600 dark:text-gray-400 line-clamp-3 mb-3">
+                                    ${escapeHtml(content)}${content.length > 200 ? '...' : ''}
+                                </div>
+                                
+                                ${translation ? `
+                                <div class="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded text-xs font-medium">
+                                    <i class="fas fa-check-circle"></i> 已翻译
+                                </div>
+                                ` : ''}
+                                
+                                ${isShortContent ? `
+                                <div class="mt-2 text-xs text-primary flex items-center gap-1">
+                                    <i class="fas fa-expand-alt"></i> 点击获取全文
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </article>
+                    `;
+                } else {
+                    const content = translation?.content || item.description;
+                    const isZh = item.lang === 'zh';
+                    
+                    return `
+                    <article class="tweet-card p-4 border-b border-gray-200 dark:border-gray-800 no-touch-callout" data-id="${item.id}">
+                        <div class="flex gap-3">
+                            <div class="flex-shrink-0">
+                                <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                                    ${item.sourceIcon}
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-1.5 text-sm mb-1">
+                                    <span class="font-bold text-gray-900 dark:text-white hover:underline cursor-pointer truncate">${escapeHtml(item.sourceName)}</span>
+                                    <span class="text-gray-400">·</span>
+                                    <span class="text-gray-500 text-xs hover:underline cursor-pointer" title="${item.pubDate.toLocaleString('zh-CN')}">${timeAgo(item.pubDate)}</span>
+                                </div>
+                                
+                                <div class="text-[15px] leading-relaxed text-gray-900 dark:text-gray-100 break-words mb-3">
+                                    ${linkify(escapeHtml(content))}
+                                </div>
+                                
+                                ${translation ? `
+                                <div class="mt-2 p-3 bg-blue-50/50 dark:bg-blue-900/20 border-l-4 border-primary rounded-r-lg text-[15px] leading-relaxed text-gray-800 dark:text-gray-200">
+                                    <div class="text-xs text-primary font-bold mb-1 flex items-center gap-1">
+                                        <i class="fas fa-check-circle"></i> 翻译结果 (${state.engine})
+                                    </div>
+                                    ${linkify(escapeHtml(translation.content))}
+                                </div>
+                                ` : ''}
+                                
+                                ${!isZh ? `
+                                <div class="flex items-center justify-between mt-3 pt-2 border-t border-gray-100 dark:border-gray-800/50">
+                                    <div class="flex items-center gap-6">
+                                        <button onclick="event.stopPropagation(); toggleTranslate('${item.id}')" 
+                                                class="group flex items-center gap-2 hover:text-primary transition text-sm ${translation ? 'text-primary' : 'text-gray-500'}">
+                                            <div class="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition">
+                                                <i class="fas fa-language ${state.translating ? 'translating' : ''}"></i>
+                                            </div>
+                                            <span class="hidden sm:inline font-medium">${translation ? '隐藏翻译' : '翻译'}</span>
+                                        </button>
+                                        
+                                        <a href="${item.link}" target="_blank" onclick="event.stopPropagation()" class="group flex items-center gap-2 text-gray-500 hover:text-green-600 transition text-sm">
+                                            <div class="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-green-50 dark:group-hover:bg-green-900/20 transition">
+                                                <i class="fas fa-external-link-alt text-xs"></i>
+                                            </div>
+                                        </a>
+                                    </div>
+                                    
+                                    <button onclick="event.stopPropagation(); shareItem('${escapeHtml(item.title)}', '${item.link}')" class="text-gray-400 hover:text-primary transition p-2">
+                                        <i class="fas fa-share-alt text-sm"></i>
+                                    </button>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </article>
+                    `;
+                }
+            }).join('');
+        }
+
+        async function openArticle(itemId) {
+            const item = state.items.find(i => i.id === itemId);
+            if (!item) return;
+            
+            state.currentArticle = item;
+            
+            const modal = document.getElementById('articleModal');
+            const contentDiv = document.getElementById('articleContent');
+            const loadingDiv = document.getElementById('articleLoading');
+            
+            const translation = state.translations.get(itemId);
+            document.getElementById('articleTitle').textContent = translation?.title || item.title;
+            document.getElementById('articleSourceName').textContent = item.sourceName;
+            document.getElementById('articleSourceIcon').textContent = item.sourceIcon;
+            document.getElementById('articleDate').textContent = item.pubDate.toLocaleString('zh-CN');
+            document.getElementById('articleOriginalLink').href = item.link;
+            
+            const badge = document.getElementById('articleTranslationBadge');
+            if (translation) {
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+            
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            
+            const isShortContent = !item.description || item.description.length < 500;
+            if (isShortContent || !item.fullContent) {
+                loadingDiv.classList.remove('hidden');
+                contentDiv.innerHTML = '';
+                
+                const fullHtml = await fetchFullArticle(item.link, item.sourceId);
+                loadingDiv.classList.add('hidden');
+                
+                if (fullHtml) {
+                    item.fullContent = fullHtml;
+                    const sanitized = sanitizeHtml(fullHtml);
+                    if (translation && translation.original) {
+                        contentDiv.innerHTML = createBilingualHtml(translation.original, translation.content);
+                    } else {
+                        contentDiv.innerHTML = sanitized;
+                    }
+                } else {
+                    const sanitized = sanitizeHtml(item.description);
+                    if (translation && translation.original) {
+                        contentDiv.innerHTML = createBilingualHtml(translation.original, translation.content);
+                    } else {
+                        contentDiv.innerHTML = sanitized;
+                    }
+                }
+            } else {
+                const sanitized = sanitizeHtml(item.fullContent);
+                if (translation && translation.original) {
+                    contentDiv.innerHTML = createBilingualHtml(translation.original, translation.content);
+                } else {
+                    contentDiv.innerHTML = sanitized;
+                }
+            }
+        }
+
+        function closeArticleModal() {
+            const modal = document.getElementById('articleModal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+            state.currentArticle = null;
+        }
+
+        async function translateCurrentArticle() {
+            if (!state.currentArticle) return;
+            
+            const item = state.currentArticle;
+            const contentDiv = document.getElementById('articleContent');
+            const badge = document.getElementById('articleTranslationBadge');
+            const titleEl = document.getElementById('articleTitle');
+            
+            if (state.translations.has(item.id)) {
+                const original = item.fullContent || item.description;
+                contentDiv.innerHTML = sanitizeHtml(original);
+                titleEl.textContent = item.title;
+                state.translations.delete(item.id);
+                storage.saveTranslations();
+                badge.classList.add('hidden');
+                return;
+            }
+            
+            const originalHtml = item.fullContent || item.description;
+            const textToTranslate = extractTextFromHtml(originalHtml);
+            const btn = document.querySelector('#articleModal button[onclick="translateCurrentArticle()"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-1"></i>翻译中...';
+            btn.disabled = true;
+            
+            try {
+                const engineFn = engines[state.engine];
+                
+                const paragraphs = splitIntoParagraphs(originalHtml);
+                const translatedParagraphs = [];
+                
+                for (const para of paragraphs) {
+                    if (para.length > 10) {
+                        const translated = await engineFn(para, item.lang);
+                        translatedParagraphs.push(translated);
+                        await new Promise(r => setTimeout(r, 300));
+                    } else {
+                        translatedParagraphs.push(para);
+                    }
+                }
+                
+                const translatedContent = translatedParagraphs.join('\n\n');
+                
+                let translatedTitle = item.title;
+                if (item.lang !== 'zh') {
+                    translatedTitle = await engineFn(item.title, item.lang);
+                }
+                
+                const translationData = {
+                    title: translatedTitle,
+                    content: translatedContent,
+                    original: originalHtml
+                };
+                
+                state.translations.set(item.id, translationData);
+                storage.saveTranslations();
+                
+                contentDiv.innerHTML = createBilingualHtml(originalHtml, translatedContent);
+                titleEl.textContent = translatedTitle;
+                badge.classList.remove('hidden');
+            } catch (err) {
+                showToast('翻译失败: ' + err.message, 'error');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function updateItemTranslation(id, title, content, original) {
+            if (state.currentArticle && state.currentArticle.id === id) {
+                const contentDiv = document.getElementById('articleContent');
+                if (original) {
+                    contentDiv.innerHTML = createBilingualHtml(original, content);
+                } else {
+                    contentDiv.innerHTML = sanitizeHtml(content);
+                }
+                document.getElementById('articleTitle').textContent = title;
+                document.getElementById('articleTranslationBadge').classList.remove('hidden');
+            }
+            renderItems();
+        }
+
+        async function toggleTranslate(id) {
+            if (state.translations.has(id)) {
+                state.translations.delete(id);
+                storage.saveTranslations();
+                renderItems();
+                return;
+            }
+            
+            await translateSingle(id);
+        }
+
+        async function translateSingle(id) {
+            const item = state.items.find(i => i.id === id);
+            if (!item) return;
+            
+            const btn = document.querySelector(`article[data-id="${CSS.escape(id)}"] button[onclick^="toggleTranslate"] i`);
+            if (btn) btn.classList.add('translating');
+            
+            try {
+                const engineFn = engines[state.engine];
+                const originalText = item.fullContent || item.description;
+                const text = extractTextFromHtml(originalText);
+                
+                let translatedTitle = item.title;
+                if (item.isArticleMode && item.lang !== 'zh') {
+                    translatedTitle = await engineFn(item.title, item.lang);
+                }
+                
+                const translatedContent = await engineFn(text, item.lang);
+                
+                state.translations.set(id, {
+                    title: translatedTitle,
+                    content: translatedContent,
+                    original: originalText
+                });
+                
+                storage.saveTranslations();
+                updateItemTranslation(id, translatedTitle, translatedContent, originalText);
+            } catch (err) {
+                showToast('翻译失败: ' + err.message, 'error');
+            } finally {
+                if (btn) btn.classList.remove('translating');
+            }
+        }
+
+        async function translateVisible() {
+            const visibleItems = getFilteredItems().filter(i => 
+                i.lang !== 'zh' && !state.translations.has(i.id)
+            );
+            
+            if (visibleItems.length === 0) {
+                showToast('没有需要翻译的内容');
+                return;
+            }
+            
+            if (state.translating) return;
+            
+            state.translating = true;
+            state.abortController = new AbortController();
+            
+            updateProgress(0, visibleItems.length);
+            
+            for (let i = 0; i < visibleItems.length; i++) {
+                if (state.abortController.signal.aborted) break;
+                
+                const item = visibleItems[i];
+                try {
+                    const engineFn = engines[state.engine];
+                    const originalText = item.fullContent || item.description;
+                    const text = extractTextFromHtml(originalText);
+                    
+                    let translatedTitle = item.title;
+                    if (item.isArticleMode && item.lang !== 'zh') {
+                        translatedTitle = await engineFn(item.title, item.lang);
+                    }
+                    
+                    const translatedContent = await engineFn(text, item.lang);
+                    
+                    state.translations.set(item.id, {
+                        title: translatedTitle,
+                        content: translatedContent,
+                        original: originalText
+                    });
+                    
+                    updateItemTranslation(item.id, translatedTitle, translatedContent, originalText);
+                    updateProgress(i + 1, visibleItems.length);
+                    
+                    if (i % 2 === 0) storage.saveTranslations();
+                    await new Promise(r => setTimeout(r, 600));
+                } catch (err) {
+                    console.error(err);
+                    if (err.message.includes('limit') || err.message.includes('429')) {
+                        showToast('触发限流，请切换引擎或稍后重试', 'error');
+                        break;
+                    }
+                }
+            }
+            
+            storage.saveTranslations();
+            state.translating = false;
+            updateProgress(0, 0);
+            showToast('翻译完成');
+        }
+
+        function updateProgress(current, total) {
+            const el = document.getElementById('translationProgress');
+            const bar = document.getElementById('progressBar');
+            const text = document.getElementById('progressText');
+            
+            if (total === 0) {
+                el.classList.add('hidden');
+                return;
+            }
+            
+            el.classList.remove('hidden');
+            bar.style.width = `${(current / total) * 100}%`;
+            text.textContent = `${current}/${total}`;
+            document.getElementById('engineStatusText').textContent = state.engine.toUpperCase();
+        }
+
+        function cancelTranslation() {
+            if (state.abortController) {
+                state.abortController.abort();
+                state.translating = false;
+                updateProgress(0, 0);
+            }
+        }
+
+        function timeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            if (seconds < 60) return `${seconds}秒前`;
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}分钟前`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}小时前`;
+            const days = Math.floor(hours / 24);
+            if (days < 30) return `${days}天前`;
+            return date.toLocaleDateString('zh-CN', {month: 'short', day: 'numeric'});
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function linkify(text) {
+            if (!text) return '';
+            return text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" class="text-primary hover:underline break-all">$1</a>');
+        }
+
+        function initSidebar() {
+            const container = document.getElementById('sourceFilters');
+            
+            const allActive = state.currentSource === 'all' ? 'bg-gray-100 dark:bg-gray-800 border-l-4 border-primary' : 'hover:bg-gray-50 dark:hover:bg-gray-900 border-l-4 border-transparent';
+            
+            let html = `
+                <div class="source-item cursor-pointer p-3 rounded-lg mb-2 transition flex items-center justify-between ${allActive}" data-id="all">
+                    <div class="flex items-center gap-3 flex-1">
+                        <span class="text-lg">📰</span>
+                        <span class="font-medium">全部资讯</span>
+                    </div>
+                    ${state.currentSource === 'all' ? '<i class="fas fa-check text-primary text-sm"></i>' : ''}
+                </div>
+                <div class="border-t border-gray-200 dark:border-gray-800 my-2"></div>
+            `;
+            
+            const articleSources = rssSources.filter(s => s.isArticleMode);
+            const tweetSources = rssSources.filter(s => !s.isArticleMode);
+            
+            html += `<div class="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider flex items-center justify-between">
+                <span>文章源</span>
+                <i class="fas fa-grip-lines text-gray-300 drag-hint" style="display:none;"></i>
+            </div>`;
+            html += `<div class="source-group" data-type="article">`;
+            html += articleSources.map(source => {
+                const isActive = state.currentSource === source.id;
+                const activeClass = isActive ? 'bg-gray-100 dark:bg-gray-800 border-l-4 border-primary' : 'hover:bg-gray-50 dark:hover:bg-gray-900 border-l-4 border-transparent';
+                return `
+                <div class="source-item cursor-pointer p-3 rounded-lg mb-1 transition flex items-center justify-between ${activeClass}" data-id="${source.id}">
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                        <span class="drag-handle text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 mr-1">
+                            <i class="fas fa-grip-vertical text-xs opacity-50"></i>
+                        </span>
+                        <span class="text-lg flex-shrink-0">${source.icon}</span>
+                        <span class="font-medium text-sm truncate">${escapeHtml(source.name)}</span>
+                    </div>
+                    ${isActive ? '<i class="fas fa-check text-primary text-sm flex-shrink-0 ml-2"></i>' : ''}
+                </div>
+                `;
+            }).join('');
+            html += `</div>`;
+            
+            html += `<div class="text-xs font-semibold text-gray-400 mb-2 mt-4 uppercase tracking-wider flex items-center justify-between">
+                <span>快讯源</span>
+                <i class="fas fa-grip-lines text-gray-300 drag-hint" style="display:none;"></i>
+            </div>`;
+            html += `<div class="source-group" data-type="tweet">`;
+            html += tweetSources.map(source => {
+                const isActive = state.currentSource === source.id;
+                const activeClass = isActive ? 'bg-gray-100 dark:bg-gray-800 border-l-4 border-primary' : 'hover:bg-gray-50 dark:hover:bg-gray-900 border-l-4 border-transparent';
+                return `
+                <div class="source-item cursor-pointer p-3 rounded-lg mb-1 transition flex items-center justify-between ${activeClass}" data-id="${source.id}">
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                        <span class="drag-handle text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 mr-1">
+                            <i class="fas fa-grip-vertical text-xs opacity-50"></i>
+                        </span>
+                        <span class="text-lg flex-shrink-0">${source.icon}</span>
+                        <span class="font-medium text-sm truncate">${escapeHtml(source.name)}</span>
+                    </div>
+                    ${isActive ? '<i class="fas fa-check text-primary text-sm flex-shrink-0 ml-2"></i>' : ''}
+                </div>
+                `;
+            }).join('');
+            html += `</div>`;
+            
+            container.innerHTML = html;
+            
+            document.querySelectorAll('.drag-hint, #sortHint').forEach(el => el.style.display = 'inline-block');
+            
+            document.querySelectorAll('.source-group').forEach(group => {
+                new Sortable(group, {
+                    handle: '.drag-handle',
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    dragClass: 'sortable-drag',
+                    onEnd: function(evt) {
+                        updateSourceOrder();
+                    }
+                });
+            });
+            
+            container.querySelectorAll('.source-item').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    if (e.target.closest('.drag-handle')) return;
+                    const id = this.getAttribute('data-id');
+                    selectSource(id);
+                });
+            });
+            
+            document.querySelectorAll('.engine-btn').forEach(btn => {
+                btn.classList.remove('active', 'border-primary', 'text-primary');
+                if (btn.dataset.engine === state.engine) {
+                    btn.classList.add('active', 'border-primary', 'text-primary');
+                }
+            });
+            document.getElementById('currentEngineBadge').textContent = 
+                state.engine === 'google' ? 'Google' : state.engine === 'bing' ? 'Bing' : 'MyMemory';
+        }
+
+        function updateSourceOrder() {
+            const allItems = document.querySelectorAll('.source-item[data-id]:not([data-id="all"])');
+            const newOrder = [];
+            
+            allItems.forEach(item => {
+                const id = item.getAttribute('data-id');
+                const source = rssSources.find(s => s.id === id);
+                if (source) newOrder.push(source);
+            });
+            
+            rssSources.length = 0;
+            rssSources.push(...newOrder);
+            
+            saveSourceOrder();
+        }
+
+        function selectSource(sourceId) {
+            state.currentSource = sourceId;
+            storage.saveCurrentSource();
+            initSidebar();
+            renderItems();
+            
+            if (window.innerWidth < 768) {
+                closeSidebar();
+            }
+        }
+
+        function selectAllSources() {
+            selectSource('all');
+        }
+
+        function setEngine(engine) {
+            state.engine = engine;
+            localStorage.setItem('translate_engine', engine);
+            initSidebar();
+            showToast(`已切换到 ${engine.toUpperCase()}`);
+        }
+
+        function toggleDarkMode() {
+            state.darkMode = !state.darkMode;
+            document.documentElement.classList.toggle('dark', state.darkMode);
+            localStorage.setItem('darkMode', state.darkMode);
+        }
+
+        function showApiKeyModal() {
+            const modal = document.getElementById('apiKeyModal');
+            const content = document.getElementById('apiKeyModalContent');
+            document.getElementById('googleApiKeyInput').value = state.apiKey;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeApiKeyModal() {
+            const modal = document.getElementById('apiKeyModal');
+            const content = document.getElementById('apiKeyModalContent');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 200);
+        }
+
+        function saveApiKey() {
+            const key = document.getElementById('googleApiKeyInput').value.trim();
+            state.apiKey = key;
+            localStorage.setItem('google_cloud_key', key);
+            closeApiKeyModal();
+            showToast(key ? '已配置 API Key' : '已使用免费版');
+        }
+
+        function clearCache() {
+            localStorage.removeItem('rss_translations_v5');
+            state.translations.clear();
+            loadAllFeeds();
+            showToast('已清除缓存');
+        }
+
+        function showToast(msg, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-50 text-white text-sm font-medium transition-all duration-300 opacity-0 translate-y-4 ${type === 'error' ? 'bg-red-500' : 'bg-gray-900'}`;
+            toast.innerHTML = `<i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'} mr-2"></i>${msg}`;
+            document.body.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.remove('opacity-0', 'translate-y-4'));
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-4');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function shareItem(title, link) {
+            if (navigator.share) {
+                navigator.share({ title, url: link });
+            } else {
+                navigator.clipboard.writeText(`${title} ${link}`);
+                showToast('已复制到剪贴板');
+            }
+        }
+
+        document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+            const sb = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sb.classList.remove('-translate-x-full');
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+        });
+
+        function closeSidebar() {
+            const sb = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sb.classList.add('-translate-x-full');
+            overlay.classList.add('opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        }
+
+        if (state.darkMode) document.documentElement.classList.add('dark');
+        initSidebar();
+        loadAllFeeds();
+
+        setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                loadAllFeeds(false);
+            }
+        }, 300000);
+
+        window.manualRefresh = manualRefresh;
+        window.selectSource = selectSource;
+        window.selectAllSources = selectAllSources;
+        window.toggleTranslate = toggleTranslate;
+        window.translateVisible = translateVisible;
+        window.setEngine = setEngine;
+        window.toggleDarkMode = toggleDarkMode;
+        window.showApiKeyModal = showApiKeyModal;
+        window.closeApiKeyModal = closeApiKeyModal;
+        window.saveApiKey = saveApiKey;
+        window.clearCache = clearCache;
+        window.closeSidebar = closeSidebar;
+        window.shareItem = shareItem;
+        window.cancelTranslation = cancelTranslation;
+        window.openArticle = openArticle;
+        window.closeArticleModal = closeArticleModal;
+        window.translateCurrentArticle = translateCurrentArticle;
+    </script>
+</body>
+</html>

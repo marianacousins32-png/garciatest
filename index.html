@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.5/dist/umd/supabase.min.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -636,11 +638,379 @@
             font-weight: 500;
             font-size: 13px;
         }
+
+        /* 广场功能样式 */
+        .square-post-card {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 16px;
+            transition: all 0.2s;
+        }
+        .dark .square-post-card {
+            background: #1e1e1e;
+            border-color: #2c2c2c;
+        }
+        .square-post-card:active {
+            background: #f9fafb;
+        }
+        .dark .square-post-card:active {
+            background: #262626;
+        }
+        .square-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #e5e7eb;
+        }
+        .dark .square-avatar {
+            border-color: #374151;
+        }
+        .square-name {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 15px;
+        }
+        .dark .square-name {
+            color: #f3f4f6;
+        }
+        .square-handle {
+            color: #6b7280;
+            font-size: 14px;
+            margin-left: 4px;
+        }
+        .dark .square-handle {
+            color: #9ca3af;
+        }
+        .square-time {
+            color: #9ca3af;
+            font-size: 13px;
+        }
+        .square-content {
+            color: #374151;
+            font-size: 15px;
+            line-height: 1.6;
+            margin: 8px 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .dark .square-content {
+            color: #e5e7eb;
+        }
+        .square-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #f3f4f6;
+        }
+        .dark .square-actions {
+            border-color: #374151;
+        }
+        .square-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #6b7280;
+            font-size: 13px;
+            padding: 4px 8px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .dark .square-action-btn {
+            color: #9ca3af;
+        }
+        .square-action-btn:active {
+            background: #f3f4f6;
+        }
+        .dark .square-action-btn:active {
+            background: #374151;
+        }
+        .square-action-btn.liked {
+            color: #ef4444;
+        }
+        .square-action-btn.commented {
+            color: #3b82f6;
+        }
+        .square-input-area {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 16px;
+        }
+        .dark .square-input-area {
+            background: #1e1e1e;
+            border-color: #2c2c2c;
+        }
+        .square-textarea {
+            width: 100%;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 15px;
+            resize: none;
+            outline: none;
+            min-height: 100px;
+            font-family: inherit;
+        }
+        .dark .square-textarea {
+            background: #2c2c2c;
+            border-color: #374151;
+            color: white;
+        }
+        .square-textarea:focus {
+            border-color: #10b981;
+        }
+        .square-submit-btn {
+            background: #10b981;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        .square-submit-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .square-submit-btn:active:not(:disabled) {
+            transform: scale(0.95);
+            background: #059669;
+        }
+        .login-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        .login-modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .login-content {
+            background: white;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 20px;
+            padding: 24px;
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: scale(0.9);
+            transition: transform 0.3s;
+        }
+        .login-modal.show .login-content {
+            transform: scale(1);
+        }
+        .dark .login-content {
+            background: #1e1e1e;
+            color: white;
+        }
+        .login-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 15px;
+            margin-bottom: 12px;
+            outline: none;
+        }
+        .dark .login-input {
+            background: #2c2c2c;
+            border-color: #374151;
+            color: white;
+        }
+        .login-input:focus {
+            border-color: #10b981;
+        }
+        .login-btn {
+            width: 100%;
+            background: #10b981;
+            color: white;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .login-btn:active {
+            background: #059669;
+        }
+        .media-switcher {
+            background: #f3f4f6;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        .dark .media-switcher {
+            background: #2c2c2c;
+        }
+        .media-account-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .media-account-item:hover {
+            background: #e5e7eb;
+        }
+        .dark .media-account-item:hover {
+            background: #374151;
+        }
+        .media-account-item.active {
+            background: #d1fae5;
+        }
+        .dark .media-account-item.active {
+            background: #065f46;
+        }
+        .comment-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .dark .comment-item {
+            border-color: #374151;
+        }
+        .comment-item:last-child {
+            border-bottom: none;
+        }
+        .comment-input-wrapper {
+            display: flex;
+            gap: 12px;
+            padding: 12px 16px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            position: sticky;
+            bottom: 0;
+        }
+        .dark .comment-input-wrapper {
+            background: #1e1e1e;
+            border-color: #2c2c2c;
+        }
+        .comment-input {
+            flex: 1;
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 14px;
+            outline: none;
+        }
+        .dark .comment-input {
+            background: #2c2c2c;
+            border-color: #374151;
+            color: white;
+        }
+        .user-profile-header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
+            color: white;
+            padding: 24px 16px;
+            position: relative;
+        }
+        .profile-avatar-large {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 4px solid white;
+            object-fit: cover;
+            margin-top: -40px;
+            background: white;
+        }
+        .dark .profile-avatar-large {
+            border-color: #1e1e1e;
+            background: #1e1e1e;
+        }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-dark-bg text-gray-900 dark:text-gray-100 transition-colors duration-300 pb-16">
     <div id="refreshToast" class="refresh-toast"><i class="fas fa-check-circle mr-1"></i> 已更新</div>
     <div id="errorToast" class="error-toast"></div>
+
+    <!-- 登录模态框 -->
+    <div id="loginModal" class="login-modal">
+        <div class="login-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold dark:text-white">登录广场</h2>
+                <button onclick="closeLoginModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div id="supabaseConfigSection" class="mb-6">
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Supabase 配置（首次需要）</h3>
+                <input type="text" id="supabaseUrl" class="login-input" placeholder="Supabase URL (如: https://xxx.supabase.co)">
+                <input type="text" id="supabaseKey" class="login-input" placeholder="Supabase Anon Key">
+            </div>
+
+            <div id="loginCodeSection">
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">输入登录码</h3>
+                <input type="text" id="loginCodeInput" class="login-input" placeholder="输入登录码（如: SAVGFC）" style="text-transform: uppercase;">
+                <div id="mediaAccountsList" class="hidden media-switcher">
+                    <h4 class="text-sm font-medium mb-2 dark:text-gray-300">选择媒体身份</h4>
+                    <div id="mediaAccountsContainer" class="space-y-1 max-h-40 overflow-y-auto"></div>
+                </div>
+                <button onclick="handleLogin()" class="login-btn">登录</button>
+            </div>
+
+            <div id="userInfoSection" class="hidden text-center">
+                <img id="currentUserAvatar" src="" alt="" class="w-20 h-20 rounded-full mx-auto mb-4 object-cover border-4 border-emerald-500">
+                <h3 id="currentUserName" class="text-lg font-bold dark:text-white mb-1"></h3>
+                <p id="currentUserType" class="text-sm text-gray-500 dark:text-gray-400 mb-4"></p>
+                <button onclick="switchAccount()" class="text-emerald-600 font-medium text-sm mr-4">切换账号</button>
+                <button onclick="logout()" class="text-red-500 font-medium text-sm">退出登录</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 评论页面 -->
+    <div id="commentsPage" class="hidden fixed inset-0 z-[90] bg-gray-50 dark:bg-dark-bg scroll-container flex flex-col">
+        <div class="bg-white dark:bg-dark-surface border-b border-gray-200 dark:border-dark-border px-4 py-3 flex items-center sticky top-0 z-50">
+            <button onclick="closeCommentsPage()" class="w-10 h-10 flex items-center justify-center -ml-2">
+                <i class="fas fa-arrow-left text-gray-600 dark:text-gray-300"></i>
+            </button>
+            <span class="font-medium ml-2 dark:text-gray-100">评论</span>
+        </div>
+        <div id="commentsList" class="flex-1 p-4 space-y-4 overflow-y-auto pb-20"></div>
+        <div class="comment-input-wrapper">
+            <input type="text" id="commentInput" class="comment-input" placeholder="写下你的评论..." onkeypress="handleCommentKeypress(event)">
+            <button onclick="submitComment()" class="text-emerald-600 font-medium px-4">发送</button>
+        </div>
+    </div>
+
+    <!-- 用户主页 -->
+    <div id="userProfilePage" class="hidden fixed inset-0 z-[85] bg-gray-50 dark:bg-dark-bg scroll-container">
+        <div class="bg-white dark:bg-dark-surface border-b border-gray-200 dark:border-dark-border px-4 py-3 flex items-center sticky top-0 z-50">
+            <button onclick="closeUserProfile()" class="w-10 h-10 flex items-center justify-center -ml-2">
+                <i class="fas fa-arrow-left text-gray-600 dark:text-gray-300"></i>
+            </button>
+            <span class="font-medium ml-2 dark:text-gray-100">用户主页</span>
+        </div>
+        <div class="user-profile-header">
+            <div class="h-24"></div>
+        </div>
+        <div class="px-4 pb-4 bg-white dark:bg-dark-surface border-b border-gray-200 dark:border-dark-border">
+            <img id="profileAvatar" src="" alt="" class="profile-avatar-large shadow-lg">
+            <h2 id="profileName" class="text-xl font-bold mt-3 dark:text-white"></h2>
+            <p id="profileHandle" class="text-gray-500 dark:text-gray-400 text-sm"></p>
+            <p id="profileBio" class="mt-2 text-gray-700 dark:text-gray-300 text-sm"></p>
+            <div class="flex gap-6 mt-4 text-sm">
+                <span><strong id="profilePosts" class="dark:text-white">0</strong> <span class="text-gray-500">帖子</span></span>
+                <span><strong id="profileJoined" class="dark:text-white">-</strong> <span class="text-gray-500">加入时间</span></span>
+            </div>
+        </div>
+        <div id="profilePostsList" class="divide-y divide-gray-200 dark:divide-dark-border"></div>
+    </div>
 
     <div id="searchOverlay" class="search-overlay" onclick="closeSearch()"></div>
     <div id="searchPage" class="search-page">
@@ -669,8 +1039,8 @@
             </div>
         </div>
         <div class="px-4 py-2 flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                <img src="https://angreoli-fagioli-garciatest-html.static.hf.space/十周年纪念.png" alt="avatar" class="w-full h-full object-cover">
+            <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden cursor-pointer" onclick="openLoginModal()">
+                <img id="headerAvatar" src="https://huggingface.co/spaces/angreoli-fagioli/十周年纪念.png" alt="avatar" class="w-full h-full object-cover">
             </div>
             <div class="flex-1 relative" onclick="openSearch()">
                 <div class="w-full bg-gray-100 dark:bg-dark-border text-sm px-4 py-2 rounded-full flex items-center text-gray-400 cursor-pointer">
@@ -696,6 +1066,48 @@
             <div id="pullText" class="text-gray-500 dark:text-gray-400 text-sm"><i class="fas fa-arrow-down mr-1"></i> 下拉刷新</div>
         </div>
         <main id="newsFeed" class="divide-y divide-gray-200 dark:divide-dark-border min-h-[60vh] scroll-container"></main>
+        
+        <!-- 广场页面 -->
+        <div id="squarePage" class="hidden min-h-[60vh] scroll-container bg-gray-50 dark:bg-dark-bg pb-20">
+            <div class="bg-white dark:bg-dark-surface border-b border-gray-200 dark:border-dark-border sticky top-0 z-40 px-4 py-3 flex items-center justify-between">
+                <h2 class="font-bold text-lg dark:text-white">广场</h2>
+                <button onclick="openLoginModal()" class="text-sm text-emerald-600 font-medium">
+                    <i class="fas fa-user-circle mr-1"></i><span id="loginStatusText">登录</span>
+                </button>
+            </div>
+            
+            <!-- 发帖区域 -->
+            <div id="postInputArea" class="square-input-area hidden">
+                <div class="flex gap-3">
+                    <img id="postAvatar" src="" alt="" class="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span id="postUsername" class="font-bold text-sm dark:text-white"></span>
+                            <span id="postUserHandle" class="text-xs text-gray-500"></span>
+                        </div>
+                        <textarea id="postContent" class="square-textarea" placeholder="分享你的想法..." maxlength="500"></textarea>
+                        <div class="flex justify-between items-center mt-3">
+                            <span class="text-xs text-gray-400" id="postCharCount">0/500</span>
+                            <button onclick="submitPost()" id="submitPostBtn" class="square-submit-btn">发布</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 全局刷新按钮 -->
+            <div class="p-4 text-center">
+                <button onclick="refreshSquare()" class="px-6 py-2 bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 rounded-full text-sm font-medium hover:bg-emerald-200 dark:hover:bg-emerald-800 transition">
+                    <i class="fas fa-sync-alt mr-2"></i>刷新动态
+                </button>
+            </div>
+            
+            <div id="squareFeed" class="divide-y divide-gray-200 dark:divide-dark-border bg-white dark:bg-dark-surface min-h-[300px]">
+                <div class="p-8 text-center text-gray-400 dark:text-gray-500">
+                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>加载中...</p>
+                </div>
+            </div>
+        </div>
         
         <div id="dataPage" class="hidden min-h-[60vh] scroll-container bg-gray-100 dark:bg-dark-bg">
             <div class="db-nav-header">
@@ -1000,8 +1412,9 @@
             <article id="articleContent" class="p-4"></article>
         </div>
     </div>
-    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-dark-surface border-t border-gray-200 dark:border-dark-border px-4 py-2 flex justify-between items-center z-40 transition-colors duration-300">
+    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-dark-surface border-t border-gray-200 dark:border-dark-border px-2 py-2 flex justify-between items-center z-40 transition-colors duration-300">
         <button onclick="switchTab('home')" class="bottom-nav-item active flex flex-col items-center gap-1 text-emerald-600 dark:text-emerald-400 flex-1" data-tab="home"><i class="fas fa-home text-xl"></i><span class="text-xs">首页</span></button>
+        <button onclick="switchTab('square')" class="bottom-nav-item flex flex-col items-center gap-1 text-gray-400 dark:text-gray-500 flex-1" data-tab="square"><i class="fas fa-comments text-xl"></i><span class="text-xs">广场</span></button>
         <button onclick="switchTab('team')" class="bottom-nav-item flex flex-col items-center gap-1 text-gray-400 dark:text-gray-500 flex-1" data-tab="team"><i class="fas fa-shield-alt text-xl"></i><span class="text-xs">球队</span></button>
         <button onclick="switchTab('data')" class="bottom-nav-item flex flex-col items-center gap-1 text-gray-400 dark:text-gray-500 flex-1" data-tab="data"><i class="fas fa-database text-xl"></i><span class="text-xs">数据</span></button>
     </nav>
@@ -1082,6 +1495,69 @@
             fminside: { url: 'https://fminside.net/players', name: 'FMINSIDE' }
         };
 
+        // 登录码配置（基于上传的登录码.txt）
+        const LOGIN_CODES = {
+            'SAVGFC': { username: '首都守护者足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%93%88%E5%8D%A1%E6%8B%89%E6%89%98%E7%89%B9%E5%8D%A111.png' },
+            'SEMARANG': { username: '三宝敦队官方', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E4%B8%89%E5%AE%9D%E6%95%A6.png' },
+            'DPEAGLES': { username: '东平雄鹰足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E4%B8%9C%E5%B9%B3%E9%9B%84%E9%B9%B0.png' },
+            'QUEENS': { username: 'TheUnited-女王镇联合足球俱乐部官方', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E4%BC%8A%E4%B8%BD%E8%8E%8E%E7%99%BD%E8%81%94%E5%90%88.png' },
+            'TEKMAUFC': { username: '泰克马联合官方', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E4%BC%8A%E6%96%AF%E7%89%B9%E4%BC%8D%E5%BE%B7%E8%81%94%E5%90%88%E6%96%B02.png' },
+            'HAJADEEN': { username: '哈贾丹太平洋人俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%93%88%E8%B4%BE%E4%B8%B9%E5%A4%AA%E5%B9%B3%E6%B4%8B%E4%BA%BA.png' },
+            'CNLFC': { username: '坎布尔新吕伐登足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%9D%8E%E5%B8%83%E5%B0%94%E6%96%B0%E5%90%95%E4%BC%90%E7%99%BB.png' },
+            'SEAGULL': { username: '奥顿兰海鸥男足', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%A5%A5%E9%A1%BF%E5%85%B0%E6%B5%B7%E6%B8%AF.png' },
+            'EASTWOOD': { username: '东木市职业足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%AD%94%E6%81%A9%E5%BA%A6%E5%8D%A2FC.png' },
+            'LAANA': { username: 'LA\'ANAFC79-拉阿纳队', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E6%8B%89%E9%98%BF%E7%BA%B3%E5%9F%8E%E5%B8%82%E7%AB%9E%E6%8A%80.png' },
+            'SBOTOP': { username: '斯波托普城市足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E6%96%AF%E6%B3%A2%E6%89%98%E6%99%AE%E5%9F%8E%E5%B8%82.png' },
+            'XINNANCHENG': { username: '新南城足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E6%96%B0%E6%B3%B0%E6%96%B03.png' },
+            'HILAL': { username: 'ALHILAL加西亚新月队', type: '球队', avatar: 'https://fclogo.top/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2F11hmdf08%2Fproduction%2F8b173e002d366de185a0b51b67e71d230f63b72e-800x800.png%3Fw%3D800%26fm%3Dwebp%26q%3D80&w=828&q=75' },
+            'RFFC': { username: '奥顿兰富力R&F', type: '球队', avatar: 'https://fclogo.top/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2F11hmdf08%2Fproduction%2F054ad4196adacff7c6d42d35764c892cf950ef0f-800x800.png%3Fw%3D800%26fm%3Dwebp%26q%3D80&w=828&q=75' },
+            'DAHWAHA': { username: '新达华哈海岸官方', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E6%96%B0%E8%BE%BE%E5%8D%8E%E5%93%88%E6%B5%B7%E5%B2%B8.png' },
+            'CAGOUS': { username: '瓦巴萨朱树鸦CAGOUSFC', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E7%93%A6%E5%B7%B4%E8%90%A8%E6%9C%B1%E6%A0%91%E9%B8%A6.png' },
+            'ROYALS': { username: '皇家萨乌萨乌足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E7%9A%87%E5%AE%B6%E8%90%A8%E4%B9%8C%E8%90%A8%E4%B9%8C.png' },
+            'MURAJA': { username: '穆拉哈西部队', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E7%A9%86%E6%8B%89%E5%93%88%E8%A5%BF%E9%83%A8.png' },
+            'LBJ': { username: '三宝敦乐邦战士足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E7%BB%B4%E5%B0%94%E5%9B%BE%E9%92%A2%E7%AE%A1.png' },
+            'DAIZHOU': { username: '色温岱州东岳俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E8%89%B2%E6%B8%A9%E5%B2%B1%E5%B7%9E%E4%B8%9C%E5%B2%B3.png' },
+            'BFFC': { username: '巴峰足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E8%90%A8%E4%B9%8C%E8%90%A8%E4%B9%8C%E6%96%B0.png' },
+            'NORWICH': { username: '诺维奇港NorwichPortFC', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E8%AF%BA%E7%BB%B4%E5%A5%87%E6%B8%AF%E6%96%B0.png' },
+            'ROVERS': { username: 'RoversOfficial流浪者队官方', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E9%98%BF%E5%B0%94%E7%89%B9%E5%BC%97%E9%9B%B7%E5%A5%87%E6%B5%81%E6%B5%AA%E8%80%85.png' },
+            'USP': { username: '南太平洋大学色温校区', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%8D%97%E5%A4%AA%E5%A4%A7%E6%96%B0%E6%B3%B0.png' },
+            'MAREK': { username: '马雷克青春之城足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E9%A9%AC%E9%9B%B7%E5%85%8B%E6%96%B0.png' },
+            'LAXI': { username: '拉西弗谢', type: '个人', avatar: 'https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52870242240935_.png' },
+            'MAHAOYU': { username: '马浩宇', type: '个人', avatar: 'https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52887690550188_.png' },
+            'CARLO': { username: '卡罗', type: '个人', avatar: 'https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52875610863799_.png' },
+            'DAMIAN': { username: '联合主帅Damian', type: '个人', avatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT56R5vFglOuDzNhWJ86tkbc9E1B2O4WP86PQ&s' },
+            'HAANANGU': { username: '南太助教哈喃咕', type: '个人', avatar: 'https://news.cctv.com/sports/soccer/china_a/20070508/images/20070508104867_hp.jpg' },
+            'JUDE': { username: '裘德·乔克雷斯', type: '个人', avatar: 'https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52892253943504_.png' },
+            'MEDIA': { username: 'GACFA加西亚足协', type: '媒体', avatar: 'https://fclogo.top/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2F11hmdf08%2Fproduction%2Fc97e5b70a494eb39da0152ef031bda998e49b455-800x800.png%3Fw%3D800%26fm%3Dwebp%26q%3D80&w=828&q=75', isMediaGroup: true }
+        };
+
+        // 媒体子账号配置
+        const MEDIA_ACCOUNTS = [
+            { username: '足球市场网', type: '媒体', avatar: 'https://cdn.brandfetch.io/footmercato.net/fallback/lettermark/theme/dark/h/256/w/256/icon?c=1bfwsmEH20zzEfSNTed' },
+            { username: '队报', type: '媒体', avatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTOiDuzVeBrpk8XzlT--IPXX67Vj6MRxBzTYw&s' },
+            { username: 'DavidOrnstein', type: '媒体', avatar: 'https://free.boltp.com/2026/02/22/699a745282a0f.webp' },
+            { username: 'AlfredoPedulla', type: '媒体', avatar: 'https://icdn.football-italia.net/wp-content/uploads/2025/06/Alfredo_Pedulla_HeadShot.jpg' },
+            { username: 'Bild.de', type: '媒体', avatar: 'https://free.boltp.com/2026/02/22/699a74526ef2f.webp' },
+            { username: '直播吧', type: '媒体', avatar: 'https://free.boltp.com/2026/02/22/699a745285af4.webp' },
+            { username: '进球网', type: '媒体', avatar: 'https://free.boltp.com/2026/02/22/699a7452679d9.webp' },
+            { username: '三宝敦电视台', type: '媒体', avatar: 'https://free.boltp.com/2026/02/23/699c1784bb434.webp' },
+            { username: '色温13新闻', type: '媒体', avatar: 'https://free.boltp.com/2026/02/23/699c1784c5a70.webp' },
+            { username: '奥顿兰邮报', type: '媒体', avatar: 'https://free.boltp.com/2026/02/23/699c1784c163d.webp' },
+            { username: '阿拉卡趋势报', type: '媒体', avatar: 'https://free.boltp.com/2026/02/23/699c1784baf83.webp' },
+            { username: '新吕伐登时报', type: '媒体', avatar: 'https://bpic.51yuansu.com/pic3/cover/03/53/87/65d9fb19dfa35_260.jpg?x-oss-process=image/resize,w_260/sharpen,100' },
+            { username: 'NikoloSchira', type: '媒体', avatar: 'https://elitefootballcenter.com/wp-content/uploads/2025/10/nicolo_schira.jpg' },
+            { username: 'DiMarzio', type: '媒体', avatar: 'https://gianlucadimarzio.com/wp-content/themes/victoria-child/img/gdm-twitter.png' },
+            { username: 'FabrizioRomano', type: '媒体', avatar: 'https://free.boltp.com/2026/02/22/699a745275df3.webp' },
+            { username: '加西亚邮报', type: '媒体', avatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT7A2UlVPRErxcM3xCJNLkCyAfPUUAGI1sKuw&s' },
+            { username: 'ESPN', type: '媒体', avatar: 'https://cdn.iconscout.com/icon/free/png-256/free-espn-logo-icon-svg-download-png-461787.png' },
+            { username: '大巴姆岛先驱者早报', type: '媒体', avatar: 'https://d3g9pb5nvr3u7.cloudfront.net/sites/529657a5bc4626126841af46/2078558977/256.png' },
+            { username: '泰克马广播网', type: '媒体', avatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTnFfUS6rne2qcqcXn7LoXCnjZUFMwAnJs1ZQ&s' },
+            { username: '马雷克晚旗报', type: '媒体', avatar: 'https://weshipyou.com/_next/static/media/we-ship-you-logo.e8e4ea74.png' },
+            { username: '比列趋势电讯报', type: '媒体', avatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgiLqXK1a6T4yNxtVZ8ftWJR8tSWo3TJWt-A&s' },
+            { username: '穆拉哈体育图片报', type: '媒体', avatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRR5z_UIup_BW25Km2jiDRVeX8GGtMu-h6DBg&s' },
+            { username: '群岛标准早报', type: '媒体', avatar: 'https://cdn.brandfetch.io/efe.com/fallback/lettermark/theme/dark/h/256/w/256/icon?c=1bfwsmEH20zzEfSNTed' }
+        ];
+
         let currentTag = 'all', currentTab = 'home', rssData = [], teamData = [], playersData = [];
         let currentTeam = null, currentCoaches = [], isRefreshing = false;
         let touchStartY = 0, touchCurrentY = 0, isPulling = false;
@@ -1095,9 +1571,12 @@
         let pkPlayer2 = null;
         let playerExtraData = {};
         
-        // 页面历史栈管理
-        let pageHistory = [];
-        let isPopState = false;
+        // 广场相关变量
+        let supabase = null;
+        let currentUser = null;
+        let currentPostId = null;
+        let isMediaMode = false;
+        let selectedMediaAccount = null;
 
         const LEAGUE_ORDER = {
             '加超联': 1,
@@ -1112,7 +1591,23 @@
             initApp();
             initBackButtonHandler();
             loadPlayerExtraData();
+            initSupabaseConfig();
         });
+
+        // 初始化 Supabase 配置
+        function initSupabaseConfig() {
+            const savedUrl = localStorage.getItem('supabase_url');
+            const savedKey = localStorage.getItem('supabase_key');
+            if (savedUrl) document.getElementById('supabaseUrl').value = savedUrl;
+            if (savedKey) document.getElementById('supabaseKey').value = savedKey;
+            
+            // 检查登录状态
+            const savedUser = localStorage.getItem('square_user');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                updateLoginUI();
+            }
+        }
 
         // 初始化应用
         function initApp() {
@@ -1230,6 +1725,18 @@
                 return;
             }
 
+            const commentsPage = document.getElementById('commentsPage');
+            if (commentsPage && !commentsPage.classList.contains('hidden')) {
+                closeCommentsPage();
+                return;
+            }
+
+            const userProfilePage = document.getElementById('userProfilePage');
+            if (userProfilePage && !userProfilePage.classList.contains('hidden')) {
+                closeUserProfile();
+                return;
+            }
+
             if (currentTab !== 'home') {
                 switchTab('home');
                 return;
@@ -1296,11 +1803,15 @@
                 if (window.scrollY === 0 && !isRefreshing && currentTab === 'home') {
                     touchStartY = e.touches[0].clientY;
                     isPulling = true;
+                } else if (window.scrollY === 0 && !isRefreshing && currentTab === 'square') {
+                    // 广场页面也支持下拉刷新
+                    touchStartY = e.touches[0].clientY;
+                    isPulling = true;
                 }
             }, { passive: true });
             
             container.addEventListener('touchmove', (e) => {
-                if (!isPulling || isRefreshing || currentTab !== 'home') return;
+                if (!isPulling || isRefreshing || (currentTab !== 'home' && currentTab !== 'square')) return;
                 
                 touchCurrentY = e.touches[0].clientY;
                 const diff = touchCurrentY - touchStartY;
@@ -1327,7 +1838,11 @@
                 const diff = touchCurrentY - touchStartY;
                 
                 if (diff > PULL_THRESHOLD && !isRefreshing) {
-                    startRefresh();
+                    if (currentTab === 'square') {
+                        startSquareRefresh();
+                    } else {
+                        startRefresh();
+                    }
                 } else {
                     resetPullIndicator();
                 }
@@ -1355,6 +1870,29 @@
                 loadPlayerExtraData().catch(e => console.error('球员信息刷新失败:', e))
             ]).then(() => {
                 showRefreshToast();
+            }).finally(() => {
+                setTimeout(() => {
+                    resetPullIndicator();
+                    isRefreshing = false;
+                }, 500);
+            });
+        }
+
+        // 广场下拉刷新
+        function startSquareRefresh() {
+            isRefreshing = true;
+            const indicator = document.getElementById('pullIndicator');
+            const spinner = document.getElementById('pullSpinner');
+            const text = document.getElementById('pullText');
+            
+            if (spinner) spinner.classList.remove('hidden');
+            if (text) text.innerHTML = '<span class="ml-2">刷新广场...</span>';
+            if (indicator) indicator.style.transform = `translateY(60px)`;
+            
+            refreshSquare().then(() => {
+                showRefreshToast('广场已更新');
+            }).catch(err => {
+                showErrorToast('刷新失败: ' + err.message);
             }).finally(() => {
                 setTimeout(() => {
                     resetPullIndicator();
@@ -2739,7 +3277,7 @@
         function getPositionCategory(position) {
             if (!position) return 'MF';
             
-            const posList = position.split(/[,，]/).map(p => p.trim());
+            const posList = position.split(/[,،]/).map(p => p.trim());
             const firstPos = posList[0];
             
             if (firstPos.includes('门将') || firstPos.includes('守门')) return 'GK';
@@ -3312,6 +3850,7 @@
             const newsFeed = document.getElementById('newsFeed');
             const teamPage = document.getElementById('teamPage');
             const dataPage = document.getElementById('dataPage');
+            const squarePage = document.getElementById('squarePage');
             const homeTabs = document.getElementById('homeTabs');
             const pullIndicator = document.getElementById('pullIndicator');
             const mainHeader = document.getElementById('mainHeader');
@@ -3319,6 +3858,7 @@
             if (newsFeed) newsFeed.classList.add('hidden');
             if (teamPage) teamPage.classList.add('hidden');
             if (dataPage) dataPage.classList.add('hidden');
+            if (squarePage) squarePage.classList.add('hidden');
             if (homeTabs) homeTabs.classList.add('hidden');
             if (pullIndicator) pullIndicator.classList.add('hidden');
             
@@ -3337,6 +3877,11 @@
             } else if (tab === 'data') {
                 if (dataPage) dataPage.classList.remove('hidden');
                 if (mainHeader) mainHeader.classList.remove('hidden');
+            } else if (tab === 'square') {
+                if (squarePage) squarePage.classList.remove('hidden');
+                if (pullIndicator) pullIndicator.classList.remove('hidden');
+                if (mainHeader) mainHeader.classList.add('hidden'); // 广场有自己的header
+                refreshSquare();
             }
             
             if (!isPopState) {
@@ -3581,6 +4126,527 @@
             return injuries;
         }
 
+        // ============ 广场功能 ============
+        
+        // 初始化Supabase
+        function initSupabase() {
+            const url = localStorage.getItem('supabase_url');
+            const key = localStorage.getItem('supabase_key');
+            if (url && key) {
+                supabase = window.supabase.createClient(url, key);
+                return true;
+            }
+            return false;
+        }
+
+        // 打开登录模态框
+        function openLoginModal() {
+            const modal = document.getElementById('loginModal');
+            if (modal) modal.classList.add('show');
+            
+            // 如果已登录，显示用户信息
+            if (currentUser) {
+                document.getElementById('supabaseConfigSection').classList.add('hidden');
+                document.getElementById('loginCodeSection').classList.add('hidden');
+                document.getElementById('userInfoSection').classList.remove('hidden');
+            } else {
+                document.getElementById('supabaseConfigSection').classList.remove('hidden');
+                document.getElementById('loginCodeSection').classList.remove('hidden');
+                document.getElementById('userInfoSection').classList.add('hidden');
+            }
+        }
+
+        // 关闭登录模态框
+        function closeLoginModal() {
+            const modal = document.getElementById('loginModal');
+            if (modal) modal.classList.remove('show');
+        }
+
+        // 处理登录码输入
+        document.getElementById('loginCodeInput')?.addEventListener('input', function(e) {
+            const code = e.target.value.toUpperCase();
+            const account = LOGIN_CODES[code];
+            
+            const mediaList = document.getElementById('mediaAccountsList');
+            const mediaContainer = document.getElementById('mediaAccountsContainer');
+            
+            if (account?.isMediaGroup) {
+                // 显示媒体子账号列表
+                mediaList.classList.remove('hidden');
+                mediaContainer.innerHTML = MEDIA_ACCOUNTS.map((media, idx) => `
+                    <div class="media-account-item ${idx === 0 ? 'active' : ''}" data-idx="${idx}" onclick="selectMediaAccount(${idx})">
+                        <img src="${media.avatar}" alt="" class="w-8 h-8 rounded-full object-cover">
+                        <div>
+                            <div class="font-medium text-sm dark:text-white">${media.username}</div>
+                            <div class="text-xs text-gray-500">${media.type}</div>
+                        </div>
+                    </div>
+                `).join('');
+                selectedMediaAccount = 0;
+            } else {
+                mediaList.classList.add('hidden');
+                selectedMediaAccount = null;
+            }
+        });
+
+        // 选择媒体账号
+        function selectMediaAccount(idx) {
+            selectedMediaAccount = idx;
+            document.querySelectorAll('.media-account-item').forEach((el, i) => {
+                el.classList.toggle('active', i === idx);
+            });
+        }
+
+        // 登录处理
+        function handleLogin() {
+            const url = document.getElementById('supabaseUrl').value.trim();
+            const key = document.getElementById('supabaseKey').value.trim();
+            const code = document.getElementById('loginCodeInput').value.toUpperCase().trim();
+            
+            if (!url || !key) {
+                showErrorToast('请输入 Supabase URL 和 Key');
+                return;
+            }
+            
+            if (!code) {
+                showErrorToast('请输入登录码');
+                return;
+            }
+            
+            const account = LOGIN_CODES[code];
+            if (!account) {
+                showErrorToast('无效的登录码');
+                return;
+            }
+            
+            // 保存配置
+            localStorage.setItem('supabase_url', url);
+            localStorage.setItem('supabase_key', key);
+            
+            // 初始化Supabase
+            if (!initSupabase()) {
+                showErrorToast('Supabase 初始化失败');
+                return;
+            }
+            
+            // 设置当前用户
+            if (account.isMediaGroup && selectedMediaAccount !== null) {
+                const media = MEDIA_ACCOUNTS[selectedMediaAccount];
+                currentUser = {
+                    ...media,
+                    loginCode: code,
+                    isMedia: true,
+                    mediaGroup: account.username
+                };
+            } else {
+                currentUser = {
+                    ...account,
+                    loginCode: code,
+                    isMedia: false
+                };
+            }
+            
+            localStorage.setItem('square_user', JSON.stringify(currentUser));
+            
+            updateLoginUI();
+            closeLoginModal();
+            showRefreshToast('登录成功');
+            
+            // 刷新广场
+            if (currentTab === 'square') {
+                refreshSquare();
+            }
+        }
+
+        // 更新登录UI
+        function updateLoginUI() {
+            const headerAvatar = document.getElementById('headerAvatar');
+            const loginStatusText = document.getElementById('loginStatusText');
+            const postInputArea = document.getElementById('postInputArea');
+            const postAvatar = document.getElementById('postAvatar');
+            const postUsername = document.getElementById('postUsername');
+            const postUserHandle = document.getElementById('postUserHandle');
+            
+            if (currentUser) {
+                if (headerAvatar) headerAvatar.src = currentUser.avatar;
+                if (loginStatusText) loginStatusText.textContent = currentUser.username;
+                if (postInputArea) postInputArea.classList.remove('hidden');
+                if (postAvatar) postAvatar.src = currentUser.avatar;
+                if (postUsername) postUsername.textContent = currentUser.username;
+                if (postUserHandle) postUserHandle.textContent = `@${currentUser.loginCode || 'user'}`;
+                
+                // 更新用户信息显示
+                document.getElementById('currentUserAvatar').src = currentUser.avatar;
+                document.getElementById('currentUserName').textContent = currentUser.username;
+                document.getElementById('currentUserType').textContent = currentUser.type + (currentUser.isMedia ? ` (${currentUser.mediaGroup})` : '');
+            } else {
+                if (headerAvatar) headerAvatar.src = 'https://huggingface.co/spaces/angreoli-fagioli/十周年纪念.png';
+                if (loginStatusText) loginStatusText.textContent = '登录';
+                if (postInputArea) postInputArea.classList.add('hidden');
+            }
+        }
+
+        // 切换账号
+        function switchAccount() {
+            currentUser = null;
+            localStorage.removeItem('square_user');
+            updateLoginUI();
+            document.getElementById('supabaseConfigSection').classList.remove('hidden');
+            document.getElementById('loginCodeSection').classList.remove('hidden');
+            document.getElementById('userInfoSection').classList.add('hidden');
+            document.getElementById('loginCodeInput').value = '';
+            document.getElementById('mediaAccountsList').classList.add('hidden');
+        }
+
+        // 退出登录
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('square_user');
+            updateLoginUI();
+            closeLoginModal();
+            showRefreshToast('已退出登录');
+        }
+
+        // 刷新广场
+        async function refreshSquare() {
+            if (!supabase) {
+                if (!initSupabase()) {
+                    document.getElementById('squareFeed').innerHTML = `
+                        <div class="p-8 text-center text-gray-400 dark:text-gray-500">
+                            <i class="fas fa-lock text-4xl mb-3"></i>
+                            <p>请先登录以查看广场</p>
+                            <button onclick="openLoginModal()" class="mt-4 px-6 py-2 bg-emerald-600 text-white rounded-lg text-sm">立即登录</button>
+                        </div>
+                    `;
+                    return;
+                }
+            }
+            
+            try {
+                const { data: posts, error } = await supabase
+                    .from('posts')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+                
+                if (error) throw error;
+                
+                renderSquarePosts(posts || []);
+            } catch (error) {
+                console.error('加载广场失败:', error);
+                showErrorToast('加载失败: ' + error.message);
+                document.getElementById('squareFeed').innerHTML = `
+                    <div class="p-8 text-center text-gray-400 dark:text-gray-500">
+                        <i class="fas fa-exclamation-circle text-4xl mb-3"></i>
+                        <p>加载失败，请检查 Supabase 配置</p>
+                        <button onclick="openLoginModal()" class="mt-4 px-6 py-2 bg-emerald-600 text-white rounded-lg text-sm">重新配置</button>
+                    </div>
+                `;
+            }
+        }
+
+        // 渲染广场帖子
+        function renderSquarePosts(posts) {
+            const container = document.getElementById('squareFeed');
+            if (!container) return;
+            
+            if (!posts || posts.length === 0) {
+                container.innerHTML = `
+                    <div class="p-8 text-center text-gray-400 dark:text-gray-500">
+                        <i class="fas fa-inbox text-4xl mb-3"></i>
+                        <p>暂无动态</p>
+                        <p class="text-xs mt-2">成为第一个发帖的人吧！</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = posts.map(post => `
+                <div class="square-post-card fade-in">
+                    <div class="flex gap-3">
+                        <img src="${post.author_avatar || CONFIG.defaultLogo}" alt="" class="square-avatar cursor-pointer" onclick="viewUserProfile('${post.author}', '${post.author_avatar}', '${post.author_type}')">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center min-w-0">
+                                    <span class="square-name truncate cursor-pointer" onclick="viewUserProfile('${post.author}', '${post.author_avatar}', '${post.author_type}')">${post.author}</span>
+                                    <span class="square-handle truncate">${post.author_type || ''}</span>
+                                </div>
+                                <span class="square-time">${formatTime(post.created_at)}</span>
+                            </div>
+                            <div class="square-content cursor-pointer" onclick="viewPostDetail('${post.id}')">${escapeHtml(post.content)}</div>
+                            <div class="square-actions">
+                                <div class="square-action-btn ${post.is_liked ? 'liked' : ''}" onclick="toggleLike('${post.id}', ${!post.is_liked})">
+                                    <i class="${post.is_liked ? 'fas' : 'far'} fa-heart"></i>
+                                    <span>${post.likes || 0}</span>
+                                </div>
+                                <div class="square-action-btn" onclick="openComments('${post.id}')">
+                                    <i class="far fa-comment"></i>
+                                    <span>${post.comments || 0}</span>
+                                </div>
+                                <div class="square-action-btn" onclick="sharePost('${post.id}')">
+                                    <i class="fas fa-share"></i>
+                                    <span>分享</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 提交帖子
+        async function submitPost() {
+            const content = document.getElementById('postContent').value.trim();
+            const btn = document.getElementById('submitPostBtn');
+            
+            if (!content) {
+                showErrorToast('请输入内容');
+                return;
+            }
+            
+            if (!currentUser) {
+                showErrorToast('请先登录');
+                return;
+            }
+            
+            if (!supabase && !initSupabase()) {
+                showErrorToast('Supabase 未初始化');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = '发布中...';
+            
+            try {
+                const { error } = await supabase
+                    .from('posts')
+                    .insert({
+                        content: content,
+                        author: currentUser.username,
+                        author_avatar: currentUser.avatar,
+                        author_type: currentUser.type,
+                        likes: 0,
+                        comments: 0
+                    });
+                
+                if (error) throw error;
+                
+                document.getElementById('postContent').value = '';
+                document.getElementById('postCharCount').textContent = '0/500';
+                showRefreshToast('发布成功');
+                refreshSquare();
+            } catch (error) {
+                showErrorToast('发布失败: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '发布';
+            }
+        }
+
+        // 字数统计
+        document.getElementById('postContent')?.addEventListener('input', function(e) {
+            const len = e.target.value.length;
+            document.getElementById('postCharCount').textContent = `${len}/500`;
+        });
+
+        // 点赞功能
+        async function toggleLike(postId, isLike) {
+            if (!currentUser) {
+                showErrorToast('请先登录');
+                return;
+            }
+            
+            try {
+                // 获取当前点赞数
+                const { data: post, error: fetchError } = await supabase
+                    .from('posts')
+                    .select('likes')
+                    .eq('id', postId)
+                    .single();
+                
+                if (fetchError) throw fetchError;
+                
+                const newLikes = isLike ? (post.likes || 0) + 1 : Math.max(0, (post.likes || 0) - 1);
+                
+                const { error } = await supabase
+                    .from('posts')
+                    .update({ likes: newLikes })
+                    .eq('id', postId);
+                
+                if (error) throw error;
+                
+                refreshSquare();
+            } catch (error) {
+                showErrorToast('操作失败: ' + error.message);
+            }
+        }
+
+        // 打开评论
+        async function openComments(postId) {
+            currentPostId = postId;
+            const page = document.getElementById('commentsPage');
+            const list = document.getElementById('commentsList');
+            
+            page.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            
+            pushPageState('comments');
+            
+            // 加载评论
+            try {
+                const { data: comments, error } = await supabase
+                    .from('comments')
+                    .select('*')
+                    .eq('post_id', postId)
+                    .order('created_at', { ascending: true });
+                
+                if (error) throw error;
+                
+                if (!comments || comments.length === 0) {
+                    list.innerHTML = '<div class="text-center text-gray-400 py-8">暂无评论，来写第一条吧！</div>';
+                } else {
+                    list.innerHTML = comments.map(c => `
+                        <div class="comment-item bg-white dark:bg-dark-surface p-4 rounded-lg">
+                            <div class="flex items-center gap-2 mb-2">
+                                <img src="${c.author_avatar || CONFIG.defaultLogo}" alt="" class="w-6 h-6 rounded-full">
+                                <span class="font-medium text-sm dark:text-white">${c.author}</span>
+                                <span class="text-xs text-gray-500">${formatTime(c.created_at)}</span>
+                            </div>
+                            <p class="text-sm text-gray-700 dark:text-gray-300">${escapeHtml(c.content)}</p>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                list.innerHTML = '<div class="text-center text-red-500 py-8">加载评论失败</div>';
+            }
+        }
+
+        // 关闭评论页
+        function closeCommentsPage() {
+            const page = document.getElementById('commentsPage');
+            if (page) page.classList.add('hidden');
+            document.body.style.overflow = '';
+            currentPostId = null;
+        }
+
+        // 提交评论
+        async function submitComment() {
+            const input = document.getElementById('commentInput');
+            const content = input.value.trim();
+            
+            if (!content) return;
+            if (!currentUser) {
+                showErrorToast('请先登录');
+                return;
+            }
+            if (!currentPostId) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('comments')
+                    .insert({
+                        post_id: currentPostId,
+                        content: content,
+                        author: currentUser.username,
+                        author_avatar: currentUser.avatar
+                    });
+                
+                if (error) throw error;
+                
+                // 更新评论数
+                const { data: post } = await supabase
+                    .from('posts')
+                    .select('comments')
+                    .eq('id', currentPostId)
+                    .single();
+                
+                await supabase
+                    .from('posts')
+                    .update({ comments: (post.comments || 0) + 1 })
+                    .eq('id', currentPostId);
+                
+                input.value = '';
+                openComments(currentPostId); // 刷新评论列表
+                refreshSquare(); // 刷新广场
+            } catch (error) {
+                showErrorToast('评论失败: ' + error.message);
+            }
+        }
+
+        // 回车发送评论
+        function handleCommentKeypress(e) {
+            if (e.key === 'Enter') {
+                submitComment();
+            }
+        }
+
+        // 查看用户主页
+        function viewUserProfile(name, avatar, type) {
+            const page = document.getElementById('userProfilePage');
+            document.getElementById('profileAvatar').src = avatar || CONFIG.defaultLogo;
+            document.getElementById('profileName').textContent = name;
+            document.getElementById('profileHandle').textContent = type || '用户';
+            document.getElementById('profileBio').textContent = `这是 ${name} 的个人主页`;
+            
+            page.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            pushPageState('userProfile');
+            
+            // 加载该用户的帖子
+            loadUserPosts(name);
+        }
+
+        // 加载用户帖子
+        async function loadUserPosts(username) {
+            try {
+                const { data: posts, error } = await supabase
+                    .from('posts')
+                    .select('*')
+                    .eq('author', username)
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                document.getElementById('profilePosts').textContent = posts?.length || 0;
+                document.getElementById('profileJoined').textContent = '2025';
+                
+                const container = document.getElementById('profilePostsList');
+                if (!posts || posts.length === 0) {
+                    container.innerHTML = '<div class="p-8 text-center text-gray-400">暂无帖子</div>';
+                } else {
+                    container.innerHTML = posts.map(post => `
+                        <div class="square-post-card">
+                            <div class="square-content mb-2">${escapeHtml(post.content)}</div>
+                            <div class="text-xs text-gray-500">${formatTime(post.created_at)} · ${post.likes || 0} 赞 · ${post.comments || 0} 评论</div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                document.getElementById('profilePostsList').innerHTML = '<div class="p-8 text-center text-red-500">加载失败</div>';
+            }
+        }
+
+        // 关闭用户主页
+        function closeUserProfile() {
+            const page = document.getElementById('userProfilePage');
+            if (page) page.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        // 分享帖子
+        function sharePost(postId) {
+            const url = `${window.location.origin}/#/post/${postId}`;
+            if (navigator.share) {
+                navigator.share({
+                    title: '加西亚足球广场',
+                    text: '来看看这条动态',
+                    url: url
+                });
+            } else {
+                navigator.clipboard.writeText(url).then(() => alert('链接已复制'));
+            }
+        }
+
         // 键盘事件
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
@@ -3591,6 +4657,9 @@
                 closePKSelectModal();
                 closePKResult();
                 closeSpecialPlayersPage();
+                closeLoginModal();
+                closeCommentsPage();
+                closeUserProfile();
             }
         });
         

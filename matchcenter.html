@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>加西亚足球 - 比赛中心</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-card: #242424;
+            --bg-hover: #2a2a2a;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --text-tertiary: #666666;
+            --accent: #00d084;
+            --accent-light: #00ff9d;
+            --border: #333333;
+            --shadow: rgba(0,0,0,0.5);
+            --win: #00d084;
+            --loss: #ff4757;
+            --draw: #ffa502;
+            --home-color: #3b82f6;
+            --away-color: #ef4444;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --bg-hover: #f0f0f0;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --text-tertiary: #999999;
+            --accent: #00a86b;
+            --accent-light: #00d084;
+            --border: #e0e0e0;
+            --shadow: rgba(0,0,0,0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100%;
+            overflow-x: hidden;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        body::-webkit-scrollbar {
+            display: none;
+        }
+
+        .app-container {
+            max-width: 480px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: var(--bg-primary);
+            position: relative;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg-secondary);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: var(--bg-secondary);
+            padding: 0 16px;
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .nav-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .nav-tab {
+            padding: 14px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            white-space: nowrap;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .content {
+            padding: 16px;
+            padding-bottom: 80px;
+        }
+
+        .match-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .match-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px var(--shadow);
+        }
+
+        .match-competition {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .match-teams {
+            display: grid;
+            grid-template-columns: 1fr 90px 1fr;
+            align-items: start;
+            justify-items: center;
+        }
+
+        .team {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            width: 100%;
+        }
+
+        .team:first-child {
+            justify-self: start;
+        }
+
+        .team:last-child {
+            justify-self: end;
+        }
+
+        .team:hover {
+            opacity: 0.8;
+        }
+
+        .team-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--bg-hover);
+            border: 2px solid var(--border);
+        }
+
+        .team-name {
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 8px;
+            text-align: center;
+            color: var(--text-primary);
+            max-width: 90px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .match-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-width: 90px;
+            padding-top: 8px;
+        }
+
+        .match-score {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-variant-numeric: tabular-nums;
+            text-align: center;
+        }
+
+        .match-status {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+            padding: 2px 8px;
+            background: var(--bg-hover);
+            border-radius: 4px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .match-header {
+            background: var(--bg-secondary);
+            padding: 24px 16px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .match-header-teams {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .header-team {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            flex: 1;
+            max-width: 120px;
+        }
+
+        .header-team-logo {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--bg-card);
+            border: 3px solid var(--border);
+        }
+
+        .header-team-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 8px;
+            max-width: 100%;
+            text-align: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .header-score-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 80px;
+            padding-top: 12px;
+        }
+
+        .header-score {
+            font-size: 42px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .score-divider {
+            color: var(--text-tertiary);
+            font-size: 24px;
+        }
+
+        .match-info {
+            margin-top: 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .detail-section {
+            background: var(--bg-card);
+            margin: 16px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .section-title {
+            padding: 16px;
+            font-size: 14px;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .goal-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .goal-item:last-child {
+            border-bottom: none;
+        }
+
+        .goal-time {
+            color: var(--accent);
+            font-weight: 700;
+            min-width: 45px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .goal-player {
+            flex: 1;
+            margin: 0 8px;
+            font-weight: 600;
+        }
+
+        .goal-assist {
+            color: var(--text-tertiary);
+            font-size: 11px;
+        }
+
+        .no-data {
+            color: var(--text-tertiary);
+            font-size: 13px;
+            padding: 12px 0;
+            text-align: center;
+        }
+
+        .stat-row {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-value {
+            font-size: 15px;
+            font-weight: 700;
+            width: 50px;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-value.home { color: var(--home-color); }
+        .stat-value.away { color: var(--away-color); }
+
+        .stat-bar-container {
+            flex: 1;
+            margin: 0 12px;
+            position: relative;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: 6px;
+        }
+
+        .stat-bar-bg {
+            height: 6px;
+            background: var(--bg-hover);
+            border-radius: 3px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .stat-bar-home {
+            height: 100%;
+            background: linear-gradient(90deg, var(--home-color), #60a5fa);
+            border-radius: 3px 0 0 3px;
+            transition: width 0.5s ease;
+        }
+
+        .stat-bar-away {
+            height: 100%;
+            background: linear-gradient(90deg, #f87171, var(--away-color));
+            border-radius: 0 3px 3px 0;
+            transition: width 0.5s ease;
+        }
+
+        .players-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            padding: 16px;
+        }
+
+        .players-column h4 {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .player-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .player-item:last-child {
+            border-bottom: none;
+        }
+
+        .player-number {
+            width: 24px;
+            height: 24px;
+            background: var(--bg-hover);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        .player-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .player-name {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .player-detail {
+            font-size: 11px;
+            color: var(--text-tertiary);
+        }
+
+        .player-rating {
+            font-weight: 700;
+            font-size: 14px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: var(--bg-hover);
+            flex-shrink: 0;
+        }
+
+        .player-rating.high {
+            color: var(--win);
+        }
+
+        .team-header {
+            background: var(--bg-secondary);
+            padding: 32px 16px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .team-header-logo {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--bg-card);
+            border: 4px solid var(--border);
+            margin-bottom: 16px;
+        }
+
+        .team-header-name {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .team-stats-overview {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            padding: 20px 16px;
+            background: var(--bg-card);
+            margin: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .stat-box {
+            text-align: center;
+        }
+
+        .stat-box-value {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .stat-box-value.win { color: var(--win); }
+        .stat-box-value.loss { color: var(--loss); }
+        .stat-box-value.draw { color: var(--draw); }
+
+        .stat-box-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .team-matches-title {
+            padding: 0 16px;
+            font-size: 16px;
+            font-weight: 700;
+            margin: 24px 0 12px;
+        }
+
+        .result-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+
+        .result-badge.win {
+            background: rgba(0, 208, 132, 0.15);
+            color: var(--win);
+        }
+
+        .result-badge.loss {
+            background: rgba(255, 71, 87, 0.15);
+            color: var(--loss);
+        }
+
+        .result-badge.draw {
+            background: rgba(255, 165, 2, 0.15);
+            color: var(--draw);
+        }
+
+        .mini-match {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-card);
+            cursor: pointer;
+        }
+
+        .mini-match:last-child {
+            border-bottom: none;
+        }
+
+        .mini-match-date {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            width: 60px;
+            flex-shrink: 0;
+        }
+
+        .mini-match-teams {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .mini-match-logo {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .mini-match-score {
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            padding: 2px 8px;
+            background: var(--bg-hover);
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-primary);
+        }
+
+        .sub-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sub-item:last-child {
+            border-bottom: none;
+        }
+
+        .sub-icon {
+            width: 24px;
+            height: 24px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--bg-primary);
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        .sub-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .sub-name {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sub-time {
+            font-size: 11px;
+            color: var(--accent);
+        }
+
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        * {
+            scrollbar-width: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .leaderboard-item:last-child {
+            border-bottom: none;
+        }
+
+        .leaderboard-rank {
+            width: 30px;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        .leaderboard-rank.top3 {
+            color: var(--accent);
+        }
+
+        .leaderboard-player {
+            flex: 1;
+            font-weight: 600;
+            margin-left: 12px;
+        }
+
+        .leaderboard-count {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .leaderboard-label {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-left: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <div class="back-btn" id="backBtn" style="display: none;">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 4px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                <span>返回</span>
+            </div>
+            <div class="header-title" id="pageTitle">比赛中心</div>
+            <div class="header-actions">
+                <button class="icon-btn" id="themeToggle" title="切换主题">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="nav-tabs" id="navTabs">
+            <div class="nav-tab active" data-view="all">全部比赛</div>
+            <div class="nav-tab" data-view="finished">已结束</div>
+        </div>
+
+        <div class="content" id="content">
+            <div class="loading">加载中...</div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'https://angreoli-fagioli-garciatest-html.static.hf.space';
+        
+        const TEAM_LOGOS = {
+            '南太平洋大学色温校区': BASE_URL + '/%E5%8D%97%E5%A4%AA%E5%A4%A7%E6%96%B0%E6%B3%B0.png',
+            '三宝敦': BASE_URL + '/%E4%B8%89%E5%AE%9D%E6%95%A6.png',
+            '东平雄鹰': BASE_URL + '/%E4%B8%9C%E5%B9%B3%E9%9B%84%E9%B9%B0.png',
+            '伊丽莎白女王镇联合': BASE_URL + '/%E4%BC%8A%E4%B8%BD%E8%8E%8E%E7%99%BD%E8%81%94%E5%90%88.png',
+            '泰克马联合': BASE_URL + '/%E4%BC%8A%E6%96%AF%E7%89%B9%E4%BC%8D%E5%BE%B7%E8%81%94%E5%90%88%E6%96%B02.png',
+            '首都守护者': BASE_URL + '/%E5%93%88%E5%8D%A1%E6%8B%89%E6%89%98%E7%89%B9%E5%8D%A111.png',
+            '哈贾丹太平洋人': BASE_URL + '/%E5%93%88%E8%B4%BE%E4%B9%BE%E5%A4%AA%E5%B9%B3%E6%B4%8B%E4%BA%BA.png',
+            '坎布尔新吕伐登': BASE_URL + '/%E5%9D%8E%E5%B8%83%E5%B0%94%E6%96%B0%E5%90%95%E4%BC%90%E7%99%BB.png',
+            '大同拜仁皇家加西亚': BASE_URL + '/%E5%A4%A7%E5%90%8C%E6%8B%9C%E4%BB%81%E7%9A%87%E5%AE%B6%E5%8A%A0%E8%A5%BF%E4%BA%9A.png',
+            '奥顿兰富力': 'https://fclogo.top/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2F11hmdf08%2Fproduction%2Feb9a55f184d71696f341ee3f8cd0a3bbcc0efc56-800x800.png%3Fw%3D800%26fm%3Dwebp%26q%3D80&w=828&q=75',
+            '奥顿兰海鸥': BASE_URL + '/%E5%A5%A5%E9%A1%BF%E5%85%B0%E6%B5%B7%E6%B8%AF.png',
+            '东木市职业': BASE_URL + '/%E5%AD%94%E6%81%A9%E5%BA%A6%E5%8D%A2FC.png',
+            '安倍萨镇': BASE_URL + '/%E5%AE%89%E5%80%8D%E8%90%A8%E5%9F%8E.png',
+            '拉阿纳': BASE_URL + '/%E6%8B%89%E9%98%BF%E7%BA%B3%E5%9F%8E%E5%B8%82%E7%AB%9E%E6%8A%80.png',
+            '斯波托普城市': BASE_URL + '/%E6%96%AF%E6%B3%A2%E6%89%98%E6%99%AE%E5%9F%8E%E5%B8%82.png',
+            '新吕伐登猫头鹰镇': BASE_URL + '/%E6%96%B0%E5%90%95%E4%BC%90%E7%99%BB%E7%8C%AB%E5%A4%B4%E9%B9%B0.png',
+            '新南城': BASE_URL + '/%E6%96%B0%E6%B3%B0%E6%96%B03.png',
+            '坎布尔新吕伐登B': 'https://free.boltp.com/2026/02/18/699491722d260.webp',
+            '新达华哈海岸': BASE_URL + '/%E6%96%B0%E8%BE%BE%E5%8D%8E%E5%93%88%E6%B5%B7%E5%B2%B8.png',
+            '泰克马职业': BASE_URL + '/%E6%B3%B0%E5%85%8B%E9%A9%AC%E8%81%8C%E4%B8%9A.png',
+            '泰克马队': BASE_URL + '/%E6%B3%B0%E5%85%8B%E9%A9%AC%E9%98%9F.png',
+            '瓦巴萨朱树鸦': BASE_URL + '/%E7%93%A6%E5%B7%B4%E8%90%A8%E6%9C%B1%E6%A0%91%E9%B8%A6.png',
+            '新泰泰山': BASE_URL + '/%E7%93%A6%E5%B7%B4%E8%90%A8%E6%9C%B1%E8%89%BE%E5%A5%A5%E7%BA%B3%E5%B0%94.png',
+            '皇家萨乌萨乌': BASE_URL + '/%E7%9A%87%E5%AE%B6%E8%90%A8%E4%B9%8C%E8%90%A8%E4%B9%8C.png',
+            '穆拉哈西部': BASE_URL + '/%E7%A9%86%E6%8B%89%E5%93%88%E8%A5%BF%E9%83%A8.png',
+            '色温岱州东岳': BASE_URL + '/%E8%89%B2%E6%B8%A9%E5%B2%B1%E5%B7%9E%E4%B8%9C%E5%B2%B3.png',
+            '巴峰': BASE_URL + '/%E8%90%A8%E4%B9%8C%E8%90%A8%E4%B9%8C%E6%96%B0.png',
+            '诺维奇港': BASE_URL + '/%E8%AF%BA%E7%BB%B4%E5%A5%87%E6%B8%AF%E6%96%B0.png',
+            '北泰克马': BASE_URL + '/%E9%87%8C%E6%8B%89%E8%B5%AB%E9%A3%9E%E7%87%95.png',
+            '阿尔特弗雷奇流浪者': BASE_URL + '/%E9%98%BF%E5%B0%94%E7%89%B9%E5%BC%97%E9%9B%B7%E5%A5%87%E6%B5%81%E6%B5%AA%E8%80%85.png',
+            '马雷克青春之城': BASE_URL + '/%E9%A9%AC%E9%9B%B7%E5%85%8B%E6%96%B0.png',
+            '哈克竞技': BASE_URL + '/%E5%93%88%E5%8D%A1%E6%8B%89%E6%89%98%E7%89%B9%E5%8D%A1.png',
+            '比列竞技': BASE_URL + '/%E6%AF%94%E5%88%97%E7%AB%9E%E6%8A%80%E6%96%B0.png',
+            '朱马蓝色协进': BASE_URL + '/%E6%9C%B1%E9%A9%AC%E8%93%9D%E8%89%B2%E5%8D%8F%E8%BF%9B.png',
+            '伊斯特伍德竞技': BASE_URL + '/%E4%BC%8A%E6%96%AF%E7%89%B9%E4%BC%8D%E5%BE%B7%E4%BF%B1%E4%B9%90%E9%83%A8.png',
+            '比斯恰捍卫者': BASE_URL + '/%E6%AF%94%E6%96%AF%E6%81%B0%E6%8D%8D%E5%8D%AB%E8%80%85.png',
+            '新利雅得胜利': BASE_URL + '/%E6%99%AE%E6%8B%89%E5%B8%82%E6%B0%91.png',
+            '南比斯恰城市': BASE_URL + '/%E5%8D%97%E6%AF%94%E6%96%AF%E6%81%B0%E5%9F%8E%E5%B8%82.png',
+            '岱州东岳': BASE_URL + '/%E8%89%B2%E6%B8%A9%E5%B2%B1%E5%B7%9E%E4%B8%9C%E5%B2%B3.png',
+            '新利雅得新月': 'https://fclogo.top/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2F11hmdf08%2Fproduction%2F8b173e002d366de185a0b51b67e71d230f63b72e-800x800.png%3Fw%3D800%26fm%3Dwebp%26q%3D80&w=828&q=75',
+            '马雷克海岸线': 'https://free.boltp.com/2026/02/17/6994906fb09c8.webp',
+            '伊斯特伍德海岸线': 'https://free.boltp.com/2026/02/18/6995d0f5765c8.webp',
+            '瓦巴萨朱城市': BASE_URL + '/%E7%93%A6%E5%B7%B4%E8%90%A8%E6%9C%B1%E8%89%BE%E5%A5%A5%E7%BA%B3%E5%B0%94.png',
+            '瓦巴萨朱树鸦B': BASE_URL + '/%E7%93%A6%E5%B7%B4%E8%90%A8%E6%9C%B1%E6%A0%91%E9%B8%A6.png',
+            '三宝敦乐邦战士': BASE_URL + '/%E7%BB%B4%E5%B0%94%E5%9B%BE%E9%92%A2%E7%AE%A1.png',
+            '首都-东木联合B': BASE_URL + '/%E5%93%88%E5%8D%A1%E6%8B%89%E6%89%98%E7%89%B9%E5%8D%A111.png',
+            '首都B': BASE_URL + '/%E5%93%88%E5%8D%A1%E6%8B%89%E6%89%98%E7%89%B9%E5%8D%A111.png',
+            '比列地平线': 'https://fclogo.top/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2F11hmdf08%2Fproduction%2F2d2c10be4e5d9a91aada5021b9b551ebd88f3bdc-800x800.png%3Fw%3D800%26fm%3Dwebp%26q%3D80&w=828&q=75',
+            '新法鲁大里斯本联盟': BASE_URL + '/%E6%96%B0%E6%B3%95%E9%B2%81%E6%96%B0.png',
+            '新法鲁联盟': BASE_URL + '/%E6%96%B0%E6%B3%95%E9%B2%81%E6%96%B0.png',
+            '新利雅得阿尔希拉尔': 'https://fclogo.top/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2F11hmdf08%2Fproduction%2F8b173e002d366de185a0b51b67e71d230f63b72e-800x800.png%3Fw%3D800%26fm%3Dwebp%26q%3D80&w=828&q=75',
+            '加西亚国青队': BASE_URL + '/1500px-Naval_Flag_of_the_Kingdom_of_France_(Civil_Ensign).svg.png'
+        };
+
+        let allMatches = [];
+        let currentMatch = null;
+        let historyStack = [];
+        let currentTeamStats = {};
+
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        });
+
+        function parseDate(dateStr) {
+            if (!dateStr) return new Date(0);
+            const match = dateStr.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+            if (match) {
+                return new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
+            }
+            return new Date(0);
+        }
+
+        async function fetchMatches() {
+            try {
+                const res = await fetch('https://angreoli-fagioli-garciatest-html.static.hf.space/matches.txt');
+                const text = await res.text();
+                return parseMatches(text);
+            } catch (e) {
+                console.error('Fetch error:', e);
+                return [];
+            }
+        }
+
+        function parseMatches(text) {
+            const matches = [];
+            const lines = text.split('\n');
+            let cur = null;
+            let section = '';
+
+            for (let line of lines) {
+                line = line.trim();
+                if (!line || line.startsWith('//')) continue;
+
+                // 比赛头：===第四赛季 测试赛 第一轮===
+                if (line.startsWith('===') && line.endsWith('===')) {
+                    if (cur && !cur.season.includes('格式示例') && !cur.season.includes('第X赛季')) {
+                        matches.push(cur);
+                    }
+                    section = '';
+                    
+                    const parts = line.replace(/===/g, '').trim().split(' ');
+                    cur = {
+                        season: parts[0] || '', 
+                        competition: parts[1] || '', 
+                        round: parts[2] || '',
+                        homeTeam: '', 
+                        awayTeam: '', 
+                        score: '', 
+                        date: '', 
+                        dateObj: new Date(),
+                        stats: {}, 
+                        homeGoals: [], 
+                        awayGoals: [],
+                        homeMOTM: null, 
+                        awayMOTM: null,
+                        homeLineup: [], 
+                        awayLineup: [], 
+                        homeSubs: [], 
+                        awaySubs: []
+                    };
+                    continue;
+                }
+                
+                if (!cur) continue;
+                if (cur.season.includes('格式示例') || cur.season.includes('第X赛季')) continue;
+
+                // 对阵：=阿尔特弗雷奇流浪者=2-1=新利雅得新月=
+                if (line.startsWith('=') && line.endsWith('=') && line.includes('-') && !line.includes('年')) {
+                    const content = line.slice(1, -1);
+                    const parts = content.split('=');
+                    if (parts.length >= 3) {
+                        cur.homeTeam = parts[0].trim();
+                        cur.score = parts[1].trim();
+                        cur.awayTeam = parts[2].trim();
+                    }
+                    continue;
+                }
+
+                // 日期：=2026年2月24日=
+                if (line.startsWith('=') && line.endsWith('=') && (line.includes('年') || line.includes('月'))) {
+                    cur.date = line.slice(1, -1);
+                    cur.dateObj = parseDate(cur.date);
+                    continue;
+                }
+
+                // 章节标记 - 修正：使用"员"而不是"员"
+                if (line === '==技术统计==') { section = 'stats'; continue; }
+                if (line === '==双方进球队员==') { section = 'goals'; continue; }
+                if (line === '==双方表现最佳球员==') { section = 'motm'; continue; }
+                if (line === '==双方首发球员==') { section = 'lineup'; continue; }
+                if (line === '==双方替补球员==') { section = 'subs'; continue; }
+
+                // 技术统计：=55%=/=45%=
+                if (section === 'stats' && line.startsWith('=') && line.endsWith('=')) {
+                    const content = line.slice(1, -1);
+                    const parts = content.split('=/=');
+                    if (parts.length === 2) {
+                        const keys = ['possession', 'xg', 'fouls', 'corners', 'offsides', 'redCards', 'yellowCards'];
+                        const key = keys[Object.keys(cur.stats).length] || 'stat' + Object.keys(cur.stats).length;
+                        cur.stats[key] = { home: parts[0].trim(), away: parts[1].trim() };
+                    }
+                    continue;
+                }
+
+                // 进球球员：=布拉姆斯，56'，伍德；布拉姆斯，82'，伍德=阿洪扎达，66'=
+                if (section === 'goals' && line.startsWith('=') && line.endsWith('=')) {
+                    const content = line.slice(1, -1);
+                    // 找到中间的分隔符 =，左边是主队，右边是客队
+                    const eqIndex = content.indexOf('=');
+                    if (eqIndex > 0) {
+                        const homePart = content.substring(0, eqIndex).trim();
+                        const awayPart = content.substring(eqIndex + 1).trim();
+                        cur.homeGoals = parseGoals(homePart);
+                        cur.awayGoals = parseGoals(awayPart);
+                    }
+                    continue;
+                }
+
+                // 最佳球员：=布拉姆斯，10.0=阿洪扎达，7.5=
+                if (section === 'motm' && line.startsWith('=') && line.endsWith('=')) {
+                    const content = line.slice(1, -1);
+                    const parts = content.split('=');
+                    if (parts.length >= 2) {
+                        cur.homeMOTM = parseMOTM(parts[0]);
+                        cur.awayMOTM = parseMOTM(parts[1]);
+                    }
+                    continue;
+                }
+
+                // 首发：布拉姆斯，90'=阿洪扎达，90+2'
+                if (section === 'lineup' && line.includes('=') && !line.startsWith('==')) {
+                    const parts = line.split('=');
+                    if (parts.length >= 2) {
+                        cur.homeLineup.push(parsePlayer(parts[0]));
+                        cur.awayLineup.push(parsePlayer(parts[1]));
+                    }
+                    continue;
+                }
+
+                // 替补：桑布，90'=阿圭罗，90+2'
+                if (section === 'subs' && line.includes('=') && !line.startsWith('==')) {
+                    const parts = line.split('=');
+                    if (parts.length >= 2) {
+                        cur.homeSubs.push(parseSub(parts[0]));
+                        cur.awaySubs.push(parseSub(parts[1]));
+                    }
+                }
+            }
+            
+            if (cur && !cur.season.includes('格式示例') && !cur.season.includes('第X赛季')) {
+                matches.push(cur);
+            }
+            
+            return matches.sort((a, b) => b.dateObj - a.dateObj);
+        }
+
+        function parseGoals(str) {
+            if (!str || str.trim() === '') return [];
+            // 多个进球用中文分号"；"分隔
+            return str.split('；').map(g => {
+                const parts = g.split('，');
+                return { 
+                    player: (parts[0] || '').trim(), 
+                    time: (parts[1] || '').trim(), 
+                    assist: (parts[2] || '').trim() 
+                };
+            }).filter(g => g.player);
+        }
+
+        function parseMOTM(str) {
+            if (!str) return null;
+            const parts = str.split('，');
+            return { 
+                name: (parts[0] || '').trim(), 
+                rating: (parts[1] || '').trim() 
+            };
+        }
+
+        function parsePlayer(str) {
+            const parts = str.split('，');
+            return { 
+                name: (parts[0] || '').trim(), 
+                subTime: (parts[1] || '').trim(), 
+                subReason: (parts[2] || '').trim() 
+            };
+        }
+
+        function parseSub(str) {
+            const parts = str.split('，');
+            return { 
+                name: (parts[0] || '').trim(), 
+                subTime: (parts[1] || '').trim() 
+            };
+        }
+
+        function getLogo(name) {
+            return TEAM_LOGOS[name] || BASE_URL + '/default-logo.png';
+        }
+
+        function truncateName(name) {
+            if (!name) return '';
+            return name.length > 6 ? name.slice(0, 6) + '...' : name;
+        }
+
+        function calculateTeamStats(teamName) {
+            const stats = {
+                matches: [],
+                wins: 0, 
+                losses: 0, 
+                draws: 0,
+                players: {}
+            };
+
+            allMatches.forEach(m => {
+                if (!m || (m.homeTeam !== teamName && m.awayTeam !== teamName)) return;
+                stats.matches.push(m);
+                
+                if (!m.score || !m.score.includes('-')) return;
+                
+                const scoreParts = m.score.split('-');
+                if (scoreParts.length < 2) return;
+                
+                const hs = parseInt(scoreParts[0].trim()) || 0;
+                const as = parseInt(scoreParts[1].trim()) || 0;
+                const isHome = m.homeTeam === teamName;
+                
+                if (hs === as) {
+                    stats.draws++;
+                } else if ((isHome && hs > as) || (!isHome && as > hs)) {
+                    stats.wins++;
+                } else {
+                    stats.losses++;
+                }
+
+                // 统计进球和助攻
+                const goals = isHome ? (m.homeGoals || []) : (m.awayGoals || []);
+                goals.forEach(g => {
+                    if (!g || !g.player) return;
+                    const playerName = g.player.trim();
+                    if (!playerName) return;
+                    
+                    if (!stats.players[playerName]) {
+                        stats.players[playerName] = { goals: 0, assists: 0, motm: 0 };
+                    }
+                    stats.players[playerName].goals++;
+                    
+                    if (g.assist) {
+                        const assistName = g.assist.trim();
+                        if (assistName) {
+                            if (!stats.players[assistName]) {
+                                stats.players[assistName] = { goals: 0, assists: 0, motm: 0 };
+                            }
+                            stats.players[assistName].assists++;
+                        }
+                    }
+                });
+
+                // MOTM统计
+                const motm = isHome ? m.homeMOTM : m.awayMOTM;
+                if (motm && motm.name) {
+                    const motmName = motm.name.trim();
+                    if (motmName) {
+                        if (!stats.players[motmName]) {
+                            stats.players[motmName] = { goals: 0, assists: 0, motm: 0 };
+                        }
+                        stats.players[motmName].motm++;
+                    }
+                }
+            });
+
+            return stats;
+        }
+
+        function renderList(filter = 'all') {
+            const content = document.getElementById('content');
+            const matches = filter === 'finished' ? allMatches.filter(m => m.score && m.score.includes('-')) : allMatches;
+
+            if (matches.length === 0) {
+                content.innerHTML = '<div class="empty-state"><div style="font-size: 48px; margin-bottom: 12px;">📅</div><div>暂无比赛</div></div>';
+                return;
+            }
+
+            content.innerHTML = matches.map((m, i) => `
+                <div class="match-card fade-in" onclick="showMatch(${allMatches.indexOf(m)})" style="animation-delay: ${i * 0.05}s">
+                    <div class="match-competition">
+                        <span style="color: var(--accent); margin-right: 6px;">⚽</span>
+                        <span>${m.season} · ${m.competition} · ${m.round}</span>
+                    </div>
+                    <div class="match-teams">
+                        <div class="team" onclick="event.stopPropagation(); showTeam('${m.homeTeam}')">
+                            <img src="${getLogo(m.homeTeam)}" class="team-logo" onerror="this.src='${BASE_URL}/default-logo.png'">
+                            <div class="team-name">${truncateName(m.homeTeam)}</div>
+                        </div>
+                        <div class="match-center">
+                            <div class="match-score">${m.score || 'vs'}</div>
+                            <div class="match-status">${m.date || '待定'}</div>
+                        </div>
+                        <div class="team" onclick="event.stopPropagation(); showTeam('${m.awayTeam}')">
+                            <img src="${getLogo(m.awayTeam)}" class="team-logo" onerror="this.src='${BASE_URL}/default-logo.png'">
+                            <div class="team-name">${truncateName(m.awayTeam)}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showMatch(idx) {
+            currentMatch = allMatches[idx];
+            historyStack.push('list');
+            
+            document.getElementById('backBtn').style.display = 'flex';
+            document.getElementById('navTabs').style.display = 'none';
+            document.getElementById('pageTitle').textContent = '比赛详情';
+
+            const statLabels = { 
+                possession: '控球率', 
+                xg: '预期进球(xG)', 
+                fouls: '犯规', 
+                corners: '角球', 
+                offsides: '越位', 
+                redCards: '红牌', 
+                yellowCards: '黄牌' 
+            };
+            
+            const content = document.getElementById('content');
+            const [homeScore, awayScore] = currentMatch.score ? currentMatch.score.split('-') : ['-', '-'];
+
+            content.innerHTML = `
+                <div class="fade-in">
+                    <div class="match-header">
+                        <div class="match-header-teams">
+                            <div class="header-team" onclick="showTeam('${currentMatch.homeTeam}')">
+                                <img src="${getLogo(currentMatch.homeTeam)}" class="header-team-logo">
+                                <div class="header-team-name">${truncateName(currentMatch.homeTeam)}</div>
+                            </div>
+                            <div class="header-score-section">
+                                <div class="header-score">
+                                    <span>${homeScore}</span>
+                                    <span class="score-divider">:</span>
+                                    <span>${awayScore}</span>
+                                </div>
+                            </div>
+                            <div class="header-team" onclick="showTeam('${currentMatch.awayTeam}')">
+                                <img src="${getLogo(currentMatch.awayTeam)}" class="header-team-logo">
+                                <div class="header-team-name">${truncateName(currentMatch.awayTeam)}</div>
+                            </div>
+                        </div>
+                        <div class="match-info">${currentMatch.season} · ${currentMatch.competition} · ${currentMatch.round} · ${currentMatch.date}</div>
+                    </div>
+
+                    ${Object.keys(currentMatch.stats).length > 0 ? `
+                    <div class="detail-section">
+                        <div class="section-title">技术统计</div>
+                        ${Object.entries(currentMatch.stats).map(([k, s]) => {
+                            const h = parseFloat(s.home) || 0;
+                            const a = parseFloat(s.away) || 0;
+                            const total = h + a;
+                            const hp = total > 0 ? (h / total * 100) : 50;
+                            const ap = total > 0 ? (a / total * 100) : 50;
+                            return `
+                                <div class="stat-row">
+                                    <div class="stat-value home">${s.home}</div>
+                                    <div class="stat-bar-container">
+                                        <div class="stat-label">${statLabels[k] || k}</div>
+                                        <div class="stat-bar-bg">
+                                            <div class="stat-bar-home" style="width: ${hp}%"></div>
+                                            <div class="stat-bar-away" style="width: ${ap}%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="stat-value away">${s.away}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    ` : ''}
+
+                    <!-- 进球球员区块 -->
+                    <div class="detail-section">
+                        <div class="section-title">进球球员</div>
+                        <div class="players-grid">
+                            <div class="players-column">
+                                <h4>${truncateName(currentMatch.homeTeam)}</h4>
+                                ${currentMatch.homeGoals && currentMatch.homeGoals.length > 0 ? 
+                                    currentMatch.homeGoals.map(g => `
+                                        <div class="goal-item">
+                                            <span class="goal-time">${g.time}</span>
+                                            <span class="goal-player">${g.player}</span>
+                                            ${g.assist ? `<span class="goal-assist">助:${g.assist}</span>` : ''}
+                                        </div>
+                                    `).join('') : 
+                                    '<div class="no-data">无进球</div>'
+                                }
+                            </div>
+                            <div class="players-column">
+                                <h4>${truncateName(currentMatch.awayTeam)}</h4>
+                                ${currentMatch.awayGoals && currentMatch.awayGoals.length > 0 ? 
+                                    currentMatch.awayGoals.map(g => `
+                                        <div class="goal-item">
+                                            <span class="goal-time">${g.time}</span>
+                                            <span class="goal-player">${g.player}</span>
+                                            ${g.assist ? `<span class="goal-assist">助:${g.assist}</span>` : ''}
+                                        </div>
+                                    `).join('') : 
+                                    '<div class="no-data">无进球</div>'
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    ${((currentMatch.homeMOTM && currentMatch.homeMOTM.name) || (currentMatch.awayMOTM && currentMatch.awayMOTM.name)) ? `
+                        <div class="detail-section">
+                            <div class="section-title">最佳球员</div>
+                            <div class="players-grid">
+                                <div class="players-column">
+                                    <h4>${truncateName(currentMatch.homeTeam)}</h4>
+                                    ${currentMatch.homeMOTM && currentMatch.homeMOTM.name ? `
+                                        <div class="player-item">
+                                            <div class="player-info"><div class="player-name">${currentMatch.homeMOTM.name}</div></div>
+                                            <div class="player-rating high">${currentMatch.homeMOTM.rating}</div>
+                                        </div>
+                                    ` : '<div class="no-data">-</div>'}
+                                </div>
+                                <div class="players-column">
+                                    <h4>${truncateName(currentMatch.awayTeam)}</h4>
+                                    ${currentMatch.awayMOTM && currentMatch.awayMOTM.name ? `
+                                        <div class="player-item">
+                                            <div class="player-info"><div class="player-name">${currentMatch.awayMOTM.name}</div></div>
+                                            <div class="player-rating high">${currentMatch.awayMOTM.rating}</div>
+                                        </div>
+                                    ` : '<div class="no-data">-</div>'}
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    ${((currentMatch.homeLineup && currentMatch.homeLineup.length) || (currentMatch.awayLineup && currentMatch.awayLineup.length)) ? `
+                        <div class="detail-section">
+                            <div class="section-title">首发阵容</div>
+                            <div class="players-grid">
+                                <div class="players-column">
+                                    <h4>${truncateName(currentMatch.homeTeam)}</h4>
+                                    ${currentMatch.homeLineup ? currentMatch.homeLineup.map((p, i) => `
+                                        <div class="player-item">
+                                            <div class="player-number">${i + 1}</div>
+                                            <div class="player-info">
+                                                <div class="player-name">${p.name}</div>
+                                                ${p.subTime ? `<div class="player-detail">${p.subTime} ${p.subReason || '换下'}</div>` : ''}
+                                            </div>
+                                        </div>
+                                    `).join('') : ''}
+                                </div>
+                                <div class="players-column">
+                                    <h4>${truncateName(currentMatch.awayTeam)}</h4>
+                                    ${currentMatch.awayLineup ? currentMatch.awayLineup.map((p, i) => `
+                                        <div class="player-item">
+                                            <div class="player-number">${i + 1}</div>
+                                            <div class="player-info">
+                                                <div class="player-name">${p.name}</div>
+                                                ${p.subTime ? `<div class="player-detail">${p.subTime} ${p.subReason || '换下'}</div>` : ''}
+                                            </div>
+                                        </div>
+                                    `).join('') : ''}
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    ${((currentMatch.homeSubs && currentMatch.homeSubs.length) || (currentMatch.awaySubs && currentMatch.awaySubs.length)) ? `
+                        <div class="detail-section">
+                            <div class="section-title">替补球员</div>
+                            <div class="players-grid">
+                                <div class="players-column">
+                                    <h4>${truncateName(currentMatch.homeTeam)}</h4>
+                                    ${currentMatch.homeSubs && currentMatch.homeSubs.length ? currentMatch.homeSubs.map((s, i) => `
+                                        <div class="sub-item">
+                                            <div class="sub-icon">↗</div>
+                                            <div class="sub-info">
+                                                <div class="sub-name">${s.name}</div>
+                                                <div class="sub-time">${s.subTime || ''}</div>
+                                            </div>
+                                        </div>
+                                    `).join('') : '<div class="no-data">无替补</div>'}
+                                </div>
+                                <div class="players-column">
+                                    <h4>${truncateName(currentMatch.awayTeam)}</h4>
+                                    ${currentMatch.awaySubs && currentMatch.awaySubs.length ? currentMatch.awaySubs.map((s, i) => `
+                                        <div class="sub-item">
+                                            <div class="sub-icon">↗</div>
+                                            <div class="sub-info">
+                                                <div class="sub-name">${s.name}</div>
+                                                <div class="sub-time">${s.subTime || ''}</div>
+                                            </div>
+                                        </div>
+                                    `).join('') : '<div class="no-data">无替补</div>'}
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function showTeam(teamName) {
+            historyStack.push(currentMatch ? 'match' : 'list');
+            currentTeamStats = calculateTeamStats(teamName);
+            
+            document.getElementById('backBtn').style.display = 'flex';
+            document.getElementById('navTabs').style.display = 'none';
+            document.getElementById('pageTitle').textContent = '球队详情';
+
+            renderTeamView(teamName, 'matches');
+        }
+
+        function renderTeamView(teamName, view) {
+            const content = document.getElementById('content');
+            const stats = currentTeamStats;
+            const total = stats.wins + stats.losses + stats.draws;
+            const winRate = total > 0 ? ((stats.wins / total) * 100).toFixed(1) : 0;
+
+            const playersArray = Object.entries(stats.players).map(([name, data]) => ({
+                name, ...data, total: data.goals + data.assists + data.motm
+            }));
+
+            let leaderboardHTML = '';
+            if (view === 'goals') {
+                const sorted = playersArray.sort((a, b) => b.goals - a.goals).filter(p => p.goals > 0);
+                leaderboardHTML = sorted.length ? sorted.map((p, i) => `
+                    <div class="leaderboard-item">
+                        <div class="leaderboard-rank ${i < 3 ? 'top3' : ''}">${i + 1}</div>
+                        <div class="leaderboard-player">${p.name}</div>
+                        <div style="display: flex; align-items: baseline;">
+                            <span class="leaderboard-count">${p.goals}</span>
+                            <span class="leaderboard-label">球</span>
+                        </div>
+                    </div>
+                `).join('') : '<div class="empty-state">暂无进球数据</div>';
+            } else if (view === 'assists') {
+                const sorted = playersArray.sort((a, b) => b.assists - a.assists).filter(p => p.assists > 0);
+                leaderboardHTML = sorted.length ? sorted.map((p, i) => `
+                    <div class="leaderboard-item">
+                        <div class="leaderboard-rank ${i < 3 ? 'top3' : ''}">${i + 1}</div>
+                        <div class="leaderboard-player">${p.name}</div>
+                        <div style="display: flex; align-items: baseline;">
+                            <span class="leaderboard-count">${p.assists}</span>
+                            <span class="leaderboard-label">助</span>
+                        </div>
+                    </div>
+                `).join('') : '<div class="empty-state">暂无助攻数据</div>';
+            } else if (view === 'motm') {
+                const sorted = playersArray.sort((a, b) => b.motm - a.motm).filter(p => p.motm > 0);
+                leaderboardHTML = sorted.length ? sorted.map((p, i) => `
+                    <div class="leaderboard-item">
+                        <div class="leaderboard-rank ${i < 3 ? 'top3' : ''}">${i + 1}</div>
+                        <div class="leaderboard-player">${p.name}</div>
+                        <div style="display: flex; align-items: baseline;">
+                            <span class="leaderboard-count">${p.motm}</span>
+                            <span class="leaderboard-label">次</span>
+                        </div>
+                    </div>
+                `).join('') : '<div class="empty-state">暂无最佳球员数据</div>';
+            }
+
+            content.innerHTML = `
+                <div class="fade-in">
+                    <div class="team-header">
+                        <img src="${getLogo(teamName)}" class="team-header-logo">
+                        <div class="team-header-name">${teamName}</div>
+                    </div>
+
+                    <div class="team-stats-overview">
+                        <div class="stat-box">
+                            <div class="stat-box-value win">${stats.wins}</div>
+                            <div class="stat-box-label">胜场</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-box-value loss">${stats.losses}</div>
+                            <div class="stat-box-label">负场</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-box-value draw">${stats.draws}</div>
+                            <div class="stat-box-label">平局</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-box-value">${winRate}%</div>
+                            <div class="stat-box-label">胜率</div>
+                        </div>
+                    </div>
+
+                    <div class="nav-tabs" style="margin: 16px 16px 0; border-radius: 8px; border: 1px solid var(--border); padding: 0;">
+                        <div class="nav-tab ${view === 'matches' ? 'active' : ''}" onclick="renderTeamView('${teamName}', 'matches')" style="flex: 1; text-align: center;">比赛</div>
+                        <div class="nav-tab ${view === 'goals' ? 'active' : ''}" onclick="renderTeamView('${teamName}', 'goals')" style="flex: 1; text-align: center;">射手榜</div>
+                        <div class="nav-tab ${view === 'assists' ? 'active' : ''}" onclick="renderTeamView('${teamName}', 'assists')" style="flex: 1; text-align: center;">助攻榜</div>
+                        <div class="nav-tab ${view === 'motm' ? 'active' : ''}" onclick="renderTeamView('${teamName}', 'motm')" style="flex: 1; text-align: center;">最佳</div>
+                    </div>
+
+                    ${view === 'matches' ? `
+                        <div class="detail-section" style="margin-top: 16px;">
+                            ${stats.matches.map(m => {
+                                const isHome = m.homeTeam === teamName;
+                                const opp = isHome ? m.awayTeam : m.homeTeam;
+                                const scoreParts = (m.score || '0-0').split('-');
+                                const hs = parseInt(scoreParts[0]?.trim()) || 0;
+                                const as = parseInt(scoreParts[1]?.trim()) || 0;
+                                let result = 'draw', rt = '平';
+                                if (hs !== as) {
+                                    const won = (isHome && hs > as) || (!isHome && as > hs);
+                                    result = won ? 'win' : 'loss';
+                                    rt = won ? '胜' : '负';
+                                }
+                                return `
+                                    <div class="mini-match" onclick="showMatch(${allMatches.indexOf(m)})">
+                                        <div class="mini-match-date">${m.date || '待定'}</div>
+                                        <div class="mini-match-teams">
+                                            <span style="color: var(--text-secondary); font-size: 11px;">${isHome ? '主' : '客'}</span>
+                                            <img src="${getLogo(opp)}" class="mini-match-logo">
+                                            <span style="font-size: 12px;">${truncateName(opp)}</span>
+                                        </div>
+                                        <div style="display: flex; align-items: center;">
+                                            <span class="mini-match-score">${m.score || '-'}</span>
+                                            <span class="result-badge ${result}">${rt}</span>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    ` : `
+                        <div class="detail-section" style="margin-top: 16px;">
+                            ${leaderboardHTML}
+                        </div>
+                    `}
+                </div>
+            `;
+        }
+
+        function goBack() {
+            const prev = historyStack.pop();
+            if (prev === 'list') {
+                document.getElementById('backBtn').style.display = 'none';
+                document.getElementById('navTabs').style.display = 'flex';
+                document.getElementById('pageTitle').textContent = '比赛中心';
+                renderList(document.querySelector('.nav-tab.active').dataset.view);
+            } else if (prev === 'match' && currentMatch) {
+                showMatch(allMatches.indexOf(currentMatch));
+            }
+        }
+
+        document.getElementById('backBtn').addEventListener('click', goBack);
+        
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                renderList(tab.dataset.view);
+            });
+        });
+
+        async function init() {
+            allMatches = await fetchMatches();
+            renderList('all');
+        }
+
+        init();
+    </script>
+</body>
+</html>

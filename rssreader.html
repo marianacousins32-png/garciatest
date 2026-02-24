@@ -157,6 +157,23 @@
             writing-mode: horizontal-tb !important;
             text-orientation: mixed !important;
         }
+
+        /* Category headers in sidebar */
+        .category-header {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #9ca3af;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            padding-left: 0.5rem;
+            border-left: 2px solid #e5e7eb;
+        }
+        .dark .category-header {
+            color: #6b7280;
+            border-left-color: #374151;
+        }
     </style>
 </head>
 <body class="bg-white dark:bg-black text-gray-900 dark:text-white">
@@ -431,44 +448,82 @@
     </div>
 
     <script>
-        // RSS Sources with article mode flag
+        // RSS Sources with article mode flag and categories
         const defaultRssSources = [
-            { id: '36kr', name: '36氪', url: 'https://www.36kr.com/feed', icon: '📱', lang: 'zh', isBluesky: false, isArticleMode: true },
-            { id: 'sspai', name: '少数派', url: 'https://sspai.com/feed', icon: '⌨️', lang: 'zh', isBluesky: false, isArticleMode: true },
-            { id: 'infzm', name: '南方周末', url: 'https://rsshub.app/infzm/2', icon: '📰', lang: 'zh', isBluesky: false, isArticleMode: true },
-            { id: 'yystv', name: '游戏研究社', url: 'https://www.yystv.cn/rss/feed', icon: '🎮', lang: 'zh', isBluesky: false, isArticleMode: true },
-            { id: 'chaping', name: '差评', url: 'https://wechat2rss.xlab.app/feed/8d839de8dd3290a1f1be7a94423cccb30c1b087d.xml', icon: '👎', lang: 'zh', isBluesky: false, isArticleMode: true },
-            { id: 'kcna', name: '朝中社', url: 'https://morss.it/:items=%7C%7C*%5Bclass=article-link%5D%7C%7Cli/www.kcna.kp/cn/category/articles/q/1ee9bdb7186944f765208f34ecfb5407.kcmsf', icon: '🇰🇵', lang: 'zh', isBluesky: false, isArticleMode: true },
-            { id: 'guardian', name: '卫报', url: 'https://www.theguardian.com/world/rss', icon: '🏛️', lang: 'en', isBluesky: false, isArticleMode: true },
-            { id: 'nede', name: '内德羽则说', url: 'https://wechat2rss.xlab.app/feed/25ab3bb01cf06dd921fa4887b4cb06c30dc11080.xml', icon: '⚽', lang: 'zh', isBluesky: false, isArticleMode: true },
-            { id: 'skysports', name: '天空体育足球', url: 'https://www.skysports.com/sitemap_news_football.xml', icon: '☁️', lang: 'en', isBluesky: false, isArticleMode: true, isSitemap: true },
-            { id: 'bbc', name: 'BBC足球', url: 'http://feeds.bbci.co.uk/sport/football/rss.xml', icon: '📺', lang: 'en', isBluesky: false, isArticleMode: true },
-            { id: 'jiemian', name: '界面新闻', url: 'https://plink.anyfeeder.com/jiemian/news', icon: '📄', lang: 'zh', isBluesky: false, isArticleMode: true },
-            { id: 'transfermarkt', name: '转会市场网', url: 'https://www.transfermarkt.co.uk/rss/news', icon: '💰', lang: 'en', isBluesky: false, isArticleMode: true },
-            { id: 'caughtoffside', name: '观察越位', url: 'https://www.caughtoffside.com/feed/', icon: '👁️', lang: 'en', isBluesky: false, isArticleMode: true },
-            { id: 'marca', name: '马卡报', url: 'https://e00-marca.uecdn.es/rss/en/index.xml', icon: '🇪🇸', lang: 'es', isBluesky: false, isArticleMode: true },
-            { id: 'footballitalia', name: '足球意大利', url: 'https://football-italia.net/feed/', icon: '🇮🇹', lang: 'en', isBluesky: false, isArticleMode: true },
-            { id: 'juvefc', name: '尤文图斯新闻站', url: 'https://www.juvefc.com/feed/', icon: '⚫⚪', lang: 'en', isBluesky: false, isArticleMode: true },
-            { id: 'getgermany', name: 'GET德国足球新闻网', url: 'https://www.getfootballnewsgermany.com/feed/', icon: '🇩🇪', lang: 'en', isBluesky: false, isArticleMode: true },
-            { id: 'ncaa', name: 'NCAAD1篮球信息', url: 'https://www.ncaa.com/news/basketball-men/d1/rss.xml', icon: '🏀', lang: 'en', isBluesky: false, isArticleMode: true },
-            { id: 'transferleague', name: '足球转会绯闻', url: 'http://feeds.feedburner.com/FootballTransferLeague', icon: '💬', lang: 'en', isBluesky: false, isArticleMode: false },
-            { id: 'norway', name: '挪威足坛转会新闻', url: 'https://bsky.app/profile/did:plc:xvqd75nqekambaybkqlnejtt/rss', icon: '🇳🇴', lang: 'no', isBluesky: true, isArticleMode: false },
-            { id: 'premier', name: '英超新闻', url: 'https://bsky.app/profile/did:plc:vu5uaxuiibiggftt7wu4sutt/rss', icon: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', lang: 'en', isBluesky: true, isArticleMode: false },
-            { id: 'fabrizio', name: 'Fabrizio Romano', url: 'https://bsky.app/profile/did:plc:e35lo4qxz5vo6n5k3m7v5fox/rss', icon: '🔵', lang: 'en', isBluesky: true, isArticleMode: false },
-            { id: 'manutd', name: '曼联球迷组', url: 'https://bsky.app/profile/did:plc:hrerjtl6cy24eellqmrdbl7h/rss', icon: '🔴', lang: 'en', isBluesky: true, isArticleMode: false },
-            { id: 'dortmund', name: '多特新闻站', url: 'https://bsky.app/profile/did:plc:tfe3amdh3nvc7ik7xsomcks4/rss', icon: '🟡', lang: 'de', isBluesky: true, isArticleMode: false },
-            { id: 'villa', name: '阿斯顿维拉新闻站', url: 'https://bsky.app/profile/did:plc:42knfjxyzookbo62xik2e3i4/rss', icon: '🦁', lang: 'en', isBluesky: true, isArticleMode: false },
-            { id: 'pakistan', name: '巴基斯坦足球', url: 'https://bsky.app/profile/did:plc:bdbrfylhpbndmy3yv6rqjfbd/rss', icon: '🇵🇰', lang: 'en', isBluesky: true, isArticleMode: false },
-            { id: 'getgerman', name: 'GET德国足球新闻', url: 'https://bsky.app/profile/did:plc:ydlnjujb2p6oiph3bwwokd5r/rss', icon: '🇩🇪', lang: 'de', isBluesky: true, isArticleMode: false },
-            { id: 'werder', name: '云达不来梅队官方', url: 'https://bsky.app/profile/did:plc:pl76rz7lfiz4mbp6wcwatzos/rss', icon: '🟢', lang: 'de', isBluesky: true, isArticleMode: false },
-            { id: 'ornstein', name: 'David Ornstein', url: 'https://bsky.app/profile/did:plc:j62szermx6ods7lp3xqyembx/rss', icon: '📰', lang: 'en', isBluesky: true, isArticleMode: false },
-            { id: 'fotmob', name: 'FotMob', url: 'https://bsky.app/profile/did:plc:al7sj6uxnzr55ygnhxrj5xkq/rss', icon: '⚽', lang: 'en', isBluesky: true, isArticleMode: false },
-            { id: 'athletic', name: 'The Athletic', url: 'https://bsky.app/profile/did:plc:fa7xejyd32fvuar5hpa2n2yi/rss', icon: '🅰️', lang: 'en', isBluesky: true, isArticleMode: false },
-            { id: 'bundesliga', name: '德甲新闻', url: 'https://bsky.app/profile/did:plc:zh6ehazbgysqkoylzs5mgv7i/rss', icon: '🇩🇪', lang: 'de', isBluesky: true, isArticleMode: false },
-            { id: 'stpauli', name: '圣保利足球俱乐部', url: 'https://bsky.app/profile/did:plc:oqbejnts7vae267t4eu5lxdr/rss', icon: '🟤', lang: 'de', isBluesky: true, isArticleMode: false },
-            { id: 'stuttgart', name: '斯图加特足球俱乐部', url: 'https://bsky.app/profile/did:plc:v4y46iwijb43hzneujmbdsbt/rss', icon: '🔴⚪', lang: 'de', isBluesky: true, isArticleMode: false },
-            { id: 'frankfurt', name: '法兰克福足球俱乐部', url: 'https://bsky.app/profile/did:plc:kqaw5wenmgbyonctl5sehk72/rss', icon: '🔴⚫', lang: 'de', isBluesky: true, isArticleMode: false },
-            { id: 'freiburg', name: '弗莱堡足球俱乐部', url: 'https://bsky.app/profile/did:plc:csvszcab4qzb7u6whrpsi4qg/rss', icon: '⚫🟢', lang: 'de', isBluesky: true, isArticleMode: false }
+            // 文章源 - 中国足球
+            { id: 'hupu-soccer', name: '虎扑足球', url: 'https://rsshub.app/hupu/soccer', icon: '🐯', lang: 'zh', isBluesky: false, isArticleMode: true, category: '中国足球' },
+            
+            // 文章源 - 法国足球
+            { id: 'lequipe-transfer', name: '队报转会', url: 'https://dwh.lequipe.fr/api/edito/rss?path=/Football/Transferts-football/', icon: '🇫🇷', lang: 'fr', isBluesky: false, isArticleMode: true, category: '法国足球' },
+            { id: 'lequipe-football', name: '队报足球', url: 'https://dwh.lequipe.fr/api/edito/rss?path=/Football/', icon: '⚽', lang: 'fr', isBluesky: false, isArticleMode: true, category: '法国足球' },
+            
+            // 文章源 - 西班牙足球
+            { id: 'marca', name: '马卡报', url: 'https://e00-marca.uecdn.es/rss/en/index.xml', icon: '🇪🇸', lang: 'es', isBluesky: false, isArticleMode: true, category: '西班牙足球' },
+            
+            // 文章源 - 德国足球
+            { id: 'getgermany', name: 'GET德国足球新闻网', url: 'https://www.getfootballnewsgermany.com/feed/', icon: '🇩🇪', lang: 'en', isBluesky: false, isArticleMode: true, category: '德国足球' },
+            
+            // 文章源 - 意大利足球
+            { id: 'footballitalia', name: '足球意大利', url: 'https://football-italia.net/feed/', icon: '🇮🇹', lang: 'en', isBluesky: false, isArticleMode: true, category: '意大利足球' },
+            { id: 'juvefc', name: '尤文图斯新闻站', url: 'https://www.juvefc.com/feed/', icon: '⚫⚪', lang: 'en', isBluesky: false, isArticleMode: true, category: '意大利足球' },
+            
+            // 文章源 - 英国足球
+            { id: 'skysports', name: '天空体育足球', url: 'https://www.skysports.com/sitemap_news_football.xml', icon: '☁️', lang: 'en', isBluesky: false, isArticleMode: true, isSitemap: true, category: '英国足球' },
+            { id: 'bbc', name: 'BBC足球', url: 'http://feeds.bbci.co.uk/sport/football/rss.xml', icon: '📺', lang: 'en', isBluesky: false, isArticleMode: true, category: '英国足球' },
+            { id: 'caughtoffside', name: '观察越位', url: 'https://www.caughtoffside.com/feed/', icon: '👁️', lang: 'en', isBluesky: false, isArticleMode: true, category: '英国足球' },
+            { id: 'guardian', name: '卫报', url: 'https://www.theguardian.com/world/rss', icon: '🏛️', lang: 'en', isBluesky: false, isArticleMode: true, category: '英国足球' },
+            
+            // 文章源 - 综合足球
+            { id: 'fourfourtwo', name: '442足球', url: 'https://www.fourfourtwo.com/feeds.xml', icon: '🇬🇧', lang: 'en', isBluesky: false, isArticleMode: true, category: '综合足球' },
+            { id: 'foxsports', name: 'FOX体育足球', url: 'https://www.foxsports.com.au/content-feeds/football/', icon: '🦊', lang: 'en', isBluesky: false, isArticleMode: true, category: '综合足球' },
+            { id: 'yahoosports', name: '雅虎体育足球', url: 'https://sports.yahoo.com/soccer/news/rss/', icon: '🇺🇸', lang: 'en', isBluesky: false, isArticleMode: true, category: '综合足球' },
+            { id: 'transfermarkt', name: '转会市场网', url: 'https://www.transfermarkt.co.uk/rss/news', icon: '💰', lang: 'en', isBluesky: false, isArticleMode: true, category: '转会市场' },
+            
+            // 文章源 - 挪威足球
+            { id: 'norway', name: '挪威足坛转会新闻', url: 'https://bsky.app/profile/did:plc:xvqd75nqekambaybkqlnejtt/rss', icon: '🇳🇴', lang: 'no', isBluesky: true, isArticleMode: false, category: '挪威足球' },
+            
+            // 文章源 - 生活/社会
+            { id: '36kr', name: '36氪', url: 'https://www.36kr.com/feed', icon: '📱', lang: 'zh', isBluesky: false, isArticleMode: true, category: '科技生活' },
+            { id: 'sspai', name: '少数派', url: 'https://sspai.com/feed', icon: '⌨️', lang: 'zh', isBluesky: false, isArticleMode: true, category: '科技生活' },
+            { id: 'chaping', name: '差评', url: 'https://wechat2rss.xlab.app/feed/8d839de8dd3290a1f1be7a94423cccb30c1b087d.xml', icon: '👎', lang: 'zh', isBluesky: false, isArticleMode: true, category: '科技生活' },
+            { id: 'yystv', name: '游戏研究社', url: 'https://www.yystv.cn/rss/feed', icon: '🎮', lang: 'zh', isBluesky: false, isArticleMode: true, category: '游戏生活' },
+            { id: 'infzm', name: '南方周末', url: 'https://rsshub.app/infzm/2', icon: '📰', lang: 'zh', isBluesky: false, isArticleMode: true, category: '社会综合' },
+            { id: 'jiemian', name: '界面新闻', url: 'https://plink.anyfeeder.com/jiemian/news', icon: '📄', lang: 'zh', isBluesky: false, isArticleMode: true, category: '社会综合' },
+            { id: 'kcna', name: '朝中社', url: 'https://morss.it/:items=%7C%7C%20*%5Bclass=article-link%5D%7C%7Cli/www.kcna.kp/cn/category/articles/q/1ee9bdb7186944f765208f34ecfb5407.kcmsf', icon: '🇰🇵', lang: 'zh', isBluesky: false, isArticleMode: true, category: '社会综合' },
+            
+            // 文章源 - 篮球
+            { id: 'hupu-nba', name: '虎扑篮球', url: 'https://rsshub.app/hupu/nba', icon: '🏀', lang: 'zh', isBluesky: false, isArticleMode: true, category: '篮球' },
+            { id: 'ncaa', name: 'NCAAD1篮球信息', url: 'https://www.ncaa.com/news/basketball-men/d1/rss.xml', icon: '🏀', lang: 'en', isBluesky: false, isArticleMode: true, category: '篮球' },
+            
+            // 文章源 - 其他足球
+            { id: 'pakistan', name: '巴基斯坦足球', url: 'https://bsky.app/profile/did:plc:bdbrfylhpbndmy3yv6rqjfbd/rss', icon: '🇵🇰', lang: 'en', isBluesky: true, isArticleMode: false, category: '亚洲足球' },
+            { id: 'nede', name: '内德羽则说', url: 'https://wechat2rss.xlab.app/feed/25ab3bb01cf06dd921fa4887b4cb06c30dc11080.xml', icon: '⚽', lang: 'zh', isBluesky: false, isArticleMode: true, category: '足球专栏' },
+            
+            // 简讯源 - 英国足球
+            { id: 'chelsea-chronicle', name: '切尔西回声报', url: 'https://rsshub.app/bsky/profile/thechelseachronicle.com', icon: '🔵', lang: 'en', isBluesky: true, isArticleMode: false, category: '英国足球' },
+            { id: 'manutd', name: '曼联球迷组', url: 'https://bsky.app/profile/did:plc:hrerjtl6cy24eellqmrdbl7h/rss', icon: '🔴', lang: 'en', isBluesky: true, isArticleMode: false, category: '英国足球' },
+            { id: 'villa', name: '阿斯顿维拉新闻站', url: 'https://bsky.app/profile/did:plc:42knfjxyzookbo62xik2e3i4/rss', icon: '🦁', lang: 'en', isBluesky: true, isArticleMode: false, category: '英国足球' },
+            { id: 'premier', name: '英超新闻', url: 'https://bsky.app/profile/did:plc:vu5uaxuiibiggftt7wu4sutt/rss', icon: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', lang: 'en', isBluesky: true, isArticleMode: false, category: '英国足球' },
+            { id: 'cityxtra', name: 'CITYXTRA', url: 'https://bsky.app/profile/did:plc:ry5oir56faxshff4ghkmxrap/rss', icon: '🌙', lang: 'en', isBluesky: true, isArticleMode: false, category: '英国足球' },
+            { id: 'athletic', name: 'The Athletic', url: 'https://bsky.app/profile/did:plc:fa7xejyd32fvuar5hpa2n2yi/rss', icon: '🅰️', lang: 'en', isBluesky: true, isArticleMode: false, category: '英国足球' },
+            
+            // 简讯源 - 德国足球
+            { id: 'bundesliga', name: '德甲新闻', url: 'https://bsky.app/profile/did:plc:zh6ehazbgysqkoylzs5mgv7i/rss', icon: '🇩🇪', lang: 'de', isBluesky: true, isArticleMode: false, category: '德国足球' },
+            { id: 'dortmund', name: '多特新闻站', url: 'https://bsky.app/profile/did:plc:tfe3amdh3nvc7ik7xsomcks4/rss', icon: '🟡', lang: 'de', isBluesky: true, isArticleMode: false, category: '德国足球' },
+            { id: 'getgerman', name: 'GET德国足球新闻', url: 'https://bsky.app/profile/did:plc:ydlnjujb2p6oiph3bwwokd5r/rss', icon: '🇩🇪', lang: 'de', isBluesky: true, isArticleMode: false, category: '德国足球' },
+            { id: 'werder', name: '云达不来梅队官方', url: 'https://bsky.app/profile/did:plc:pl76rz7lfiz4mbp6wcwatzos/rss', icon: '🟢', lang: 'de', isBluesky: true, isArticleMode: false, category: '德国足球' },
+            { id: 'stpauli', name: '圣保利足球俱乐部', url: 'https://bsky.app/profile/did:plc:oqbejnts7vae267t4eu5lxdr/rss', icon: '🟤', lang: 'de', isBluesky: true, isArticleMode: false, category: '德国足球' },
+            { id: 'stuttgart', name: '斯图加特足球俱乐部', url: 'https://bsky.app/profile/did:plc:v4y46iwijb43hzneujmbdsbt/rss', icon: '🔴⚪', lang: 'de', isBluesky: true, isArticleMode: false, category: '德国足球' },
+            { id: 'frankfurt', name: '法兰克福足球俱乐部', url: 'https://bsky.app/profile/did:plc:kqaw5wenmgbyonctl5sehk72/rss', icon: '🔴⚫', lang: 'de', isBluesky: true, isArticleMode: false, category: '德国足球' },
+            { id: 'freiburg', name: '弗莱堡足球俱乐部', url: 'https://bsky.app/profile/did:plc:csvszcab4qzb7u6whrpsi4qg/rss', icon: '⚫🟢', lang: 'de', isBluesky: true, isArticleMode: false, category: '德国足球' },
+            
+            // 简讯源 - 综合/转会
+            { id: 'euro-football', name: '欧洲足球', url: 'https://bsky.app/profile/did:plc:qk3fxv4s4ifs5fbgh4odv3b7/rss', icon: '🇪🇺', lang: 'en', isBluesky: true, isArticleMode: false, category: '综合足球' },
+            { id: 'transfermarkt-obs', name: '转会市场观察', url: 'https://bsky.app/profile/did:plc:p53bwfuo4hejvtr7vkyyfapf/rss', icon: '👁️', lang: 'en', isBluesky: true, isArticleMode: false, category: '转会市场' },
+            { id: 'fabrizio', name: 'Fabrizio Romano', url: 'https://bsky.app/profile/did:plc:e35lo4qxz5vo6n5k3m7v5fox/rss', icon: '🔵', lang: 'en', isBluesky: true, isArticleMode: false, category: '转会市场' },
+            { id: 'ornstein', name: 'David Ornstein', url: 'https://bsky.app/profile/did:plc:j62szermx6ods7lp3xqyembx/rss', icon: '📰', lang: 'en', isBluesky: true, isArticleMode: false, category: '转会市场' },
+            { id: 'transferleague', name: '足球转会绯闻', url: 'http://feeds.feedburner.com/FootballTransferLeague', icon: '💬', lang: 'en', isBluesky: false, isArticleMode: false, category: '转会市场' },
+            { id: 'fotmob', name: 'FotMob', url: 'https://bsky.app/profile/did:plc:al7sj6uxnzr55ygnhxrj5xkq/rss', icon: '⚽', lang: 'en', isBluesky: true, isArticleMode: false, category: '综合足球' }
         ];
 
         function loadSourceOrder() {
@@ -688,7 +743,8 @@
                     link: loc,
                     pubDate: pubDate,
                     lang: 'en',
-                    isArticleMode: true
+                    isArticleMode: true,
+                    category: '英国足球'
                 };
             }).filter(item => item.title && item.link); // Only return items with title and link
         }
@@ -712,7 +768,8 @@
                         link: item.link,
                         pubDate: new Date(item.pubDate || Date.now()),
                         lang: source.lang,
-                        isArticleMode: source.isArticleMode
+                        isArticleMode: source.isArticleMode,
+                        category: source.category
                     }));
                 } else if (result.type === 'xml') {
                     const parser = new DOMParser();
@@ -744,7 +801,8 @@
                             link: item.querySelector('link')?.textContent || '',
                             pubDate: new Date(item.querySelector('pubDate')?.textContent || Date.now()),
                             lang: source.lang,
-                            isArticleMode: source.isArticleMode
+                            isArticleMode: source.isArticleMode,
+                            category: source.category
                         };
                     });
                 }
@@ -802,7 +860,15 @@
                     'skysports': ['.article-body', '.content', 'article', '.article__body', '.sdc-article-body'],
                     'bbc': ['.article-body', '.content', 'article', '.story-body', '.ssrcss-pv1rh6-ArticleWrapper'],
                     'jiemian': ['.article-content', '.content', 'article', '.main-content', '.article-body'],
-                    'nede': ['.rich_media_content', '#js_content', 'article']
+                    'nede': ['.rich_media_content', '#js_content', 'article'],
+                    // 新增源的选择器
+                    'lequipe-transfer': ['.article-content', '.ArticleContent', 'article', '.main-content', '[class*="content"]'],
+                    'lequipe-football': ['.article-content', '.ArticleContent', 'article', '.main-content', '[class*="content"]'],
+                    'fourfourtwo': ['.article-body', '.content', 'article', '.entry-content', '.post-content'],
+                    'foxsports': ['.article-content', '.article-body', 'article', '.content', '.story-content'],
+                    'yahoosports': ['.article-content', '.article-body', 'article', '.content', 'article-wrapper'],
+                    'hupu-soccer': ['.article-content', '#article-content', '.content', 'article', '.post-content'],
+                    'hupu-nba': ['.article-content', '#article-content', '.content', 'article', '.post-content']
                 };
                 
                 const selectors = sourceSelectors[sourceId] || [
@@ -844,7 +910,7 @@
                 }
                 
                 // For Chinese sites, ensure no vertical text
-                if ((sourceId === 'sspai' || sourceId === 'yystv' || sourceId === 'chaping' || sourceId === 'jiemian' || sourceId === '36kr' || sourceId === 'infzm') && content) {
+                if ((sourceId === 'sspai' || sourceId === 'yystv' || sourceId === 'chaping' || sourceId === 'jiemian' || sourceId === '36kr' || sourceId === 'infzm' || sourceId === 'hupu-soccer' || sourceId === 'hupu-nba') && content) {
                     const navs = content.querySelectorAll('nav, .nav, .navigation, header, .header, .navbar');
                     navs.forEach(n => n.remove());
                     
@@ -1486,6 +1552,30 @@
             return text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" class="text-primary hover:underline break-all">$1</a>');
         }
 
+        function groupByCategory(sources) {
+            const groups = {};
+            sources.forEach(source => {
+                const cat = source.category || '其他';
+                if (!groups[cat]) groups[cat] = [];
+                groups[cat].push(source);
+            });
+            // Sort categories by predefined order or alphabetically
+            const categoryOrder = ['中国足球', '英国足球', '德国足球', '意大利足球', '西班牙足球', '法国足球', '挪威足球', '亚洲足球', '综合足球', '转会市场', '足球专栏', '篮球', '游戏生活', '科技生活', '社会综合'];
+            const sortedKeys = Object.keys(groups).sort((a, b) => {
+                const indexA = categoryOrder.indexOf(a);
+                const indexB = categoryOrder.indexOf(b);
+                if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+                if (indexA !== -1) return -1;
+                if (indexB !== -1) return 1;
+                return a.localeCompare(b);
+            });
+            const sortedGroups = {};
+            sortedKeys.forEach(key => {
+                sortedGroups[key] = groups[key];
+            });
+            return sortedGroups;
+        }
+
         function initSidebar() {
             const container = document.getElementById('sourceFilters');
             
@@ -1505,56 +1595,73 @@
             const articleSources = rssSources.filter(s => s.isArticleMode);
             const tweetSources = rssSources.filter(s => !s.isArticleMode);
             
-            html += `<div class="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider flex items-center justify-between">
-                <span>文章源</span>
-                <i class="fas fa-grip-lines text-gray-300 drag-hint" style="display:none;"></i>
-            </div>`;
-            html += `<div class="source-group" data-type="article">`;
-            html += articleSources.map(source => {
-                const isActive = state.currentSource === source.id;
-                const activeClass = isActive ? 'bg-gray-100 dark:bg-gray-800 border-l-4 border-primary' : 'hover:bg-gray-50 dark:hover:bg-gray-900 border-l-4 border-transparent';
-                return `
-                <div class="source-item cursor-pointer p-3 rounded-lg mb-1 transition flex items-center justify-between ${activeClass}" data-id="${source.id}">
-                    <div class="flex items-center gap-3 flex-1 min-w-0">
-                        <span class="drag-handle text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 mr-1">
-                            <i class="fas fa-grip-vertical text-xs opacity-50"></i>
-                        </span>
-                        <span class="text-lg flex-shrink-0">${source.icon}</span>
-                        <span class="font-medium text-sm truncate">${escapeHtml(source.name)}</span>
+            // 文章源按分类渲染
+            const articleGroups = groupByCategory(articleSources);
+            html += `<div class="mb-4">
+                <div class="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider flex items-center justify-between">
+                    <span>文章源</span>
+                    <i class="fas fa-grip-lines text-gray-300 drag-hint" style="display:none;"></i>
+                </div>`;
+            
+            for (const [category, sources] of Object.entries(articleGroups)) {
+                html += `<div class="category-header">${category}</div>`;
+                html += `<div class="source-group mb-2" data-type="article-${category}">`;
+                html += sources.map(source => {
+                    const isActive = state.currentSource === source.id;
+                    const activeClass = isActive ? 'bg-gray-100 dark:bg-gray-800 border-l-4 border-primary' : 'hover:bg-gray-50 dark:hover:bg-gray-900 border-l-4 border-transparent';
+                    return `
+                    <div class="source-item cursor-pointer p-3 rounded-lg mb-1 transition flex items-center justify-between ${activeClass}" data-id="${source.id}">
+                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                            <span class="drag-handle text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 mr-1">
+                                <i class="fas fa-grip-vertical text-xs opacity-50"></i>
+                            </span>
+                            <span class="text-lg flex-shrink-0">${source.icon}</span>
+                            <span class="font-medium text-sm truncate">${escapeHtml(source.name)}</span>
+                        </div>
+                        ${isActive ? '<i class="fas fa-check text-primary text-sm flex-shrink-0 ml-2"></i>' : ''}
                     </div>
-                    ${isActive ? '<i class="fas fa-check text-primary text-sm flex-shrink-0 ml-2"></i>' : ''}
-                </div>
-                `;
-            }).join('');
+                    `;
+                }).join('');
+                html += `</div>`;
+            }
             html += `</div>`;
             
-            html += `<div class="text-xs font-semibold text-gray-400 mb-2 mt-4 uppercase tracking-wider flex items-center justify-between">
-                <span>快讯源</span>
-                <i class="fas fa-grip-lines text-gray-300 drag-hint" style="display:none;"></i>
-            </div>`;
-            html += `<div class="source-group" data-type="tweet">`;
-            html += tweetSources.map(source => {
-                const isActive = state.currentSource === source.id;
-                const activeClass = isActive ? 'bg-gray-100 dark:bg-gray-800 border-l-4 border-primary' : 'hover:bg-gray-50 dark:hover:bg-gray-900 border-l-4 border-transparent';
-                return `
-                <div class="source-item cursor-pointer p-3 rounded-lg mb-1 transition flex items-center justify-between ${activeClass}" data-id="${source.id}">
-                    <div class="flex items-center gap-3 flex-1 min-w-0">
-                        <span class="drag-handle text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 mr-1">
-                            <i class="fas fa-grip-vertical text-xs opacity-50"></i>
-                        </span>
-                        <span class="text-lg flex-shrink-0">${source.icon}</span>
-                        <span class="font-medium text-sm truncate">${escapeHtml(source.name)}</span>
+            // 简讯源按分类渲染
+            const tweetGroups = groupByCategory(tweetSources);
+            html += `<div class="border-t border-gray-200 dark:border-gray-800 my-2 pt-2">
+                <div class="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider flex items-center justify-between">
+                    <span>快讯源</span>
+                    <i class="fas fa-grip-lines text-gray-300 drag-hint" style="display:none;"></i>
+                </div>`;
+            
+            for (const [category, sources] of Object.entries(tweetGroups)) {
+                html += `<div class="category-header">${category}</div>`;
+                html += `<div class="source-group mb-2" data-type="tweet-${category}">`;
+                html += sources.map(source => {
+                    const isActive = state.currentSource === source.id;
+                    const activeClass = isActive ? 'bg-gray-100 dark:bg-gray-800 border-l-4 border-primary' : 'hover:bg-gray-50 dark:hover:bg-gray-900 border-l-4 border-transparent';
+                    return `
+                    <div class="source-item cursor-pointer p-3 rounded-lg mb-1 transition flex items-center justify-between ${activeClass}" data-id="${source.id}">
+                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                            <span class="drag-handle text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 mr-1">
+                                <i class="fas fa-grip-vertical text-xs opacity-50"></i>
+                            </span>
+                            <span class="text-lg flex-shrink-0">${source.icon}</span>
+                            <span class="font-medium text-sm truncate">${escapeHtml(source.name)}</span>
+                        </div>
+                        ${isActive ? '<i class="fas fa-check text-primary text-sm flex-shrink-0 ml-2"></i>' : ''}
                     </div>
-                    ${isActive ? '<i class="fas fa-check text-primary text-sm flex-shrink-0 ml-2"></i>' : ''}
-                </div>
-                `;
-            }).join('');
+                    `;
+                }).join('');
+                html += `</div>`;
+            }
             html += `</div>`;
             
             container.innerHTML = html;
             
             document.querySelectorAll('.drag-hint, #sortHint').forEach(el => el.style.display = 'inline-block');
             
+            // 为每个分类组初始化拖拽排序
             document.querySelectorAll('.source-group').forEach(group => {
                 new Sortable(group, {
                     handle: '.drag-handle',

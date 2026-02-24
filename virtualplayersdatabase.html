@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>虚拟球员数据中心</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #f0f2f5;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --text-muted: #999999;
+            --border-color: #e0e0e0;
+            --accent-color: #2563eb;
+            --accent-hover: #1d4ed8;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --shadow: 0 2px 8px rgba(0,0,0,0.08);
+            --shadow-hover: 0 8px 24px rgba(0,0,0,0.12);
+            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: #334155;
+            --accent-color: #3b82f6;
+            --accent-hover: #60a5fa;
+            --shadow: 0 2px 8px rgba(0,0,0,0.3);
+            --shadow-hover: 0 8px 24px rgba(0,0,0,0.4);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo i { font-size: 1.75rem; -webkit-text-fill-color: initial; color: var(--accent-color); }
+        .header-actions { display: flex; gap: 0.75rem; align-items: center; }
+
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            touch-action: manipulation;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-2px); }
+        .btn-primary:active { transform: translateY(0); }
+
+        .btn-secondary {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover { background: var(--border-color); }
+        .btn-icon { width: 44px; height: 44px; padding: 0; border-radius: 12px; justify-content: center; font-size: 1.125rem; }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+        .stats-bar { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
+
+        .stat-chip {
+            background: var(--bg-secondary);
+            padding: 0.75rem 1.25rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            box-shadow: var(--shadow);
+        }
+
+        .stat-chip i { color: var(--accent-color); }
+        .stat-chip .number { font-weight: 700; color: var(--text-primary); font-size: 1.125rem; }
+
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--border-color);
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .players-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .players-grid { grid-template-columns: 1fr; gap: 1rem; }
+            .header-content { padding: 1rem; }
+            .logo { font-size: 1.25rem; }
+            .btn { padding: 0.5rem 1rem; font-size: 0.8125rem; }
+            .container { padding: 1rem; }
+        }
+
+        .player-card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .player-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+
+        .card-header {
+            padding: 1.5rem;
+            background: var(--gradient-1);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .player-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .player-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8125rem;
+            padding: 0.375rem 0.875rem;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .card-body { padding: 1.5rem; flex: 1; display: flex; flex-direction: column; gap: 1.25rem; }
+
+        .section { border-bottom: 1px solid var(--border-color); padding-bottom: 1.25rem; }
+        .section:last-child { border-bottom: none; padding-bottom: 0; }
+
+        .section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+        }
+
+        .section-content { color: var(--text-primary); font-size: 0.9375rem; line-height: 1.6; }
+
+        .tag-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+        .tag {
+            padding: 0.375rem 0.875rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+
+        .tag:hover { background: var(--accent-color); color: white; border-color: var(--accent-color); }
+        .tag.tier-1 { background: rgba(16, 185, 129, 0.1); color: var(--success-color); border-color: rgba(16, 185, 129, 0.3); }
+        .tag.tier-2 { background: rgba(245, 158, 11, 0.1); color: var(--warning-color); border-color: rgba(245, 158, 11, 0.3); }
+
+        .asset-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+        .asset-category {
+            background: var(--bg-primary);
+            border-radius: 10px;
+            padding: 0.875rem;
+            border-left: 3px solid var(--accent-color);
+        }
+
+        .asset-category-title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .asset-item { display: flex; align-items: center; gap: 0.625rem; padding: 0.375rem 0; font-size: 0.875rem; color: var(--text-primary); }
+        .asset-item i { color: var(--accent-color); width: 16px; }
+
+        .relationship-list { display: flex; flex-direction: column; gap: 0.625rem; }
+
+        .relationship-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background: var(--bg-primary);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .relationship-info { display: flex; align-items: center; gap: 0.625rem; }
+        .relationship-name { font-weight: 500; color: var(--text-primary); }
+        .relationship-status {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            background: var(--bg-secondary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .progress-bar { width: 60px; height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--gradient-2); border-radius: 3px; transition: width 0.5s ease; }
+
+        .penalty-box {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            padding: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--danger-color);
+        }
+
+        .status-box {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg-primary);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .status-indicator {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .status-indicator.warning { background: rgba(245, 158, 11, 0.15); color: var(--warning-color); }
+        .status-indicator.danger { background: rgba(239, 68, 68, 0.15); color: var(--danger-color); }
+        .status-indicator.success { background: rgba(16, 185, 129, 0.15); color: var(--success-color); }
+
+        .status-info { flex: 1; }
+        .status-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; }
+        .status-value { font-weight: 600; color: var(--text-primary); font-size: 0.9375rem; }
+
+        .condition-bar { margin-top: 0.5rem; height: 8px; background: var(--border-color); border-radius: 4px; overflow: hidden; }
+        .condition-fill { height: 100%; background: var(--gradient-4); border-radius: 4px; transition: width 0.5s ease; }
+        .condition-fill.low { background: linear-gradient(90deg, #ef4444 0%, #f59e0b 100%); }
+
+        .coach-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--gradient-3);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+            font-size: 0.9375rem;
+        }
+
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .toast i { color: var(--success-color); }
+        .toast.error i { color: var(--danger-color); }
+
+        .error-container { text-align: center; padding: 4rem 2rem; color: var(--text-secondary); }
+        .error-container i { font-size: 4rem; color: var(--danger-color); margin-bottom: 1rem; opacity: 0.8; }
+        .error-details { margin-top: 1rem; font-size: 0.8125rem; color: var(--text-muted); font-family: monospace; background: var(--bg-primary); padding: 1rem; border-radius: 8px; text-align: left; max-width: 100%; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+
+        .refresh-hint { text-align: center; padding: 1rem; color: var(--text-muted); font-size: 0.8125rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-futbol"></i>
+                <span>虚拟球员</span>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary btn-icon" id="themeToggle" title="切换主题">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <button class="btn btn-primary" id="refreshBtn">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>刷新</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="stats-bar" id="statsBar" style="display: none;">
+            <div class="stat-chip">
+                <i class="fas fa-users"></i>
+                <span>球员总数:</span>
+                <span class="number" id="playerCount">0</span>
+            </div>
+            <div class="stat-chip">
+                <i class="fas fa-clock"></i>
+                <span>最后更新:</span>
+                <span class="number" id="lastUpdate">--</span>
+            </div>
+        </div>
+
+        <div id="content">
+            <div class="loading-container">
+                <div class="spinner"></div>
+                <p>正在加载球员数据...</p>
+            </div>
+        </div>
+
+        <div class="refresh-hint">
+            <i class="fas fa-info-circle"></i>
+            <span>点击右上角"刷新数据"按钮获取最新信息</span>
+        </div>
+    </main>
+
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">操作成功</span>
+    </div>
+
+    <script>
+        // 数据源配置 - 使用CORS代理解决跨域问题
+        const PROXY_URL = 'https://api.allorigins.win/raw?url=';
+        const DATA_URL = 'https://angreoli-fagioli-garciatest-html.static.hf.space/虚拟球员数据.txt';
+        let currentData = [];
+
+        // 主题管理
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i');
+        
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            themeIcon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        });
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            const icon = toast.querySelector('i');
+            
+            toastMessage.textContent = message;
+            icon.className = isError ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
+            toast.classList.toggle('error', isError);
+            toast.classList.add('show');
+            
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
+        }
+
+        // 解析球员数据 - 修复换行符处理
+        function parsePlayerData(text) {
+            console.log('开始解析数据，文本长度:', text.length);
+            
+            const players = [];
+            // 关键修复：使用正则表达式同时处理 \r\n (Windows) 和 \n (Unix/Mac)
+            const lines = text.split(/\r?\n/);
+            console.log('总行数:', lines.length);
+            
+            let currentPlayer = null;
+            let currentSection = null;
+            let currentSubSection = null;
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (!line) continue;
+
+                // 球员名称 ==名称==
+                if (line.startsWith('==') && line.endsWith('==')) {
+                    if (currentPlayer) {
+                        players.push(currentPlayer);
+                    }
+                    currentPlayer = {
+                        name: line.replace(/==/g, '').trim(),
+                        competitions: [],
+                        trainingTeams: [],
+                        coach: '',
+                        assets: { property: [], vehicles: [], others: [] },
+                        relationships: [],
+                        penalties: [],
+                        status: { evaluation: '', condition: 0 }
+                    };
+                    currentSection = null;
+                    currentSubSection = null;
+                }
+                // 章节标题 =标题=
+                else if (line.startsWith('=') && line.endsWith('=') && currentPlayer) {
+                    currentSection = line.replace(/=/g, '').trim();
+                    currentSubSection = null;
+                }
+                // 子章节 /子章节
+                else if (line.startsWith('/') && currentPlayer) {
+                    currentSubSection = line.substring(1).trim();
+                }
+                // 内容行
+                else if (currentPlayer) {
+                    if (currentSection === '参加的比赛') {
+                        currentPlayer.competitions.push(line);
+                    }
+                    else if (currentSection === '跟随训练的队伍') {
+                        currentPlayer.trainingTeams.push(line);
+                    }
+                    else if (currentSection === '雇佣私人教练数量') {
+                        currentPlayer.coach = line;
+                    }
+                    else if (currentSection === '拥有的资产' && currentSubSection) {
+                        if (currentSubSection === '房产') currentPlayer.assets.property.push(line);
+                        else if (currentSubSection === '车辆') currentPlayer.assets.vehicles.push(line);
+                        else if (currentSubSection === '其他资产') currentPlayer.assets.others.push(line);
+                    }
+                    else if (currentSection === '婚姻情况') {
+                        // 修复：更灵活的正则匹配中文空格
+                        const match = line.match(/(.+?)\s+(交往中|已婚|单身)\s*(\d+)?/);
+                        if (match) {
+                            currentPlayer.relationships.push({
+                                name: match[1].trim(),
+                                status: match[2],
+                                percentage: match[3] ? parseInt(match[3]) : null
+                            });
+                        }
+                    }
+                    else if (currentSection === '受处罚情况') {
+                        currentPlayer.penalties.push(line);
+                    }
+                    else if (currentSection === '球员状态') {
+                        if (line.includes('评价：')) {
+                            currentPlayer.status.evaluation = line.replace('评价：', '').trim();
+                        }
+                        if (line.includes('身体状态：')) {
+                            const match = line.match(/身体状态：(\d+)%/);
+                            if (match) {
+                                currentPlayer.status.condition = parseInt(match[1]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (currentPlayer) {
+                players.push(currentPlayer);
+            }
+
+            console.log('解析完成，共', players.length, '名球员');
+            return players;
+        }
+
+        function getCompetitionClass(competition) {
+            if (competition.includes('Tier1')) return 'tier-1';
+            if (competition.includes('Tier2')) return 'tier-2';
+            return '';
+        }
+
+        function renderPlayerCard(player, index) {
+            const gradients = [
+                'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
+            ];
+            const headerStyle = `background: ${gradients[index % gradients.length]}`;
+            const hasPenalty = player.penalties.length > 0 && !player.penalties[0].includes('无') && !player.penalties[0].includes('正常');
+            const conditionLow = player.status.condition < 50;
+
+            return `
+                <article class="player-card">
+                    <div class="card-header" style="${headerStyle}">
+                        <h2 class="player-name"><i class="fas fa-user-astronaut"></i>${player.name}</h2>
+                        <span class="player-status"><i class="fas fa-circle" style="font-size: 8px;"></i>${hasPenalty ? '禁赛中' : '正常'}</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="section">
+                            <div class="section-title"><i class="fas fa-trophy"></i>参加的比赛</div>
+                            <div class="tag-list">${player.competitions.map(comp => `<span class="tag ${getCompetitionClass(comp)}">${comp}</span>`).join('')}</div>
+                        </div>
+                        <div class="section">
+                            <div class="section-title"><i class="fas fa-dumbbell"></i>跟随训练的队伍</div>
+                            <div class="tag-list">${player.trainingTeams.map(team => `<span class="tag">${team}</span>`).join('')}</div>
+                        </div>
+                        ${player.coach ? `<div class="section"><div class="section-title"><i class="fas fa-chalkboard-teacher"></i>私人教练</div><div class="section-content"><span class="coach-badge"><i class="fas fa-star"></i>${player.coach}</span></div></div>` : ''}
+                        <div class="section">
+                            <div class="section-title"><i class="fas fa-gem"></i>拥有的资产</div>
+                            <div class="asset-list">
+                                ${player.assets.property.length > 0 ? `<div class="asset-category"><div class="asset-category-title">房产</div>${player.assets.property.map(item => `<div class="asset-item"><i class="fas fa-home"></i>${item}</div>`).join('')}</div>` : ''}
+                                ${player.assets.vehicles.length > 0 ? `<div class="asset-category"><div class="asset-category-title">车辆</div>${player.assets.vehicles.map(item => `<div class="asset-item"><i class="fas fa-car"></i>${item}</div>`).join('')}</div>` : ''}
+                                ${player.assets.others.length > 0 ? `<div class="asset-category"><div class="asset-category-title">其他资产</div>${player.assets.others.map(item => `<div class="asset-item"><i class="fas fa-box"></i>${item}</div>`).join('')}</div>` : ''}
+                                ${!player.assets.property.length && !player.assets.vehicles.length && !player.assets.others.length ? '<div class="asset-item" style="color: var(--text-muted);"><i class="fas fa-minus-circle"></i>暂无资产</div>' : ''}
+                            </div>
+                        </div>
+                        ${player.relationships.length > 0 ? `<div class="section"><div class="section-title"><i class="fas fa-heart"></i>婚姻情况</div><div class="relationship-list">${player.relationships.map(rel => `<div class="relationship-item"><div class="relationship-info"><i class="fas fa-user" style="color: var(--accent-color);"></i><span class="relationship-name">${rel.name}</span><span class="relationship-status">${rel.status}</span></div>${rel.percentage ? `<div style="display: flex; align-items: center; gap: 0.5rem;"><span style="font-size: 0.75rem; color: var(--text-muted);">${rel.percentage}%</span><div class="progress-bar"><div class="progress-fill" style="width: ${rel.percentage}%"></div></div></div>` : ''}</div>`).join('')}</div></div>` : ''}
+                        ${hasPenalty ? `<div class="section"><div class="section-title"><i class="fas fa-exclamation-triangle"></i>受处罚情况</div><div class="penalty-box"><i class="fas fa-ban"></i><span>${player.penalties.join(', ')}</span></div></div>` : ''}
+                        <div class="section">
+                            <div class="section-title"><i class="fas fa-heartbeat"></i>球员状态</div>
+                            <div class="status-box">
+                                <div class="status-indicator ${conditionLow ? 'danger' : 'success'}"><i class="fas ${conditionLow ? 'fa-exclamation' : 'fa-check'}"></i></div>
+                                <div class="status-info">
+                                    <div class="status-label">身体状态</div>
+                                    <div class="status-value">${player.status.evaluation || '未知'}</div>
+                                    <div class="condition-bar"><div class="condition-fill ${conditionLow ? 'low' : ''}" style="width: ${player.status.condition}%"></div></div>
+                                </div>
+                                <span style="font-weight: 700; color: ${conditionLow ? 'var(--danger-color)' : 'var(--success-color)'};">${player.status.condition}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            `;
+        }
+
+        async function loadData(showLoading = true) {
+            const contentDiv = document.getElementById('content');
+            const statsBar = document.getElementById('statsBar');
+            
+            if (showLoading) {
+                contentDiv.innerHTML = `<div class="loading-container"><div class="spinner"></div><p>正在加载球员数据...</p></div>`;
+            }
+
+            // 尝试直接访问和代理访问
+            const urls = [
+                DATA_URL,  // 直接访问
+                PROXY_URL + encodeURIComponent(DATA_URL)  // 代理访问
+            ];
+
+            for (let url of urls) {
+                try {
+                    console.log('尝试加载:', url);
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 10000);
+                    
+                    const response = await fetch(url + '?t=' + Date.now(), { 
+                        signal: controller.signal,
+                        headers: { 'Accept': 'text/plain' }
+                    });
+                    clearTimeout(timeoutId);
+                    
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    
+                    const text = await response.text();
+                    console.log('获取成功，数据长度:', text.length);
+                    
+                    if (!text || text.length < 10) throw new Error('数据为空');
+                    
+                    currentData = parsePlayerData(text);
+                    
+                    if (currentData.length === 0) throw new Error('未能解析到球员数据');
+                    
+                    // 成功加载
+                    document.getElementById('playerCount').textContent = currentData.length;
+                    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('zh-CN', {hour: '2-digit', minute:'2-digit'});
+                    statsBar.style.display = 'flex';
+                    contentDiv.innerHTML = `<div class="players-grid">${currentData.map((player, index) => renderPlayerCard(player, index)).join('')}</div>`;
+                    
+                    if (showLoading) showToast('数据加载成功');
+                    return;
+                    
+                } catch (error) {
+                    console.error('加载失败:', error);
+                    continue;
+                }
+            }
+
+            // 全部失败
+            contentDiv.innerHTML = `
+                <div class="error-container">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>加载失败</h3>
+                    <p>无法获取球员数据</p>
+                    <div class="error-details">可能原因：
+1. 浏览器跨域(CORS)限制 - 请将此HTML文件下载到本地后双击打开
+2. 网络连接问题 - 请检查网络连接
+3. 数据源暂时不可用</div>
+                    <button class="btn btn-primary" onclick="loadData()" style="margin-top: 1rem;">
+                        <i class="fas fa-redo"></i> 重试
+                    </button>
+                </div>
+            `;
+            if (showLoading) showToast('数据加载失败', true);
+        }
+
+        document.getElementById('refreshBtn').addEventListener('click', () => {
+            const btn = document.getElementById('refreshBtn');
+            const icon = btn.querySelector('i');
+            icon.classList.add('fa-spin');
+            loadData().then(() => setTimeout(() => icon.classList.remove('fa-spin'), 500));
+        });
+
+        initTheme();
+        loadData();
+    </script>
+</body>
+</html>

@@ -2919,36 +2919,54 @@
 
         // 切换球队标签页
         function switchTeamTab(tab) {
-            document.querySelectorAll('.team-tab').forEach(btn => {
-                if (btn.dataset.tab === tab) {
-                    btn.classList.add('tab-active');
-                    btn.classList.remove('text-gray-500', 'dark:text-gray-400');
-                } else {
-                    btn.classList.remove('tab-active');
-                    btn.classList.add('text-gray-500', 'dark:text-gray-400');
-                }
-            });
-            
-            ['squad', 'stats', 'news'].forEach(t => {
-                const el = document.getElementById(t + 'Content');
-                if (el) el.classList.toggle('hidden', t !== tab);
-            });
-            
-            if (tab === 'stats') {
-                setTimeout(() => {
-                    const historyData = getTeamHistoryData(currentTeam.name);
-                    if (historyData && historyData.rankings && Object.keys(historyData.rankings).length > 0) {
-                        const sortedRankings = Object.entries(historyData.rankings)
-                            .sort((a, b) => {
-                                const numA = parseInt(a[0].replace(/[^0-9]/g, ''));
-                                const numB = parseInt(b[0].replace(/[^0-9]/g, ''));
-                                return numA - numB;
-                            });
-                        drawRankingChart(sortedRankings);
-                    }
-                }, 50);
-            }
+    document.querySelectorAll('.team-tab').forEach(btn => {
+        if (btn.dataset.tab === tab) {
+            btn.classList.add('tab-active');
+            btn.classList.remove('text-gray-500', 'dark:text-gray-400');
+        } else {
+            btn.classList.remove('tab-active');
+            btn.classList.add('text-gray-500', 'dark:text-gray-400');
         }
+    });
+    
+    ['squad', 'stats', 'news'].forEach(t => {
+        const el = document.getElementById(t + 'Content');
+        if (el) el.classList.toggle('hidden', t !== tab);
+    });
+    
+    if (tab === 'stats') {
+        // 强制刷新资料数据
+        refreshTeamStats();
+    }
+}
+
+// 新增：刷新资料栏函数
+async function refreshTeamStats() {
+    if (!currentTeam) return;
+    
+    const statsContent = document.getElementById('statsContent');
+    if (!statsContent) return;
+    
+    // 显示加载中状态
+    statsContent.innerHTML = `
+        <div class="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-gray-500">
+            <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+            <p>更新资料中...</p>
+        </div>
+    `;
+    
+    try {
+        // 强制重新加载 txt 文件（绕过缓存）
+        await loadTeamHistoryData();
+        // 重新渲染
+        renderTeamStats();
+    } catch (error) {
+        console.error('刷新资料失败:', error);
+        showErrorToast('资料更新失败');
+        // 失败时仍尝试渲染缓存的数据
+        renderTeamStats();
+    }
+}
 
         // 分享球队
         function shareTeam() {

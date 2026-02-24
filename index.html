@@ -2219,7 +2219,6 @@
                 `;
             }
             
-            if (Object.keys(teamHistoryData).length === 0) {
                 await loadTeamHistoryData().catch(e => console.error('加载历史数据失败:', e));
             }
             

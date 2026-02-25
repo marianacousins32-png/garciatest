@@ -2,163 +2,197 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>加西亚竞猜中心</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Noto Sans SC', sans-serif; }
-        .glass { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
-        .dark .glass { background: rgba(0, 0, 0, 0.3); }
+        body { 
+            font-family: 'Noto Sans SC', sans-serif; 
+            -webkit-tap-highlight-color: transparent;
+        }
+        .hidden { display: none !important; }
         .slide-in { animation: slideIn 0.3s ease-out; }
         @keyframes slideIn {
             from { transform: translateY(20px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
-        .fade-in { animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        ::-webkit-scrollbar { display: none; }
+        html { scrollbar-width: none; -ms-overflow-style: none; }
+        
+        .dg-green { background-color: #1a9e5f; }
+        .dg-dark { background-color: #1e1e1e; }
+        
+        .match-card {
+            background: linear-gradient(135deg, #2a2a2a 0%, #1f1f1f 100%);
+            border: 1px solid #333;
         }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .btn-guess {
+            background: linear-gradient(135deg, #1a9e5f 0%, #158f54 100%);
+            box-shadow: 0 2px 8px rgba(26, 158, 95, 0.3);
+        }
+        
+        .status-badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
+        .team-logo-placeholder {
+            background: linear-gradient(135deg, #444 0%, #333 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .admin-btn {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #aaa;
+        }
+        
+        .schema-cache-error {
+            background-color: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 4px;
+            color: #92400e;
+            font-size: 14px;
+            line-height: 1.5;
+        }
     </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+<body class="bg-gray-900 text-white">
 
     <!-- 登录界面 -->
-    <div id="loginPage" class="fixed inset-0 bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center z-50">
-        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4">
-            <h1 class="text-3xl font-bold text-center mb-2 text-gray-800 dark:text-white">加西亚竞猜中心</h1>
-            <p class="text-gray-500 dark:text-gray-400 text-center mb-8">请输入登录码参与竞猜</p>
-            
-            <div class="space-y-4">
-                <input type="text" id="loginCode" placeholder="输入登录码（如：OFC2016）" 
-                    class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none uppercase">
-                <button onclick="handleLogin()" 
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition duration-200 transform hover:scale-105">
-                    登录
-                </button>
-                <p id="loginError" class="text-red-500 text-sm text-center hidden">登录码错误</p>
+    <div id="loginPage" class="fixed inset-0 dg-green flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-8">
+            <div class="text-center mb-8">
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">加西亚竞猜</h1>
+                <p class="text-gray-500 text-sm">输入登录码参与竞猜</p>
             </div>
             
-            <div class="mt-6 text-center text-xs text-gray-400">
-                管理员码：OFC2016 | 用户码见列表
+            <div class="space-y-4">
+                <input type="text" id="loginCodeInput" placeholder="登录码（如：OFC2016）" 
+                    class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none uppercase text-center tracking-wider font-medium"
+                    onkeypress="handleKeyPress(event)">
+                
+                <button onclick="doLogin()" id="loginBtn"
+                    class="w-full dg-green text-white font-bold py-3 rounded-xl transition active:scale-95 shadow-lg">
+                    <span id="btnText">立即登录</span>
+                </button>
+                
+                <div id="loginError" class="text-red-500 text-sm text-center hidden bg-red-50 p-3 rounded-lg"></div>
             </div>
         </div>
     </div>
 
     <!-- 主应用 -->
-    <div id="app" class="hidden min-h-screen flex flex-col">
+    <div id="mainApp" class="hidden min-h-screen flex flex-col bg-gray-100 dark:bg-gray-900">
         <!-- 顶部导航 -->
-        <nav class="sticky top-0 z-40 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between items-center h-16">
-                    <div class="flex items-center space-x-4">
-                        <h1 class="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                            加西亚竞猜
-                        </h1>
+        <nav class="sticky top-0 z-40 dg-dark border-b border-gray-800">
+            <div class="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
+                <div class="flex items-center space-x-1">
+                    <h1 class="text-lg font-bold text-white tracking-tight">加西亚竞猜</h1>
+                    <span id="connStatus" class="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 ml-2">连接中</span>
+                </div>
+                
+                <div class="flex items-center space-x-3">
+                    <div class="flex bg-gray-800 rounded-lg p-0.5">
+                        <button onclick="switchTab('matches')" id="tab-matches" class="px-3 py-1.5 rounded-md text-xs font-medium bg-green-600 text-white transition">比赛</button>
+                        <button onclick="switchTab('ranking')" id="tab-ranking" class="px-3 py-1.5 rounded-md text-xs font-medium text-gray-400 hover:text-white transition">榜单</button>
                     </div>
                     
-                    <div class="flex items-center space-x-4">
-                        <button onclick="showPage('matches')" id="nav-matches" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium text-blue-600 bg-blue-50 dark:bg-blue-900/20">
-                            比赛中心
-                        </button>
-                        <button onclick="showPage('ranking')" id="nav-ranking" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
-                            红黑榜
-                        </button>
-                        
-                        <div class="flex items-center space-x-2 pl-4 border-l border-gray-200 dark:border-gray-700">
-                            <img id="userAvatar" src="" alt="" class="w-8 h-8 rounded-full object-cover border-2 border-blue-500">
-                            <div class="hidden sm:block">
-                                <p id="userName" class="text-sm font-medium text-gray-900 dark:text-white"></p>
-                                <p id="userPoints" class="text-xs text-gray-500">积分: --</p>
-                            </div>
-                            <button onclick="logout()" class="ml-2 text-xs text-red-500 hover:text-red-700">退出</button>
-                        </div>
+                    <div class="flex items-center" onclick="doLogout()" style="cursor: pointer;">
+                        <img id="navAvatar" src="" class="w-8 h-8 rounded-full border-2 border-gray-600 bg-gray-700">
                     </div>
                 </div>
             </div>
         </nav>
 
-        <!-- 页面内容 -->
-        <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
-            
-            <!-- 比赛中心页面 -->
-            <div id="page-matches" class="page-content space-y-6">
-                <!-- 管理员：创建比赛 -->
-                <div id="adminPanel" class="hidden bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
-                    <h2 class="text-xl font-bold mb-4 flex items-center">
-                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                        创建新比赛
-                    </h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <select id="matchCategory" onchange="toggleHandicap()" class="px-4 py-2 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 border-0 focus:ring-2 focus:ring-white">
+        <!-- 用户信息栏 -->
+        <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+            <div class="max-w-lg mx-auto px-4 py-3 flex justify-between items-center">
+                <div>
+                    <div id="navUsername" class="text-sm font-bold text-gray-900 dark:text-white"></div>
+                    <div class="text-xs text-gray-500 mt-0.5">欢迎回来</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-xs text-gray-500">当前积分</div>
+                    <div id="navPoints" class="text-lg font-bold text-green-600">--</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 管理员创建面板 -->
+        <div id="adminCreatePanel" class="hidden max-w-lg mx-auto w-full px-4 py-4">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                <h2 class="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center">
+                    <span class="w-1 h-4 bg-green-500 rounded-full mr-2"></span>
+                    创建比赛
+                </h2>
+                <div class="space-y-3">
+                    <div class="grid grid-cols-2 gap-2">
+                        <select id="newCategory" onchange="toggleHandicapInput()" class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none">
                             <option value="">选择类别</option>
                             <option value="足球">足球</option>
                             <option value="篮球">篮球</option>
-                            <option value="其他">其他</option>
                         </select>
-                        <input type="text" id="matchLeague" placeholder="所属联赛" class="px-4 py-2 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 border-0 focus:ring-2 focus:ring-white">
-                        <input type="text" id="matchHome" placeholder="主队名称" class="px-4 py-2 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 border-0 focus:ring-2 focus:ring-white">
-                        <input type="text" id="matchAway" placeholder="客队名称" class="px-4 py-2 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 border-0 focus:ring-2 focus:ring-white">
+                        <input type="text" id="newLeague" placeholder="联赛名称" class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm outline-none">
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                        <input type="datetime-local" id="matchTime" class="px-4 py-2 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 border-0 focus:ring-2 focus:ring-white">
-                        <select id="matchHandicap" class="hidden px-4 py-2 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 border-0 focus:ring-2 focus:ring-white">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" id="newHome" placeholder="主队" class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm outline-none text-center font-medium">
+                        <input type="text" id="newAway" placeholder="客队" class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm outline-none text-center font-medium">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="datetime-local" id="newTime" class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm outline-none">
+                        <select id="newHandicap" class="hidden w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm outline-none">
                             <option value="">不让球</option>
-                            <option value="-0.5">主让0.5</option>
-                            <option value="-1">主让1</option>
-                            <option value="-1.5">主让1.5</option>
-                            <option value="-2">主让2</option>
-                            <option value="-2.5">主让2.5</option>
-                            <option value="-3">主让3</option>
-                            <option value="0.5">客让0.5</option>
-                            <option value="1">客让1</option>
-                            <option value="1.5">客让1.5</option>
-                            <option value="2">客让2</option>
-                            <option value="2.5">客让2.5</option>
-                            <option value="3">客让3</option>
+                            <option value="-0.5">主-0.5</option>
+                            <option value="-1">主-1</option>
+                            <option value="-1.5">主-1.5</option>
+                            <option value="0.5">客-0.5</option>
+                            <option value="1">客-1</option>
                         </select>
-                        <button onclick="createMatch()" class="bg-white text-blue-600 font-bold py-2 px-6 rounded-lg hover:bg-gray-100 transition">
-                            生成比赛
-                        </button>
                     </div>
+                    <button onclick="createNewMatch()" class="w-full dg-green text-white font-bold py-2.5 rounded-lg text-sm active:scale-95 transition shadow-md">
+                        确认创建
+                    </button>
                 </div>
+            </div>
+        </div>
 
-                <!-- 比赛列表 -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="matchesList">
-                    <!-- 动态生成 -->
+        <!-- 内容区 -->
+        <main class="flex-1 max-w-lg mx-auto w-full pb-20">
+            
+            <!-- 比赛页面 -->
+            <div id="view-matches" class="view-section space-y-3 px-4 pt-4">
+                <div id="matchesContainer" class="space-y-3">
+                    <div class="text-center py-12 text-gray-500">
+                        <div class="inline-block w-6 h-6 border-2 border-gray-300 border-t-green-500 rounded-full animate-spin mb-2"></div>
+                        <p class="text-sm">加载中...</p>
+                    </div>
                 </div>
             </div>
 
             <!-- 红黑榜页面 -->
-            <div id="page-ranking" class="page-content hidden">
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
-                    <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">竞猜红黑榜</h2>
-                        <div id="adminResetBtn" class="hidden">
-                            <button onclick="resetAllPoints()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-                                一键清零积分
-                            </button>
-                        </div>
+            <div id="view-ranking" class="view-section hidden px-4 pt-4">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                        <h2 class="font-bold text-gray-900 dark:text-white">竞猜排行榜</h2>
+                        <button id="resetPointsBtn" onclick="resetAllPoints()" class="hidden text-xs text-red-500 px-3 py-1.5 border border-red-500 rounded-lg active:bg-red-50">清零积分</button>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full">
-                            <thead class="bg-gray-50 dark:bg-gray-700">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">排名</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">用户</th>
-                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">总场次</th>
-                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">猜对率</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">总积分</th>
-                                </tr>
-                            </thead>
-                            <tbody id="rankingList" class="divide-y divide-gray-200 dark:divide-gray-700">
-                                <!-- 动态生成 -->
-                            </tbody>
-                        </table>
+                    <div id="rankingList" class="divide-y divide-gray-100 dark:divide-gray-700">
                     </div>
                 </div>
             </div>
@@ -166,581 +200,853 @@
         </main>
     </div>
 
-    <!-- 比赛详情模态框 -->
-    <div id="matchModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl slide-in">
-            <div id="modalContent" class="overflow-y-auto max-h-[90vh] p-6">
-                <!-- 动态内容 -->
+    <!-- 底部操作弹窗 -->
+    <div id="bottomSheet" class="hidden fixed inset-0 bg-black/60 z-50 flex items-end" onclick="if(event.target===this)closeSheet()">
+        <div class="bg-white dark:bg-gray-800 w-full rounded-t-2xl max-w-lg mx-auto max-h-[80vh] overflow-y-auto slide-in" onclick="event.stopPropagation()">
+            <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex justify-between items-center">
+                <h3 id="sheetTitle" class="font-bold text-lg">比赛详情</h3>
+                <button onclick="closeSheet()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="sheetContent" class="p-4">
             </div>
         </div>
     </div>
 
     <script>
-        // 登录码配置
-        const LOGIN_CODES = {
-            'SAVGFC': { username: '首都守护者足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%93%88%E5%8D%A1%E6%8B%89%E6%89%98%E7%89%B9%E5%8D%A111.png' },
-            'SEMARANG': { username: '三宝敦队官方', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E4%B8%89%E5%AE%9D%E6%95%A6.png' },
-            'DPEAGLES': { username: '东平雄鹰足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E4%B8%9C%E5%B9%B3%E9%9B%84%E9%B9%B0.png' },
-            'QUEENS': { username: 'TheUnited-女王镇联合足球俱乐部官方', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E4%BC%8A%E4%B8%BD%E8%8E%8E%E7%99%BD%E8%81%94%E5%90%88.png' },
-            'TEKMAUFC': { username: '泰克马联合官方', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E4%BC%8A%E6%96%AF%E7%89%B9%E4%BC%8D%E5%BE%B7%E8%81%94%E5%90%88%E6%96%B02.png' },
-            'HAJADEEN': { username: '哈贾丹太平洋人俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%93%88%E8%B4%BE%E4%B8%B9%E5%A4%AA%E5%B9%B3%E6%B4%8B%E4%BA%BA.png' },
-            'CNLFC': { username: '坎布尔新吕伐登足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%9D%8E%E5%B8%83%E5%B0%94%E6%96%B0%E5%90%95%E4%BC%90%E7%99%BB.png' },
-            'SEAGULL': { username: '奥顿兰海鸥男足', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%A5%A5%E9%A1%BF%E5%85%B0%E6%B5%B7%E6%B8%AF.png' },
-            'EASTWOOD': { username: '东木市职业足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%AD%94%E6%81%A9%E5%BA%A6%E5%8D%A2FC.png' },
-            'LAANA': { username: 'LA\'ANAFC79-拉阿纳队', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E6%8B%89%E9%98%BF%E7%BA%B3%E5%9F%8E%E5%B8%82%E7%AB%9E%E6%8A%80.png' },
-            'SBOTOP': { username: '斯波托普城市足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E6%96%AF%E6%B3%A2%E6%89%98%E6%99%AE%E5%9F%8E%E5%B8%82.png' },
-            'XINNANCHENG': { username: '新南城足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E6%96%B0%E6%B3%B0%E6%96%B03.png' },
-            'HILAL': { username: 'ALHILAL加西亚新月队', type: '球队', avatar: 'https://fclogo.top/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2F11hmdf08%2Fproduction%2F8b173e002d366de185a0b51b67e71d230f63b72e-800x800.png%3Fw%3D800%26fm%3Dwebp%26q%3D80&w=828&q=75' },
-            'RFFC': { username: '奥顿兰富力R&F', type: '球队', avatar: 'https://fclogo.top/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2F11hmdf08%2Fproduction%2F054ad4196adacff7c6d42d35764c892cf950ef0f-800x800.png%3Fw%3D800%26fm%3Dwebp%26q%3D80&w=828&q=75' },
-            'DAHWAHA': { username: '新达华哈海岸官方', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E6%96%B0%E8%BE%BE%E5%8D%8E%E5%93%88%E6%B5%B7%E5%B2%B8.png' },
-            'CAGOUS': { username: '瓦巴萨朱树鸦CAGOUSFC', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E7%93%A6%E5%B7%B4%E8%90%A8%E6%9C%B1%E6%A0%91%E9%B8%A6.png' },
-            'ROYALS': { username: '皇家萨乌萨乌足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E7%9A%87%E5%AE%B6%E8%90%A8%E4%B9%8C%E8%90%A8%E4%B9%8C.png' },
-            'MURAJA': { username: '穆拉哈西部队', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E7%A9%86%E6%8B%89%E5%93%88%E8%A5%BF%E9%83%A8.png' },
-            'LBJ': { username: '三宝敦乐邦战士足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E7%BB%B4%E5%B0%94%E5%9B%BE%E9%92%A2%E7%AE%A1.png' },
-            'DAIZHOU': { username: '色温岱州东岳俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E8%89%B2%E6%B8%A9%E5%B2%B1%E5%B7%9E%E4%B8%9C%E5%B2%B3.png' },
-            'BFFC': { username: '巴峰足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E8%90%A8%E4%B9%8C%E8%90%A8%E4%B9%8C%E6%96%B0.png' },
-            'NORWICH': { username: '诺维奇港NorwichPortFC', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E8%AF%BA%E7%BB%B4%E5%A5%87%E6%B8%AF%E6%96%B0.png' },
-            'ROVERS': { username: 'RoversOfficial流浪者队官方', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E9%98%BF%E5%B0%94%E7%89%B9%E5%BC%97%E9%9B%B7%E5%A5%87%E6%B5%81%E6%B5%AA%E8%80%85.png' },
-            'USP': { username: '南太平洋大学色温校区', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%8D%97%E5%A4%AA%E5%A4%A7%E6%96%B0%E6%B3%B0.png' },
-            'MAREK': { username: '马雷克青春之城足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E9%A9%AC%E9%9B%B7%E5%85%8B%E6%96%B0.png' },
+        // 配置数据
+        const USER_CODES = {
+            'SAVGFC': { username: '首都守护者', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%93%88%E5%8D%A1%E6%8B%89%E6%89%98%E7%89%B9%E5%8D%A111.png' },
+            'SEMARANG': { username: '三宝敦队', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E4%B8%89%E5%AE%9D%E6%95%A6.png' },
+            'DPEAGLES': { username: '东平雄鹰', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E4%B8%9C%E5%B9%B3%E9%9B%84%E9%B9%B0.png' },
+            'QUEENS': { username: '女王镇联合', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E4%BC%8A%E4%B8%BD%E8%8E%8E%E7%99%BD%E8%81%94%E5%90%88.png' },
+            'TEKMAUFC': { username: '泰克马联合', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E4%BC%8A%E6%96%AF%E7%89%B9%E4%BC%8D%E5%BE%B7%E8%81%94%E5%90%88%E6%96%B02.png' },
+            'HAJADEEN': { username: '哈贾丹', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%93%88%E8%B4%BE%E4%B8%B9%E5%A4%AA%E5%B9%B3%E6%B4%8B%E4%BA%BA.png' },
+            'CNLFC': { username: '坎布尔', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%9D%8E%E5%B8%83%E5%B0%94%E6%96%B0%E5%90%95%E4%BC%90%E7%99%BB.png' },
+            'SEAGULL': { username: '奥顿兰海鸥', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%A5%A5%E9%A1%BF%E5%85%B0%E6%B5%B7%E6%B8%AF.png' },
+            'EASTWOOD': { username: '东木市', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%AD%94%E6%81%A9%E5%BA%A6%E5%8D%A2FC.png' },
+            'LAANA': { username: '拉阿纳', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E6%8B%89%E9%98%BF%E7%BA%B3%E5%9F%8E%E5%B8%82%E7%AB%9E%E6%8A%80.png' },
+            'SBOTOP': { username: '斯波托普', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E6%96%AF%E6%B3%A2%E6%89%98%E6%99%AE%E5%9F%8E%E5%B8%82.png' },
+            'XINNANCHENG': { username: '新南城', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E6%96%B0%E6%B3%B0%E6%96%B03.png' },
+            'HILAL': { username: '加西亚新月', type: '球队', avatar: 'https://fclogo.top/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2F11hmdf08%2Fproduction%2F8b173e002d366de185a0b51b67e71d230f63b72e-800x800.png%3Fw%3D800%26fm%3Dwebp%26q%3D80&w=828&q=75' },
+            'RFFC': { username: '奥顿兰富力', type: '球队', avatar: 'https://fclogo.top/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2F11hmdf08%2Fproduction%2F054ad4196adacff7c6d42d35764c892cf950ef0f-800x800.png%3Fw%3D800%26fm%3Dwebp%26q%3D80&w=828&q=75' },
+            'DAHWAHA': { username: '新达华哈', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E6%96%B0%E8%BE%BE%E5%8D%8E%E5%93%88%E6%B5%B7%E5%B2%B8.png' },
+            'CAGOUS': { username: '瓦巴萨', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E7%93%A6%E5%B7%B4%E8%90%A8%E6%9C%B1%E6%A0%91%E9%B8%A6.png' },
+            'ROYALS': { username: '皇家萨乌', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E7%9A%87%E5%AE%B6%E8%90%A8%E4%B9%8C%E8%90%A8%E4%B9%8C.png' },
+            'MURAJA': { username: '穆拉哈', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E7%A9%86%E6%8B%89%E5%93%88%E8%A5%BF%E9%83%A8.png' },
+            'LBJ': { username: '乐邦战士', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E7%BB%B4%E5%B0%94%E5%9B%BE%E9%92%A2%E7%AE%A1.png' },
+            'DAIZHOU': { username: '色温岱州', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E8%89%B2%E6%B8%A9%E5%B2%B1%E5%B7%9E%E4%B8%9C%E5%B2%B3.png' },
+            'BFFC': { username: '巴峰', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E8%90%A8%E4%B9%8C%E8%90%A8%E4%B9%8C%E6%96%B0.png' },
+            'NORWICH': { username: '诺维奇港', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E8%AF%BA%E7%BB%B4%E5%A5%87%E6%B8%AF%E6%96%B0.png' },
+            'ROVERS': { username: '流浪者', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E9%98%BF%E5%B0%94%E7%89%B9%E5%BC%97%E9%9B%B7%E5%A5%87%E6%B5%81%E6%B5%AA%E8%80%85.png' },
+            'USP': { username: '南太平洋大学', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%8D%97%E5%A4%AA%E5%A4%A7%E6%96%B0%E6%B3%B0.png' },
+            'MAREK': { username: '马雷克', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E9%A9%AC%E9%9B%B7%E5%85%8B%E6%96%B0.png' },
             'LAXI': { username: '拉西弗谢', type: '个人', avatar: 'https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52870242240935_.png' },
             'MENFUCIUS': { username: '孟夫子', type: '竞猜', avatar: 'https://free.boltp.com/2026/02/24/699cfc3359d1a.webp' },
             'LIANSAI': { username: '联赛官方', type: '官方', avatar: 'https://free.boltp.com/2026/02/24/699cfcf25c7e6.webp' },
             'MAHAOYU': { username: '马浩宇', type: '个人', avatar: 'https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52887690550188_.png' },
             'CARLO': { username: '卡罗', type: '个人', avatar: 'https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52875610863799_.png' },
-            'DAMIAN': { username: '联合主帅Damian', type: '个人', avatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT56R5vFglOuDzNhWJ86tkbc9E1B2O4WP86PQ&s' },
-            'HAANANGU': { username: '南太助教哈喃咕', type: '个人', avatar: 'https://news.cctv.com/sports/soccer/china_a/20070508/images/20070508104867_hp.jpg' },
-            'JUDE': { username: '裘德·乔克雷斯', type: '个人', avatar: 'https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52892253943504_.png' },
-            'OFC2016': { username: '官方', type: '管理员', avatar: 'https://free.boltp.com/2026/02/24/699cfcf25c7e6.webp' }
+            'DAMIAN': { username: 'Damian', type: '个人', avatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT56R5vFglOuDzNhWJ86tkbc9E1B2O4WP86PQ&s' },
+            'HAANANGU': { username: '哈喃咕', type: '个人', avatar: 'https://news.cctv.com/sports/soccer/china_a/20070508/images/20070508104867_hp.jpg' },
+            'JUDE': { username: '裘德', type: '个人', avatar: 'https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52892253943504_.png' },
+            'OFC2016': { username: '管理员', type: '管理员', avatar: 'https://free.boltp.com/2026/02/24/699cfcf25c7e6.webp' }
         };
 
-        // Supabase配置
-        const SUPABASE_URL = 'https://cckztigendaqgjzqvfdy.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNja3p0aWdlbmRhcWdqenF2ZmR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODc4MzAsImV4cCI6MjA4NzU2MzgzMH0.SoAo2pqS5SRFA5wEYHyp2valJzEPxCvB-MWOBqtNmTc';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
         let currentUser = null;
-        let matchesData = [];
-        let guessesData = [];
-        let userStatsData = [];
+        let supabaseClient = null;
+        let matches = [];
+        let guesses = [];
+        let userStats = [];
 
-        // 初始化
-        function init() {
-            const savedUser = localStorage.getItem('garciaGuessUser');
-            if (savedUser) {
-                currentUser = JSON.parse(savedUser);
-                showApp();
+        window.onload = function() {
+            const saved = localStorage.getItem('currentUser');
+            if (saved) {
+                try {
+                    currentUser = JSON.parse(saved);
+                    showMainApp();
+                } catch(e) {
+                    localStorage.removeItem('currentUser');
+                }
             }
-        }
+        };
 
-        function handleLogin() {
-            const code = document.getElementById('loginCode').value.trim().toUpperCase();
-            if (LOGIN_CODES[code]) {
-                currentUser = { code, ...LOGIN_CODES[code] };
-                localStorage.setItem('garciaGuessUser', JSON.stringify(currentUser));
-                showApp();
-            } else {
-                document.getElementById('loginError').classList.remove('hidden');
-            }
-        }
-
-        function logout() {
-            localStorage.removeItem('garciaGuessUser');
-            location.reload();
-        }
-
-        function showApp() {
-            document.getElementById('loginPage').classList.add('hidden');
-            document.getElementById('app').classList.remove('hidden');
+        function doLogin() {
+            const input = document.getElementById('loginCodeInput');
+            const btn = document.getElementById('loginBtn');
+            const code = input.value.trim().toUpperCase();
             
-            document.getElementById('userAvatar').src = currentUser.avatar;
-            document.getElementById('userName').textContent = currentUser.username;
+            if (!code) {
+                showLoginError('请输入登录码');
+                return;
+            }
+
+            btn.disabled = true;
+            document.getElementById('btnText').textContent = '登录中...';
+            
+            const userInfo = USER_CODES[code];
+            if (userInfo) {
+                currentUser = { code: code, ...userInfo };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                showMainApp();
+            } else {
+                showLoginError('登录码错误');
+                btn.disabled = false;
+                document.getElementById('btnText').textContent = '立即登录';
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        function showLoginError(msg) {
+            const error = document.getElementById('loginError');
+            error.textContent = msg;
+            error.classList.remove('hidden');
+            setTimeout(() => error.classList.add('hidden'), 3000);
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') doLogin();
+        }
+
+        function showMainApp() {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            
+            document.getElementById('navUsername').textContent = currentUser.username;
+            document.getElementById('navAvatar').src = currentUser.avatar;
+            document.getElementById('navPoints').textContent = '--';
             
             if (currentUser.type === '管理员') {
-                document.getElementById('adminPanel').classList.remove('hidden');
-                document.getElementById('adminResetBtn').classList.remove('hidden');
+                document.getElementById('adminCreatePanel').classList.remove('hidden');
+                document.getElementById('resetPointsBtn').classList.remove('hidden');
             }
             
-            loadData();
-            setInterval(loadData, 30000); // 每30秒刷新
+            initSupabase();
+            loadAllData();
+            setInterval(loadAllData, 30000);
+            setInterval(checkAutoEndMatches, 60000);
         }
 
-        function showPage(page) {
-            document.querySelectorAll('.page-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`page-${page}`).classList.remove('hidden');
+        function initSupabase() {
+            try {
+                if (window.supabase) {
+                    supabaseClient = window.supabase.createClient(
+                        'https://cckztigendaqgjzqvfdy.supabase.co',
+                        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNja3p0aWdlbmRhcWdqenF2ZmR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODc4MzAsImV4cCI6MjA4NzU2MzgzMH0.SoAo2pqS5SRFA5wEYHyp2valJzEPxCvB-MWOBqtNmTc'
+                    );
+                }
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        async function checkAutoEndMatches() {
+            if (!supabaseClient) return;
             
-            document.querySelectorAll('.nav-btn').forEach(el => {
-                el.classList.remove('text-blue-600', 'bg-blue-50', 'dark:bg-blue-900/20');
-                el.classList.add('text-gray-600', 'dark:text-gray-300');
+            const now = new Date();
+            const matchesToEnd = matches.filter(m => {
+                if (m.status === 'finished') return false;
+                const matchTime = new Date(m.match_time);
+                const endTime = new Date(matchTime.getTime() + 95 * 60000);
+                return now >= endTime;
             });
+
+            for (const match of matchesToEnd) {
+                try {
+                    await supabaseClient.from('matches').update({
+                        status: 'finished'
+                    }).eq('id', match.id);
+                } catch(err) {
+                    console.error('自动结束失败:', err);
+                }
+            }
             
-            const activeBtn = document.getElementById(`nav-${page}`);
-            activeBtn.classList.remove('text-gray-600', 'dark:text-gray-300');
-            activeBtn.classList.add('text-blue-600', 'bg-blue-50', 'dark:bg-blue-900/20');
+            if (matchesToEnd.length > 0) loadAllData();
+        }
+
+        async function loadAllData() {
+            if (!supabaseClient) {
+                document.getElementById('connStatus').textContent = '离线';
+                document.getElementById('connStatus').className = 'text-[10px] px-1.5 py-0.5 rounded bg-red-900 text-red-300 ml-2';
+                return;
+            }
+
+            document.getElementById('connStatus').textContent = '同步中';
             
-            if (page === 'ranking') loadRanking();
-        }
+            try {
+                const [mRes, gRes, sRes] = await Promise.all([
+                    supabaseClient.from('matches').select('*').order('match_time', {ascending: false}),
+                    supabaseClient.from('guesses').select('*'),
+                    supabaseClient.from('user_stats').select('*')
+                ]);
 
-        // 数据加载
-        async function loadData() {
-            await Promise.all([loadMatches(), loadGuesses(), loadUserStats()]);
-            renderMatches();
-            updateUserPoints();
-        }
+                if (mRes.error) throw mRes.error;
+                if (gRes.error) throw gRes.error;
+                if (sRes.error) throw sRes.error;
 
-        async function loadMatches() {
-            const { data, error } = await supabase.from('matches').select('*').order('match_time', { ascending: false });
-            if (error) { console.error(error); return; }
-            matchesData = data || [];
-        }
-
-        async function loadGuesses() {
-            const { data, error } = await supabase.from('guesses').select('*');
-            if (error) { console.error(error); return; }
-            guessesData = data || [];
-        }
-
-        async function loadUserStats() {
-            const { data, error } = await supabase.from('user_stats').select('*');
-            if (error) { console.error(error); return; }
-            userStatsData = data || [];
-        }
-
-        function toggleHandicap() {
-            const cat = document.getElementById('matchCategory').value;
-            const handicap = document.getElementById('matchHandicap');
-            if (cat === '足球') {
-                handicap.classList.remove('hidden');
-            } else {
-                handicap.classList.add('hidden');
-                handicap.value = '';
+                matches = mRes.data || [];
+                guesses = gRes.data || [];
+                userStats = sRes.data || [];
+                
+                document.getElementById('connStatus').textContent = '已连接';
+                document.getElementById('connStatus').className = 'text-[10px] px-1.5 py-0.5 rounded bg-green-900 text-green-300 ml-2';
+                
+                renderMatches();
+                updateUserPoints();
+                checkAutoEndMatches();
+                
+            } catch(err) {
+                document.getElementById('connStatus').textContent = '失败';
+                document.getElementById('connStatus').className = 'text-[10px] px-1.5 py-0.5 rounded bg-red-900 text-red-300 ml-2';
             }
         }
 
-        // 创建比赛
-        async function createMatch() {
-            const category = document.getElementById('matchCategory').value;
-            const league = document.getElementById('matchLeague').value.trim();
-            const home = document.getElementById('matchHome').value.trim();
-            const away = document.getElementById('matchAway').value.trim();
-            const time = document.getElementById('matchTime').value;
-            const handicap = document.getElementById('matchHandicap').value || null;
+        function renderMatches() {
+            const container = document.getElementById('matchesContainer');
+            if (!container) return;
+            
+            if (matches.length === 0) {
+                container.innerHTML = '<div class="text-center py-12 text-gray-500 text-sm">暂无比赛</div>';
+                return;
+            }
+
+            const now = new Date();
+            container.innerHTML = matches.map(match => {
+                const matchTime = new Date(match.match_time);
+                const isStarted = now >= matchTime;
+                const isEnded = match.status === 'finished';
+                const hasScore = match.home_score !== null && match.home_score !== undefined && 
+                                match.away_score !== null && match.away_score !== undefined;
+                const userGuess = guesses.find(g => g.match_id === match.id && g.user_code === currentUser.code);
+                
+                let statusClass = '';
+                let statusText = '';
+                if (isEnded && hasScore) {
+                    statusClass = 'bg-gray-600 text-gray-200';
+                    statusText = '已结束';
+                } else if (isEnded && !hasScore) {
+                    statusClass = 'bg-orange-600 text-white';
+                    statusText = '待结算';
+                } else if (isStarted) {
+                    statusClass = 'bg-red-600 text-white';
+                    statusText = '进行中';
+                } else {
+                    statusClass = 'bg-green-600 text-white';
+                    statusText = '未开始';
+                }
+
+                let centerContent = '';
+                if (isEnded && hasScore) {
+                    centerContent = `<div class="text-2xl font-bold text-white tracking-wider">${match.home_score} - ${match.away_score}</div>`;
+                } else {
+                    centerContent = `<div class="text-lg font-bold text-gray-500">VS</div>`;
+                }
+
+                const handicapText = match.handicap ? 
+                    `<span class="text-[10px] text-orange-400 border border-orange-400/30 px-1.5 py-0.5 rounded">${match.handicap > 0 ? '客让'+match.handicap : '主让'+Math.abs(match.handicap)}</span>` : '';
+
+                let actionArea = '';
+                if (!isStarted && !userGuess && currentUser.type !== '管理员') {
+                    actionArea = `
+                        <div class="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-gray-700">
+                            <button onclick="event.stopPropagation(); submitGuess(${match.id}, 'win')" class="btn-guess text-white py-2 rounded-lg text-sm font-bold active:scale-95 transition">主胜</button>
+                            <button onclick="event.stopPropagation(); submitGuess(${match.id}, 'draw')" class="bg-gray-700 text-gray-300 py-2 rounded-lg text-sm font-bold active:scale-95 transition">平局</button>
+                            <button onclick="event.stopPropagation(); submitGuess(${match.id}, 'lose')" class="bg-red-600 text-white py-2 rounded-lg text-sm font-bold active:scale-95 transition shadow-lg shadow-red-900/30">客胜</button>
+                        </div>
+                    `;
+                } else if (userGuess) {
+                    const resultText = userGuess.prediction === 'win' ? '主胜' : userGuess.prediction === 'draw' ? '平局' : '客胜';
+                    const resultColor = userGuess.prediction === 'win' ? 'text-green-400' : userGuess.prediction === 'draw' ? 'text-gray-400' : 'text-red-400';
+                    actionArea = `<div class="mt-3 pt-3 border-t border-gray-700 text-center text-sm ${resultColor} font-medium">已竞猜：${resultText}</div>`;
+                } else if (isStarted && !isEnded) {
+                    actionArea = `<div class="mt-3 pt-3 border-t border-gray-700 text-center text-sm text-red-400 font-medium">比赛进行中</div>`;
+                } else if (isEnded && !hasScore) {
+                    actionArea = `<div class="mt-3 pt-3 border-t border-gray-700 text-center text-sm text-orange-400 font-medium">等待管理员结算</div>`;
+                }
+
+                let adminArea = '';
+                if (currentUser.type === '管理员') {
+                    adminArea = `<div class="mt-3 pt-3 border-t border-gray-700 flex gap-2 flex-wrap justify-center">`;
+                    if (!isEnded) {
+                        adminArea += `<button onclick="event.stopPropagation(); editMatchTime(${match.id})" class="admin-btn">改时间</button>`;
+                        adminArea += `<button onclick="event.stopPropagation(); manualEndMatch(${match.id})" class="admin-btn text-orange-400 border-orange-400/30">结束</button>`;
+                    }
+                    if (!hasScore) {
+                        adminArea += `<button onclick="event.stopPropagation(); showSettle(${match.id})" class="admin-btn text-purple-400 border-purple-400/30">录比分</button>`;
+                    }
+                    // 添加删除按钮
+                    adminArea += `<button onclick="event.stopPropagation(); deleteMatch(${match.id})" class="admin-btn text-red-400 border-red-400/30">删除</button>`;
+                    adminArea += `</div>`;
+                }
+
+                return `
+                    <div class="match-card rounded-xl p-4 text-white active:scale-[0.98] transition-transform" onclick="openMatchDetail(${match.id})">
+                        <div class="flex justify-between items-center mb-3">
+                            <div class="text-xs text-gray-400">${match.category} · ${match.league}</div>
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1 text-center">
+                                <div class="team-logo-placeholder w-12 h-12 mx-auto mb-2 text-xs">主队</div>
+                                <div class="font-bold text-sm truncate">${match.home_team}</div>
+                            </div>
+                            
+                            <div class="px-4 flex flex-col items-center">
+                                ${centerContent}
+                                ${handicapText}
+                            </div>
+                            
+                            <div class="flex-1 text-center">
+                                <div class="team-logo-placeholder w-12 h-12 mx-auto mb-2 text-xs">客队</div>
+                                <div class="font-bold text-sm truncate">${match.away_team}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center text-xs text-gray-500 mt-2">
+                            ${matchTime.toLocaleString('zh-CN', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'})}
+                        </div>
+                        
+                        ${actionArea}
+                        ${adminArea}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 新增：删除比赛功能
+        async function deleteMatch(matchId) {
+            if (!confirm('确定要删除这场比赛吗？这将同时删除所有相关竞猜记录，此操作不可恢复。')) return;
+            if (!supabaseClient) return;
+            
+            try {
+                // 先删除相关竞猜记录（避免外键约束错误）
+                const { error: guessError } = await supabaseClient
+                    .from('guesses')
+                    .delete()
+                    .eq('match_id', matchId);
+                
+                if (guessError) throw guessError;
+                
+                // 再删除比赛
+                const { error: matchError } = await supabaseClient
+                    .from('matches')
+                    .delete()
+                    .eq('id', matchId);
+                
+                if (matchError) throw matchError;
+                
+                alert('比赛已删除');
+                loadAllData();
+            } catch(err) {
+                alert('删除失败: ' + err.message);
+            }
+        }
+
+        async function editMatchTime(matchId) {
+            const match = matches.find(m => m.id === matchId);
+            const currentTime = new Date(match.match_time);
+            const timeStr = new Date(currentTime.getTime() - (currentTime.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+            
+            const newTime = prompt('修改比赛时间:', timeStr.replace('T', ' '));
+            if (!newTime) return;
+            
+            try {
+                const dateObj = new Date(newTime);
+                if (isNaN(dateObj.getTime())) {
+                    alert('时间格式错误');
+                    return;
+                }
+                
+                const { error } = await supabaseClient.from('matches').update({
+                    match_time: dateObj.toISOString()
+                }).eq('id', matchId);
+                
+                if (error) throw error;
+                loadAllData();
+            } catch(err) {
+                alert('修改失败: ' + err.message);
+            }
+        }
+
+        async function manualEndMatch(matchId) {
+            if (!confirm('确定要手动结束这场比赛吗？')) return;
+            
+            try {
+                const { error } = await supabaseClient.from('matches').update({
+                    status: 'finished'
+                }).eq('id', matchId);
+                
+                if (error) throw error;
+                loadAllData();
+            } catch(err) {
+                alert('操作失败: ' + err.message);
+            }
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`view-${tab}`).classList.remove('hidden');
+            
+            const matchesBtn = document.getElementById('tab-matches');
+            const rankingBtn = document.getElementById('tab-ranking');
+            
+            if (tab === 'matches') {
+                matchesBtn.classList.add('bg-green-600', 'text-white');
+                matchesBtn.classList.remove('text-gray-400');
+                rankingBtn.classList.remove('bg-green-600', 'text-white');
+                rankingBtn.classList.add('text-gray-400');
+            } else {
+                rankingBtn.classList.add('bg-green-600', 'text-white');
+                rankingBtn.classList.remove('text-gray-400');
+                matchesBtn.classList.remove('bg-green-600', 'text-white');
+                matchesBtn.classList.add('text-gray-400');
+                renderRanking();
+            }
+        }
+
+        async function submitGuess(matchId, prediction) {
+            if (!supabaseClient) return;
+            
+            try {
+                const { error } = await supabaseClient.from('guesses').insert({
+                    match_id: matchId,
+                    user_code: currentUser.code,
+                    prediction: prediction
+                });
+                
+                if (error) {
+                    if (error.code === '23505') alert('已竞猜过');
+                    else throw error;
+                } else {
+                    loadAllData();
+                }
+            } catch(err) {
+                alert('提交失败: ' + err.message);
+            }
+        }
+
+        async function createNewMatch() {
+            if (!supabaseClient) return;
+            
+            const category = document.getElementById('newCategory').value;
+            const league = document.getElementById('newLeague').value.trim();
+            const home = document.getElementById('newHome').value.trim();
+            const away = document.getElementById('newAway').value.trim();
+            const time = document.getElementById('newTime').value;
+            const handicap = document.getElementById('newHandicap').value;
 
             if (!category || !league || !home || !away || !time) {
                 alert('请填写完整信息');
                 return;
             }
 
-            const { error } = await supabase.from('matches').insert({
-                category,
-                league,
-                home_team: home,
-                away_team: away,
-                match_time: new Date(time).toISOString(),
-                handicap,
-                status: 'upcoming',
-                created_by: currentUser.code
-            });
+            try {
+                const { error } = await supabaseClient.from('matches').insert({
+                    category,
+                    league,
+                    home_team: home,
+                    away_team: away,
+                    match_time: new Date(time).toISOString(),
+                    handicap: handicap ? parseFloat(handicap) : null,
+                    status: 'upcoming',
+                    created_by: currentUser.code
+                });
 
-            if (error) {
-                alert('创建失败：' + error.message);
-            } else {
-                alert('比赛创建成功！');
-                document.getElementById('matchCategory').value = '';
-                document.getElementById('matchLeague').value = '';
-                document.getElementById('matchHome').value = '';
-                document.getElementById('matchAway').value = '';
-                document.getElementById('matchTime').value = '';
-                document.getElementById('matchHandicap').value = '';
-                loadData();
+                if (error) throw error;
+                
+                document.getElementById('newCategory').value = '';
+                document.getElementById('newLeague').value = '';
+                document.getElementById('newHome').value = '';
+                document.getElementById('newAway').value = '';
+                document.getElementById('newTime').value = '';
+                document.getElementById('newHandicap').classList.add('hidden');
+                loadAllData();
+            } catch(err) {
+                alert('创建失败: ' + err.message);
             }
         }
 
-        // 渲染比赛列表
-        function renderMatches() {
-            const container = document.getElementById('matchesList');
-            container.innerHTML = '';
-            
-            const now = new Date();
-            
-            matchesData.forEach(match => {
-                const matchTime = new Date(match.match_time);
-                const isStarted = now >= matchTime;
-                const isEnded = match.status === 'finished';
-                const userGuess = guessesData.find(g => g.match_id === match.id && g.user_code === currentUser.code);
-                
-                let statusBadge = '';
-                if (isEnded) {
-                    statusBadge = '<span class="px-2 py-1 bg-gray-500 text-white text-xs rounded">已结束</span>';
-                } else if (isStarted) {
-                    statusBadge = '<span class="px-2 py-1 bg-red-500 text-white text-xs rounded">进行中</span>';
-                } else {
-                    statusBadge = '<span class="px-2 py-1 bg-green-500 text-white text-xs rounded">未开始</span>';
-                }
-
-                const card = document.createElement('div');
-                card.className = 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 hover:shadow-xl transition cursor-pointer';
-                card.onclick = () => showMatchDetail(match.id);
-                
-                card.innerHTML = `
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="flex items-center space-x-2">
-                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400">${match.category}</span>
-                            <span class="text-xs text-gray-400">|</span>
-                            <span class="text-xs font-medium text-blue-600 dark:text-blue-400">${match.league}</span>
-                        </div>
-                        ${statusBadge}
-                    </div>
-                    
-                    <div class="flex justify-between items-center mb-4">
-                        <div class="text-center flex-1">
-                            <div class="text-lg font-bold text-gray-900 dark:text-white mb-1">${match.home_team}</div>
-                            <div class="text-xs text-gray-500">主队</div>
-                        </div>
-                        <div class="px-4 text-center">
-                            <div class="text-2xl font-bold text-gray-400">VS</div>
-                            ${match.handicap ? `<div class="text-xs text-orange-500 mt-1">${match.handicap > 0 ? '客让'+match.handicap : '主让'+Math.abs(match.handicap)}</div>` : ''}
-                        </div>
-                        <div class="text-center flex-1">
-                            <div class="text-lg font-bold text-gray-900 dark:text-white mb-1">${match.away_team}</div>
-                            <div class="text-xs text-gray-500">客队</div>
-                        </div>
-                    </div>
-                    
-                    <div class="text-center text-sm text-gray-500 dark:text-gray-400 mb-4">
-                        ${matchTime.toLocaleString('zh-CN')}
-                    </div>
-                    
-                    ${isEnded ? `
-                        <div class="text-center text-2xl font-bold text-blue-600 mb-3">
-                            ${match.home_score} - ${match.away_score}
-                        </div>
-                    ` : ''}
-                    
-                    <div class="flex justify-center space-x-2">
-                        ${!isStarted && !userGuess && currentUser.type !== '管理员' ? `
-                            <button onclick="event.stopPropagation(); submitGuess(${match.id}, 'win')" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">主胜</button>
-                            <button onclick="event.stopPropagation(); submitGuess(${match.id}, 'draw')" class="px-4 py-2 bg-gray-600 text-white rounded-lg text-sm hover:bg-gray-700">平局</button>
-                            <button onclick="event.stopPropagation(); submitGuess(${match.id}, 'lose')" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700">客胜</button>
-                        ` : userGuess ? `
-                            <span class="px-4 py-2 bg-green-100 text-green-800 rounded-lg text-sm font-medium">
-                                你已竞猜：${userGuess.prediction === 'win' ? '主胜' : userGuess.prediction === 'draw' ? '平局' : '客胜'}
-                            </span>
-                        ` : isStarted ? `
-                            <span class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm">比赛已开始</span>
-                        ` : ''}
-                    </div>
-                    
-                    ${currentUser.type === '管理员' && !isEnded ? `
-                        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                            <button onclick="event.stopPropagation(); showSettleModal(${match.id})" class="w-full bg-purple-600 text-white py-2 rounded-lg text-sm hover:bg-purple-700">
-                                录入比分并结算
-                            </button>
-                        </div>
-                    ` : ''}
-                `;
-                
-                container.appendChild(card);
-            });
-        }
-
-        // 提交竞猜
-        async function submitGuess(matchId, prediction) {
-            if (currentUser.type === '管理员') {
-                alert('管理员不能参与竞猜');
-                return;
-            }
-
-            const { error } = await supabase.from('guesses').insert({
-                match_id: matchId,
-                user_code: currentUser.code,
-                prediction: prediction
-            });
-
-            if (error) {
-                if (error.message.includes('duplicate')) {
-                    alert('你已经竞猜过这场比赛了');
-                } else {
-                    alert('竞猜失败：' + error.message);
-                }
-            } else {
-                alert('竞猜成功！');
-                loadData();
+        function toggleHandicapInput() {
+            const cat = document.getElementById('newCategory').value;
+            const hc = document.getElementById('newHandicap');
+            if (cat === '足球') hc.classList.remove('hidden');
+            else {
+                hc.classList.add('hidden');
+                hc.value = '';
             }
         }
 
-        // 显示比赛详情
-        async function showMatchDetail(matchId) {
-            const match = matchesData.find(m => m.id === matchId);
-            if (!match) return;
-
-            const modal = document.getElementById('matchModal');
-            const content = document.getElementById('modalContent');
-            const matchGuesses = guessesData.filter(g => g.match_id === matchId);
+        // 修复后的结算函数 - 关键修复：添加 username 字段
+        async function showSettle(matchId) {
+            const match = matches.find(m => m.id === matchId);
             
-            const now = new Date();
-            const isStarted = now >= new Date(match.match_time);
-            const isEnded = match.status === 'finished';
-            const userGuess = matchGuesses.find(g => g.user_code === currentUser.code);
-
-            // 计算每个人的历史准确率
-            const guessRows = await Promise.all(matchGuesses.map(async (guess) => {
-                const userStat = userStatsData.find(s => s.user_code === guess.user_code) || { total_guesses: 0, correct_guesses: 0 };
-                const accuracy = userStat.total_guesses > 0 ? (userStat.correct_guesses / userStat.total_guesses * 100).toFixed(1) : '0.0';
-                const userInfo = Object.entries(LOGIN_CODES).find(([code, info]) => code === guess.user_code);
-                
-                return `
-                    <tr class="border-b border-gray-200 dark:border-gray-700">
-                        <td class="py-3 flex items-center space-x-2">
-                            <img src="${userInfo ? userInfo[1].avatar : ''}" class="w-6 h-6 rounded-full">
-                            <span class="text-sm font-medium">${userInfo ? userInfo[1].username : guess.user_code}</span>
-                        </td>
-                        <td class="py-3 text-center">
-                            <span class="px-2 py-1 rounded text-xs ${guess.prediction === 'win' ? 'bg-blue-100 text-blue-800' : guess.prediction === 'draw' ? 'bg-gray-100 text-gray-800' : 'bg-red-100 text-red-800'}">
-                                ${guess.prediction === 'win' ? '主胜' : guess.prediction === 'draw' ? '平局' : '客胜'}
-                            </span>
-                        </td>
-                        <td class="py-3 text-right text-sm text-gray-600 dark:text-gray-400">${accuracy}%</td>
-                    </tr>
-                `;
-            }));
-
-            content.innerHTML = `
-                <div class="flex justify-between items-start mb-6">
-                    <div>
-                        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">${match.home_team} VS ${match.away_team}</h2>
-                        <p class="text-gray-500 dark:text-gray-400 mt-1">${match.league} | ${match.category}</p>
-                    </div>
-                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                </div>
-
-                ${isEnded ? `
-                    <div class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6 mb-6 text-center">
-                        <div class="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">${match.home_score} - ${match.away_score}</div>
-                        <div class="text-sm text-gray-600 dark:text-gray-400">最终比分</div>
-                        ${match.handicap ? `<div class="text-xs text-orange-500 mt-2">让球：${match.handicap > 0 ? '客让'+match.handicap : '主让'+Math.abs(match.handicap)}</div>` : ''}
-                    </div>
-                ` : `
-                    <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-6 mb-6 text-center">
-                        <div class="text-lg text-gray-600 dark:text-gray-300">比赛时间</div>
-                        <div class="text-2xl font-bold text-gray-900 dark:text-white mt-2">${new Date(match.match_time).toLocaleString('zh-CN')}</div>
-                        ${match.handicap ? `<div class="text-sm text-orange-500 mt-2">让球盘：${match.handicap > 0 ? '客让'+match.handicap : '主让'+Math.abs(match.handicap)}</div>` : ''}
-                    </div>
-                `}
-
-                ${!isStarted && !userGuess && currentUser.type !== '管理员' ? `
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold mb-3">参与竞猜</h3>
-                        <div class="grid grid-cols-3 gap-3">
-                            <button onclick="submitGuessFromModal(${match.id}, 'win')" class="py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition">主胜</button>
-                            <button onclick="submitGuessFromModal(${match.id}, 'draw')" class="py-3 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition">平局</button>
-                            <button onclick="submitGuessFromModal(${match.id}, 'lose')" class="py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition">客胜</button>
-                        </div>
-                    </div>
-                ` : userGuess ? `
-                    <div class="mb-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg text-center">
-                        <span class="text-green-800 dark:text-green-200">你已竞猜：<strong>${userGuess.prediction === 'win' ? '主胜' : userGuess.prediction === 'draw' ? '平局' : '客胜'}</strong></span>
-                    </div>
-                ` : ''}
-
-                <div>
-                    <h3 class="text-lg font-semibold mb-3">竞猜用户 (${matchGuesses.length}人)</h3>
-                    <table class="w-full">
-                        <thead>
-                            <tr class="text-left text-xs text-gray-500 dark:text-gray-400 uppercase">
-                                <th class="pb-2">用户</th>
-                                <th class="pb-2 text-center">竞猜</th>
-                                <th class="pb-2 text-right">历史准确率</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${guessRows.join('') || '<tr><td colspan="3" class="py-4 text-center text-gray-500">暂无竞猜</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-            `;
+            const homeScoreStr = prompt(`${match.home_team} 进球数:`);
+            if (homeScoreStr === null) return;
+            const awayScoreStr = prompt(`${match.away_team} 进球数:`);
+            if (awayScoreStr === null) return;
             
-            modal.classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('matchModal').classList.add('hidden');
-        }
-
-        async function submitGuessFromModal(matchId, prediction) {
-            await submitGuess(matchId, prediction);
-            closeModal();
-            showMatchDetail(matchId);
-        }
-
-        // 结算比赛
-        function showSettleModal(matchId) {
-            const match = matchesData.find(m => m.id === matchId);
-            const content = document.getElementById('modalContent');
-            
-            content.innerHTML = `
-                <div class="flex justify-between items-start mb-6">
-                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">录入比分</h2>
-                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                </div>
-                
-                <div class="text-center mb-6">
-                    <div class="flex items-center justify-center space-x-4 mb-4">
-                        <div class="text-lg font-bold">${match.home_team}</div>
-                        <input type="number" id="homeScore" min="0" class="w-16 h-16 text-center text-2xl font-bold border-2 border-blue-500 rounded-lg" placeholder="0">
-                        <div class="text-2xl font-bold text-gray-400">-</div>
-                        <input type="number" id="awayScore" min="0" class="w-16 h-16 text-center text-2xl font-bold border-2 border-red-500 rounded-lg" placeholder="0">
-                        <div class="text-lg font-bold">${match.away_team}</div>
-                    </div>
-                    ${match.handicap ? `<div class="text-sm text-orange-500">让球：${match.handicap > 0 ? '客让'+match.handicap : '主让'+Math.abs(match.handicap)}</div>` : ''}
-                </div>
-                
-                <button onclick="settleMatch(${matchId})" class="w-full bg-purple-600 text-white py-3 rounded-lg font-bold hover:bg-purple-700 transition">
-                    确认并结算
-                </button>
-            `;
-            
-            document.getElementById('matchModal').classList.remove('hidden');
-        }
-
-        async function settleMatch(matchId) {
-            const homeScore = parseInt(document.getElementById('homeScore').value);
-            const awayScore = parseInt(document.getElementById('awayScore').value);
+            const homeScore = parseInt(homeScoreStr);
+            const awayScore = parseInt(awayScoreStr);
             
             if (isNaN(homeScore) || isNaN(awayScore)) {
-                alert('请输入有效比分');
+                alert('请输入有效的数字比分');
                 return;
             }
 
-            const match = matchesData.find(m => m.id === matchId);
-            let adjustedHome = homeScore;
-            let adjustedAway = awayScore;
-            
-            // 让球计算
-            if (match.handicap) {
-                const handicap = parseFloat(match.handicap);
-                if (handicap < 0) {
-                    adjustedHome += handicap; // 主让球，主队减
-                } else {
-                    adjustedAway -= handicap; // 客让球，客队减（相当于主队加）
-                }
-            }
+            // 显示结算中提示
+            const settlingMsg = document.createElement('div');
+            settlingMsg.className = 'fixed inset-0 bg-black/80 z-[60] flex items-center justify-center text-white';
+            settlingMsg.innerHTML = '<div class="text-center"><div class="inline-block w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin mb-4"></div><p>正在结算...</p></div>';
+            document.body.appendChild(settlingMsg);
 
-            let result;
-            if (adjustedHome > adjustedAway) result = 'win';
-            else if (adjustedHome === adjustedAway) result = 'draw';
-            else result = 'lose';
-
-            // 更新比赛状态
-            await supabase.from('matches').update({
-                status: 'finished',
-                home_score: homeScore,
-                away_score: awayScore,
-                result: result
-            }).eq('id', matchId);
-
-            // 结算所有竞猜
-            const matchGuesses = guessesData.filter(g => g.match_id === matchId);
-            for (const guess of matchGuesses) {
-                const isCorrect = guess.prediction === result;
-                const points = isCorrect ? 10 : -10;
+            try {
+                // 1. 计算让球后的结果
+                let adjustedHome = homeScore;
+                let adjustedAway = awayScore;
                 
-                // 更新或创建用户统计
-                const existingStat = userStatsData.find(s => s.user_code === guess.user_code);
-                if (existingStat) {
-                    await supabase.from('user_stats').update({
-                        total_guesses: existingStat.total_guesses + 1,
-                        correct_guesses: existingStat.correct_guesses + (isCorrect ? 1 : 0),
-                        total_points: existingStat.total_points + points
-                    }).eq('user_code', guess.user_code);
+                if (match.handicap) {
+                    const handicap = parseFloat(match.handicap);
+                    if (handicap < 0) {
+                        adjustedHome = homeScore + handicap;
+                    } else {
+                        adjustedAway = awayScore - handicap;
+                    }
+                }
+
+                // 确定比赛结果
+                let result;
+                if (adjustedHome > adjustedAway) result = 'win';
+                else if (adjustedHome === adjustedAway) result = 'draw';
+                else result = 'lose';
+
+                console.log(`[结算] 比赛ID: ${matchId}, 比分: ${homeScore}-${awayScore}, 让球: ${match.handicap || '无'}, 结果: ${result}`);
+
+                // 2. 先更新比赛状态和比分
+                const { error: updateError } = await supabaseClient
+                    .from('matches')
+                    .update({
+                        status: 'finished',
+                        home_score: homeScore,
+                        away_score: awayScore
+                    })
+                    .eq('id', matchId);
+
+                if (updateError) {
+                    if (updateError.message && updateError.message.includes('schema cache')) {
+                        throw new Error('SCHEMA_CACHE_ERROR');
+                    }
+                    throw updateError;
+                }
+                console.log('[结算] 比赛状态更新成功');
+
+                // 3. 从数据库重新查询这场比赛的所有竞猜
+                const { data: matchGuesses, error: guessQueryError } = await supabaseClient
+                    .from('guesses')
+                    .select('*')
+                    .eq('match_id', parseInt(matchId));
+
+                if (guessQueryError) {
+                    if (guessQueryError.message && guessQueryError.message.includes('schema cache')) {
+                        throw new Error('SCHEMA_CACHE_ERROR');
+                    }
+                    throw new Error('查询竞猜记录失败: ' + guessQueryError.message);
+                }
+
+                console.log(`[结算] 找到竞猜记录:`, matchGuesses);
+
+                // 4. 逐个结算用户竞猜
+                let successCount = 0;
+                let failCount = 0;
+                let failReasons = [];
+                let hasSchemaCacheError = false;
+                
+                if (matchGuesses && matchGuesses.length > 0) {
+                    for (const guess of matchGuesses) {
+                        try {
+                            console.log(`[结算] 处理用户: ${guess.user_code}, 预测: ${guess.prediction}`);
+                            
+                            const isCorrect = guess.prediction === result;
+                            const points = isCorrect ? 10 : -10;
+                            
+                            // 获取用户信息
+                            const userInfo = USER_CODES[guess.user_code];
+                            const username = userInfo ? userInfo.username : guess.user_code;
+                            
+                            // 查询用户现有统计
+                            const { data: existingStats, error: statQueryError } = await supabaseClient
+                                .from('user_stats')
+                                .select('*')
+                                .eq('user_code', guess.user_code);
+                            
+                            if (statQueryError) {
+                                if (statQueryError.message && statQueryError.message.includes('schema cache')) {
+                                    hasSchemaCacheError = true;
+                                    failCount++;
+                                    failReasons.push(`${guess.user_code}: 数据库结构缓存错误`);
+                                    continue;
+                                }
+                                console.error(`[结算] 查询用户 ${guess.user_code} 统计失败:`, statQueryError);
+                                failCount++;
+                                failReasons.push(`${guess.user_code}: 查询统计失败`);
+                                continue;
+                            }
+
+                            const existingStat = existingStats && existingStats.length > 0 ? existingStats[0] : null;
+
+                            if (existingStat) {
+                                // 更新现有记录
+                                const newTotalGuesses = parseInt(existingStat.total_guesses || 0) + 1;
+                                const newCorrectGuesses = parseInt(existingStat.correct_guesses || 0) + (isCorrect ? 1 : 0);
+                                const newTotalPoints = parseInt(existingStat.total_points || 0) + points;
+
+                                console.log(`[结算] 更新用户 ${guess.user_code}: ${existingStat.total_points} -> ${newTotalPoints}`);
+
+                                const { error: updateStatError } = await supabaseClient
+                                    .from('user_stats')
+                                    .update({
+                                        total_guesses: newTotalGuesses,
+                                        correct_guesses: newCorrectGuesses,
+                                        total_points: newTotalPoints,
+                                        username: existingStat.username || username // 确保 username 存在
+                                    })
+                                    .eq('user_code', guess.user_code);
+
+                                if (updateStatError) {
+                                    if (updateStatError.message && updateStatError.message.includes('schema cache')) {
+                                        hasSchemaCacheError = true;
+                                        failCount++;
+                                        failReasons.push(`${guess.user_code}: 数据库结构缓存错误`);
+                                        continue;
+                                    }
+                                    console.error(`[结算] 更新用户 ${guess.user_code} 统计失败:`, updateStatError);
+                                    failCount++;
+                                    failReasons.push(`${guess.user_code}: ${updateStatError.message}`);
+                                } else {
+                                    console.log(`[结算] 更新用户 ${guess.user_code} 成功`);
+                                    successCount++;
+                                }
+                            } else {
+                                // 创建新记录 - 关键修复：添加 username 字段
+                                console.log(`[结算] 创建用户 ${guess.user_code} 统计`);
+                                
+                                const { error: insertStatError } = await supabaseClient
+                                    .from('user_stats')
+                                    .insert({
+                                        user_code: guess.user_code,
+                                        username: username, // 添加 username
+                                        total_guesses: 1,
+                                        correct_guesses: isCorrect ? 1 : 0,
+                                        total_points: points
+                                    });
+
+                                if (insertStatError) {
+                                    if (insertStatError.message && insertStatError.message.includes('schema cache')) {
+                                        hasSchemaCacheError = true;
+                                        failCount++;
+                                        failReasons.push(`${guess.user_code}: 数据库结构缓存错误`);
+                                        continue;
+                                    }
+                                    console.error(`[结算] 创建用户 ${guess.user_code} 统计失败:`, insertStatError);
+                                    failCount++;
+                                    failReasons.push(`${guess.user_code}: ${insertStatError.message}`);
+                                } else {
+                                    console.log(`[结算] 创建用户 ${guess.user_code} 统计成功`);
+                                    successCount++;
+                                }
+                            }
+                        } catch (guessError) {
+                            if (guessError.message && guessError.message.includes('schema cache')) {
+                                hasSchemaCacheError = true;
+                                failCount++;
+                                failReasons.push(`${guess.user_code}: 数据库结构缓存错误`);
+                            } else {
+                                console.error(`[结算] 处理用户 ${guess.user_code} 时出错:`, guessError);
+                                failCount++;
+                                failReasons.push(`${guess.user_code}: ${guessError.message}`);
+                            }
+                        }
+                    }
                 } else {
-                    await supabase.from('user_stats').insert({
-                        user_code: guess.user_code,
-                        total_guesses: 1,
-                        correct_guesses: isCorrect ? 1 : 0,
-                        total_points: points
-                    });
+                    console.log('[结算] 本场比赛无人竞猜');
+                }
+
+                // 5. 刷新数据
+                console.log('[结算] 刷新数据...');
+                await loadAllData();
+                
+                // 移除结算提示
+                document.body.removeChild(settlingMsg);
+                
+                let msg = `结算完成！\n${match.home_team} ${homeScore} - ${awayScore} ${match.away_team}\n结果：${result === 'win' ? '主胜' : result === 'draw' ? '平局' : '客胜'}\n\n`;
+                if (matchGuesses && matchGuesses.length > 0) {
+                    msg += `成功: ${successCount}人\n失败: ${failCount}人`;
+                    if (failReasons.length > 0) {
+                        msg += `\n\n失败详情:\n${failReasons.join('\n')}`;
+                    }
+                } else {
+                    msg += '本场比赛无人竞猜';
+                }
+                
+                // 如果有 Schema Cache 错误，添加特别说明
+                if (hasSchemaCacheError) {
+                    msg += `\n\n⚠️ 检测到数据库结构未同步，请刷新页面后重试结算操作。`;
+                    setTimeout(() => {
+                        alert('检测到数据库结构缓存问题。\n\n请执行以下操作：\n1. 刷新当前页面（按 F5 或下拉刷新）\n2. 重新点击"录比分"进行结算\n\n如果仍有问题，请在 Supabase Dashboard 中点击 "Project Settings" -> "API" -> "Restart PostgREST" 或等待 1-2 分钟后再试。');
+                    }, 100);
+                }
+                
+                alert(msg);
+                
+            } catch(err) {
+                if (document.body.contains(settlingMsg)) {
+                    document.body.removeChild(settlingMsg);
+                }
+                console.error('[结算] 错误:', err);
+                
+                if (err.message === 'SCHEMA_CACHE_ERROR' || (err.message && err.message.includes('schema cache'))) {
+                    alert('结算失败：数据库结构未同步\n\n请在 Supabase Dashboard 中执行以下操作：\n1. 进入 "Database" -> "Tables"\n2. 确认 user_stats 表包含以下字段：\n   - user_code (text)\n   - username (text)\n   - total_guesses (integer)\n   - correct_guesses (integer)\n   - total_points (integer)\n3. 点击 "Project Settings" -> "API" -> "Restart PostgREST"\n4. 刷新本页面后重试\n\n或者等待 2-3 分钟后刷新页面，让缓存自动更新。');
+                } else {
+                    alert('结算失败: ' + err.message);
                 }
             }
-
-            alert('结算完成！');
-            closeModal();
-            loadData();
         }
 
-        // 红黑榜
-        function loadRanking() {
-            const sortedStats = [...userStatsData].sort((a, b) => b.total_points - a.total_points);
-            const container = document.getElementById('rankingList');
+        function openMatchDetail(matchId) {
+            const match = matches.find(m => m.id === matchId);
+            const matchGuesses = guesses.filter(g => g.match_id === match.id);
             
-            container.innerHTML = sortedStats.map((stat, index) => {
-                const userInfo = Object.entries(LOGIN_CODES).find(([code, info]) => code === stat.user_code);
-                const accuracy = stat.total_guesses > 0 ? (stat.correct_guesses / stat.total_guesses * 100).toFixed(1) : '0.0';
-                
-                return `
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full ${index < 3 ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-600'} font-bold text-sm">
-                                ${index + 1}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+            const isEnded = match.status === 'finished';
+            const hasScore = match.home_score !== null && match.home_score !== undefined;
+            
+            document.getElementById('sheetTitle').textContent = '比赛详情';
+            
+            let html = `
+                <div class="text-center mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex-1">
+                            <div class="w-16 h-16 rounded-full bg-gray-700 mx-auto mb-2 flex items-center justify-center text-xs text-gray-500">主队</div>
+                            <div class="font-bold text-lg">${match.home_team}</div>
+                        </div>
+                        <div class="px-4">
+                            ${isEnded && hasScore ? `<div class="text-3xl font-bold text-green-600">${match.home_score} - ${match.away_score}</div>` : '<div class="text-2xl font-bold text-gray-400">VS</div>'}
+                        </div>
+                        <div class="flex-1">
+                            <div class="w-16 h-16 rounded-full bg-gray-700 mx-auto mb-2 flex items-center justify-center text-xs text-gray-500">客队</div>
+                            <div class="font-bold text-lg">${match.away_team}</div>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-500">${match.category} · ${match.league}</div>
+                    <div class="text-sm text-gray-400 mt-1">${new Date(match.match_time).toLocaleString('zh-CN')}</div>
+                </div>
+            `;
+            
+            if (currentUser.type === '管理员' && !hasScore) {
+                html += `<div class="flex gap-2 mb-6 justify-center flex-wrap">`;
+                if (!isEnded) {
+                    html += `<button onclick="editMatchTime(${match.id}); closeSheet();" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">修改时间</button>`;
+                    html += `<button onclick="manualEndMatch(${match.id}); closeSheet();" class="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm">手动结束</button>`;
+                }
+                html += `<button onclick="showSettle(${match.id}); closeSheet();" class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm">录入比分</button>`;
+                html += `<button onclick="deleteMatch(${match.id}); closeSheet();" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm">删除比赛</button>`;
+                html += `</div>`;
+            }
+            
+            html += `<div class="space-y-3">
+                <h4 class="font-bold text-sm text-gray-400 uppercase tracking-wider">竞猜用户 (${matchGuesses.length})</h4>
+            `;
+            
+            if (matchGuesses.length === 0) {
+                html += '<div class="text-center text-gray-500 py-4 text-sm">暂无竞猜</div>';
+            } else {
+                matchGuesses.forEach(g => {
+                    const stat = userStats.find(s => s.user_code === g.user_code);
+                    const acc = stat && stat.total_guesses > 0 ? (stat.correct_guesses/stat.total_guesses*100).toFixed(0) : 0;
+                    const user = USER_CODES[g.user_code];
+                    html += `
+                        <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700">
                             <div class="flex items-center">
-                                <img class="h-10 w-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600" src="${userInfo ? userInfo[1].avatar : ''}" alt="">
-                                <div class="ml-4">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-white">${userInfo ? userInfo[1].username : stat.user_code}</div>
-                                    <div class="text-xs text-gray-500">${userInfo ? userInfo[1].type : ''}</div>
-                                </div>
+                                <img src="${user?.avatar || ''}" class="w-8 h-8 rounded-full mr-3 bg-gray-200">
+                                <span class="text-sm">${user?.username || g.user_code}</span>
                             </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white font-medium">
-                            ${stat.total_guesses}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${accuracy >= 50 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                                ${accuracy}%
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-bold ${stat.total_points >= 0 ? 'text-green-600' : 'text-red-600'}">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs ${g.prediction === 'win' ? 'text-green-600' : g.prediction === 'draw' ? 'text-gray-500' : 'text-red-600'}">
+                                    ${g.prediction === 'win' ? '主胜' : g.prediction === 'draw' ? '平局' : '客胜'}
+                                </span>
+                                <span class="text-xs text-gray-400 w-12 text-right">${acc}%</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            html += '</div>';
+            
+            document.getElementById('sheetContent').innerHTML = html;
+            document.getElementById('bottomSheet').classList.remove('hidden');
+        }
+
+        function closeSheet() {
+            document.getElementById('bottomSheet').classList.add('hidden');
+        }
+
+        function renderRanking() {
+            const container = document.getElementById('rankingList');
+            if (!userStats.length) {
+                container.innerHTML = '<div class="text-center py-8 text-gray-500 text-sm">暂无数据</div>';
+                return;
+            }
+            
+            const sorted = [...userStats].sort((a,b) => b.total_points - a.total_points);
+            container.innerHTML = sorted.map((stat, idx) => {
+                const user = USER_CODES[stat.user_code];
+                const acc = stat.total_guesses > 0 ? (stat.correct_guesses/stat.total_guesses*100).toFixed(1) : 0;
+                return `
+                    <div class="flex items-center justify-between p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-6 h-6 rounded-full ${idx < 3 ? 'bg-yellow-500 text-white' : 'bg-gray-200 text-gray-600'} flex items-center justify-center text-xs font-bold">
+                                ${idx + 1}
+                            </div>
+                            <img src="${user?.avatar || ''}" class="w-10 h-10 rounded-full bg-gray-200">
+                            <div>
+                                <div class="font-bold text-sm">${user?.username || stat.user_code}</div>
+                                <div class="text-xs text-gray-500">${stat.total_guesses}场 ${acc}%</div>
+                            </div>
+                        </div>
+                        <div class="font-bold ${stat.total_points >= 0 ? 'text-green-600' : 'text-red-600'}">
                             ${stat.total_points > 0 ? '+' : ''}${stat.total_points}
-                        </td>
-                    </tr>
+                        </div>
+                    </div>
                 `;
             }).join('');
         }
 
-        async function resetAllPoints() {
-            if (!confirm('确定要清零所有用户的积分吗？猜对率和总场次将保留。')) return;
-            
-            for (const stat of userStatsData) {
-                await supabase.from('user_stats').update({ total_points: 0 }).eq('user_code', stat.user_code);
-            }
-            
-            alert('积分已清零');
-            loadData();
-        }
-
         function updateUserPoints() {
             if (currentUser.type === '管理员') return;
-            const stat = userStatsData.find(s => s.user_code === currentUser.code);
-            if (stat) {
-                document.getElementById('userPoints').textContent = `积分: ${stat.total_points > 0 ? '+' : ''}${stat.total_points}`;
-            } else {
-                document.getElementById('userPoints').textContent = '积分: 0';
+            const stat = userStats.find(s => s.user_code === currentUser.code);
+            document.getElementById('navPoints').textContent = stat ? stat.total_points : '0';
+        }
+
+        async function resetAllPoints() {
+            if (!confirm('确定清零所有积分？')) return;
+            if (!supabaseClient) return;
+            
+            try {
+                for (const stat of userStats) {
+                    await supabaseClient.from('user_stats').update({total_points: 0}).eq('user_code', stat.user_code);
+                }
+                loadAllData();
+            } catch(err) {
+                alert('操作失败');
             }
         }
 
-        // 点击模态框外部关闭
-        document.getElementById('matchModal').addEventListener('click', function(e) {
-            if (e.target === this) closeModal();
-        });
-
-        // 初始化
-        init();
+        function doLogout() {
+            if (!confirm('确定要退出登录吗？')) return;
+            localStorage.removeItem('currentUser');
+            location.reload();
+        }
     </script>
 </body>
 </html>

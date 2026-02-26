@@ -1,0 +1,2113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>加西亚足球圈</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dongqiudi: '#00b800',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* 浅色模式默认 */
+        body {
+            background-color: #f5f5f5;
+            color: #1f2937;
+        }
+        
+        /* 深色模式 */
+        body.dark {
+            background-color: #0f0f0f;
+            color: #e5e5e5;
+        }
+        
+        body.dark .bg-white {
+            background-color: #1a1a1a;
+            color: #e5e5e5;
+        }
+        
+        body.dark .bg-gray-50 {
+            background-color: #141414;
+            color: #e5e5e5;
+        }
+        
+        body.dark .bg-gray-100 {
+            background-color: #262626;
+        }
+        
+        body.dark .bg-gray-200 {
+            background-color: #333333;
+        }
+        
+        body.dark .text-gray-800 {
+            color: #e5e5e5;
+        }
+        
+        body.dark .text-gray-700 {
+            color: #d1d1d1;
+        }
+        
+        body.dark .text-gray-600 {
+            color: #a1a1a1;
+        }
+        
+        body.dark .border-gray-200 {
+            border-color: #333333;
+        }
+        
+        body.dark .border-gray-300 {
+            border-color: #404040;
+        }
+        
+        body.dark input, 
+        body.dark textarea, 
+        body.dark select {
+            background-color: #262626;
+            color: #e5e5e5;
+            border-color: #404040;
+        }
+        
+        body.dark .bottom-nav {
+            background: rgba(26, 26, 26, 0.95);
+            border-color: #333333;
+        }
+        
+        body.dark .post-card {
+            background-color: #1a1a1a;
+            border-bottom: 1px solid #262626;
+        }
+        
+        body.dark .post-card:active {
+            background-color: #262626;
+        }
+        
+        .dongqiudi-green { color: #00b800; }
+        .bg-dongqiudi { background-color: #00b800; }
+        .text-dongqiudi { color: #00b800; }
+        
+        .pin-badge {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+        }
+        
+        .elite-badge {
+            background: linear-gradient(135deg, #feca57, #ff9ff3);
+        }
+        
+        .global-pin-badge {
+            background: linear-gradient(135deg, #00b800, #00d2ff);
+        }
+        
+        .admin-badge {
+            background: linear-gradient(135deg, #54a0ff, #5f27cd);
+        }
+        
+        .bottom-nav {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        
+        .post-card {
+            transition: all 0.2s;
+        }
+        
+        .post-card:active {
+            transform: scale(0.98);
+            background-color: #f0f0f0;
+        }
+        
+        .notification-dot {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .image-upload-tip {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .ellipsis-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .ellipsis-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .slide-up {
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .fab {
+            box-shadow: 0 4px 12px rgba(0, 184, 0, 0.4);
+        }
+        
+        .circle-grid-item {
+            transition: transform 0.2s;
+        }
+        .circle-grid-item:active {
+            transform: scale(0.95);
+        }
+        
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* 拖拽排序样式 - 仅在排序模式下使用 */
+        .sort-mode .circle-sort-item {
+            cursor: grab;
+            background-color: #f0f0f0;
+        }
+        
+        body.dark .sort-mode .circle-sort-item {
+            background-color: #262626;
+        }
+        
+        .sort-mode .circle-sort-item.dragging {
+            opacity: 0.5;
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            cursor: grabbing;
+        }
+        
+        .sort-mode-active {
+            background-color: rgba(0, 184, 0, 0.1) !important;
+        }
+        
+        body.dark .sort-mode-active {
+            background-color: rgba(0, 184, 0, 0.2) !important;
+        }
+
+        /* 全站隐藏滚动条 */
+        html, body {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        html::-webkit-scrollbar, 
+        body::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* 隐藏所有可滚动容器的滚动条 */
+        #circlesListPage::-webkit-scrollbar,
+        #appContainer::-webkit-scrollbar,
+        #postDetail::-webkit-scrollbar,
+        #notificationPage::-webkit-scrollbar,
+        #userPage::-webkit-scrollbar,
+        #circleManagerPage::-webkit-scrollbar,
+        #userManagerPage::-webkit-scrollbar,
+        #postList::-webkit-scrollbar,
+        #commentList::-webkit-scrollbar,
+        #notificationList::-webkit-scrollbar,
+        #managerList::-webkit-scrollbar,
+        #circlesGrid::-webkit-scrollbar,
+        #circlesSortList::-webkit-scrollbar {
+            display: none;
+        }
+
+        #circlesListPage,
+        #appContainer,
+        #postDetail,
+        #notificationPage,
+        #userPage,
+        #circleManagerPage,
+        #userManagerPage,
+        #postList,
+        #commentList,
+        #notificationList,
+        #managerList,
+        #circlesGrid,
+        #circlesSortList {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 pb-16">
+
+    <!-- 登录页面 -->
+    <div id="loginPage" class="fixed inset-0 bg-white dark:bg-[#0f0f0f] z-50 flex flex-col items-center justify-center p-6">
+        <div class="w-24 h-24 bg-dongqiudi rounded-full flex items-center justify-center mb-6 shadow-lg">
+            <i class="fas fa-futbol text-white text-4xl"></i>
+        </div>
+        <h1 class="text-2xl font-bold mb-2 text-gray-800 dark:text-white">加西亚足球圈</h1>
+        <p class="text-gray-500 mb-8 dark:text-gray-400">连接每一位足球爱好者</p>
+        
+        <div class="w-full max-w-sm space-y-4">
+            <div class="relative">
+                <input type="text" id="loginCode" placeholder="请输入登录码" 
+                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 text-center text-lg tracking-wider uppercase bg-white dark:bg-[#1a1a1a] text-gray-800 dark:text-white">
+                <i class="fas fa-key absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            </div>
+            <button onclick="login()" class="w-full bg-dongqiudi text-white py-3 rounded-lg font-medium text-lg hover:bg-green-600 transition shadow-lg">
+                进入圈子
+            </button>
+            <p class="text-xs text-gray-400 text-center mt-4">OFC2016 拥有全站管理权限</p>
+        </div>
+    </div>
+
+    <!-- 圈子列表页面（选择圈子） -->
+    <div id="circlesListPage" class="hidden fixed inset-0 bg-gray-50 dark:bg-[#0f0f0f] z-40 overflow-y-auto pb-20">
+        <div class="bg-dongqiudi text-white sticky top-0 z-10">
+            <div class="flex items-center justify-between px-4 h-12">
+                <span class="font-bold text-lg">选择圈子</span>
+                <div class="flex items-center space-x-3">
+                    <button onclick="toggleTheme()" class="text-white/80 hover:text-white">
+                        <i id="themeIcon" class="fas fa-moon"></i>
+                    </button>
+                    <!-- 排序模式按钮（仅管理员） -->
+                    <button id="sortModeBtn" onclick="toggleSortMode()" class="hidden text-sm bg-white/20 px-3 py-1 rounded-full">
+                        <i class="fas fa-sort mr-1"></i>排序
+                    </button>
+                    <button id="createCircleBtn" onclick="showCreateCircle()" class="hidden text-sm bg-white/20 px-3 py-1 rounded-full">
+                        <i class="fas fa-plus mr-1"></i>创建
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 排序模式提示条 -->
+        <div id="sortModeHint" class="hidden bg-dongqiudi/10 dark:bg-dongqiudi/20 p-3 border-b border-dongqiudi/20 flex items-center justify-between">
+            <span class="text-sm text-dongqiudi font-medium"><i class="fas fa-info-circle mr-2"></i>拖拽调整顺序</span>
+            <button onclick="saveCircleOrder()" class="bg-dongqiudi text-white px-4 py-1.5 rounded-full text-sm font-medium">完成</button>
+        </div>
+        
+        <!-- 网格布局容器 -->
+        <div id="circlesGrid" class="p-4 grid grid-cols-4 gap-4">
+            <!-- 动态生成圈子网格 -->
+        </div>
+        
+        <!-- 排序模式列表容器（仅在排序模式显示） -->
+        <div id="circlesSortList" class="hidden p-4 space-y-2">
+            <!-- 动态生成排序列表 -->
+        </div>
+    </div>
+
+    <!-- 主应用容器（具体圈子内） -->
+    <div id="appContainer" class="hidden">
+        <!-- 顶部导航 -->
+        <header class="bg-dongqiudi text-white sticky top-0 z-40 shadow-md">
+            <div class="flex items-center justify-between px-4 h-12">
+                <div class="flex items-center space-x-2" onclick="backToCircles()">
+                    <i class="fas fa-arrow-left text-lg"></i>
+                    <img id="circleIcon" src="" class="w-8 h-8 rounded-full border-2 border-white/30">
+                    <span id="circleName" class="font-bold text-lg">加西亚足球圈</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="toggleTheme()" class="text-white/80 hover:text-white">
+                        <i id="headerThemeIcon" class="fas fa-moon"></i>
+                    </button>
+                    <button onclick="showNotifications()" class="relative">
+                        <i class="fas fa-bell text-xl"></i>
+                        <span id="notifBadge" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-xs flex items-center justify-center notification-dot">0</span>
+                    </button>
+                    <button onclick="showUserProfile()">
+                        <img id="userAvatar" src="" class="w-8 h-8 rounded-full border-2 border-white/30">
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 圈子头图 -->
+        <div class="relative h-32 bg-gray-200 dark:bg-gray-800 overflow-hidden">
+            <img id="circleBanner" src="" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+            <div class="absolute bottom-2 left-4 right-4 text-white">
+                <p id="circleDesc" class="text-sm opacity-90 line-clamp-2"></p>
+            </div>
+            <button id="editCircleBtn" onclick="editCircle()" class="hidden absolute top-2 right-2 bg-black/50 text-white px-3 py-1 rounded-full text-xs backdrop-blur-sm">
+                <i class="fas fa-edit mr-1"></i>编辑
+            </button>
+        </div>
+
+        <!-- 帖子列表 -->
+        <div id="postList" class="space-y-2 mt-2 px-2">
+            <!-- 动态生成 -->
+        </div>
+
+        <!-- 加载更多 -->
+        <div id="loadMore" class="text-center py-4 text-gray-400 text-sm">
+            <span onclick="loadPosts()" class="cursor-pointer">点击加载更多</span>
+        </div>
+    </div>
+
+    <!-- 发布按钮 -->
+    <button onclick="showCreatePost()" class="fab fixed right-4 bottom-20 w-14 h-14 bg-dongqiudi text-white rounded-full flex items-center justify-center shadow-lg z-30 hover:scale-110 transition">
+        <i class="fas fa-plus text-2xl"></i>
+    </button>
+
+    <!-- 底部导航 -->
+    <nav class="bottom-nav fixed bottom-0 left-0 right-0 border-t border-gray-200 dark:border-gray-700 flex justify-around items-center h-16 z-40 bg-white/95 dark:bg-[#1a1a1a]/95">
+        <button onclick="switchTab('home')" class="flex flex-col items-center space-y-1 text-dongqiudi">
+            <i class="fas fa-home text-xl"></i>
+            <span class="text-xs">首页</span>
+        </button>
+        <button onclick="switchTab('circles')" class="flex flex-col items-center space-y-1 text-gray-400 dark:text-gray-500">
+            <i class="fas fa-layer-group text-xl"></i>
+            <span class="text-xs">圈子</span>
+        </button>
+        <button onclick="showCreatePost()" class="flex flex-col items-center space-y-1 text-gray-400 dark:text-gray-500">
+            <i class="fas fa-edit text-xl"></i>
+            <span class="text-xs">发布</span>
+        </button>
+        <button onclick="showNotifications()" class="flex flex-col items-center space-y-1 text-gray-400 dark:text-gray-500 relative">
+            <i class="fas fa-bell text-xl"></i>
+            <span class="text-xs">消息</span>
+            <span id="navNotifBadge" class="hidden absolute top-0 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+        </button>
+        <button onclick="showUserProfile()" class="flex flex-col items-center space-y-1 text-gray-400 dark:text-gray-500">
+            <i class="fas fa-user text-xl"></i>
+            <span class="text-xs">我的</span>
+        </button>
+    </nav>
+
+    <!-- 创建圈子弹窗（仅超级管理员） -->
+    <div id="createCircleModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-[#1a1a1a] w-full max-w-md rounded-2xl p-4 slide-up">
+            <h3 class="text-lg font-bold mb-4 text-gray-800 dark:text-white">创建新圈子</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">圈子名称</label>
+                    <input type="text" id="newCircleName" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-[#262626] text-gray-800 dark:text-white" placeholder="如：英超专区">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">简介</label>
+                    <textarea id="newCircleDesc" rows="3" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-[#262626] text-gray-800 dark:text-white" placeholder="描述这个圈子的主题..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">头图URL（图床链接）</label>
+                    <input type="text" id="newCircleBanner" placeholder="https://..." class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#262626] text-gray-800 dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">图标URL</label>
+                    <input type="text" id="newCircleIcon" placeholder="https://..." class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#262626] text-gray-800 dark:text-white">
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="closeCreateCircle()" class="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-2 rounded-lg">取消</button>
+                    <button onclick="submitCreateCircle()" class="flex-1 bg-dongqiudi text-white py-2 rounded-lg">创建</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建帖子弹窗 -->
+    <div id="createPostModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-end sm:items-center justify-center">
+        <div class="bg-white dark:bg-[#1a1a1a] w-full max-w-lg sm:rounded-2xl rounded-t-2xl p-4 slide-up max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white">发布新帖</h3>
+                <button onclick="closeCreatePost()" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- 全站置顶选项（仅管理员） -->
+                <div id="globalPinOption" class="hidden">
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="isGlobalPin" class="w-4 h-4 text-dongqiudi rounded focus:ring-dongqiudi border-gray-300">
+                        <span class="text-sm font-medium text-dongqiudi"><i class="fas fa-globe mr-1"></i>全站置顶（在所有圈子显示）</span>
+                    </label>
+                </div>
+
+                <!-- 标题输入 -->
+                <div>
+                    <input type="text" id="postTitle" placeholder="输入标题..." 
+                        class="w-full p-3 bg-gray-50 dark:bg-[#262626] rounded-lg font-bold text-lg focus:outline-none focus:ring-2 focus:ring-green-200 border-none text-gray-800 dark:text-white placeholder-gray-400">
+                </div>
+                
+                <div class="relative">
+                    <textarea id="postContent" rows="6" placeholder="分享你的足球故事..." 
+                        class="w-full p-3 bg-gray-50 dark:bg-[#262626] rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-green-200 text-gray-800 dark:text-white placeholder-gray-400"
+                        oninput="checkAt()"></textarea>
+                </div>
+                
+                <!-- 图片上传引导 -->
+                <div class="image-upload-tip text-white p-4 rounded-lg text-sm space-y-2">
+                    <div class="flex items-center">
+                        <i class="fas fa-cloud-upload-alt mr-2"></i>
+                        <span class="font-medium">请使用外部图床上传图片</span>
+                    </div>
+                    <p class="opacity-90 text-xs">推荐图床：Boltp、IMGLoc、Meee</p>
+                    <div class="flex space-x-2 mt-2">
+                        <button onclick="window.open('https://www.boltp.com/', '_blank')" class="bg-white/20 px-3 py-1 rounded text-xs hover:bg-white/30 transition">Boltp</button>
+                        <button onclick="window.open('https://imgloc.com/', '_blank')" class="bg-white/20 px-3 py-1 rounded text-xs hover:bg-white/30 transition">IMGLoc</button>
+                        <button onclick="window.open('https://meee.com.tw/', '_blank')" class="bg-white/20 px-3 py-1 rounded text-xs hover:bg-white/30 transition">Meee</button>
+                    </div>
+                </div>
+                
+                <div class="space-y-2">
+                    <label class="text-sm text-gray-600 dark:text-gray-400 font-medium">图片链接（每行一个，最多9张）</label>
+                    <textarea id="imageUrls" rows="3" placeholder="https://example.com/image.jpg" 
+                        class="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:border-green-500 bg-white dark:bg-[#262626] text-gray-800 dark:text-white"></textarea>
+                </div>
+                
+                <div id="imagePreview" class="grid grid-cols-3 gap-2 hidden">
+                    <!-- 预览图 -->
+                </div>
+                
+                <button onclick="submitPost()" class="w-full bg-dongqiudi text-white py-3 rounded-lg font-medium hover:bg-green-600 transition">
+                    发布
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 帖子详情页 -->
+    <div id="postDetail" class="fixed inset-0 bg-white dark:bg-[#0f0f0f] z-50 hidden overflow-y-auto">
+        <div class="sticky top-0 bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-700 z-10">
+            <div class="flex items-center px-4 h-12">
+                <button onclick="closePostDetail()" class="mr-4 text-gray-600 dark:text-gray-400">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </button>
+                <span class="font-bold text-lg text-gray-800 dark:text-white">帖子详情</span>
+                <div class="flex-1"></div>
+                <button id="postMenuBtn" class="hidden text-gray-600 dark:text-gray-400" onclick="showPostMenu()">
+                    <i class="fas fa-ellipsis-h text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div id="postDetailContent" class="p-4">
+            <!-- 动态内容 -->
+        </div>
+        
+        <!-- 评论区域 -->
+        <div class="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0f0f0f] min-h-screen">
+            <div class="px-4 py-3 font-bold text-gray-700 dark:text-gray-300">评论 <span id="commentCount" class="text-gray-400 text-sm font-normal">(0)</span></div>
+            <div id="commentList" class="space-y-2 px-4 pb-24">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+        
+        <!-- 评论输入框 -->
+        <div class="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#1a1a1a] border-t border-gray-200 dark:border-gray-700 p-3 flex items-center space-x-2 z-20">
+            <input type="text" id="commentInput" placeholder="写评论..." class="flex-1 bg-gray-100 dark:bg-[#262626] px-4 py-2 rounded-full focus:outline-none focus:ring-2 focus:ring-green-200 text-gray-800 dark:text-white placeholder-gray-400">
+            <button onclick="submitComment()" class="bg-dongqiudi text-white px-6 py-2 rounded-full font-medium">发送</button>
+        </div>
+    </div>
+
+    <!-- 通知页面 -->
+    <div id="notificationPage" class="fixed inset-0 bg-gray-50 dark:bg-[#0f0f0f] z-50 hidden overflow-y-auto">
+        <div class="sticky top-0 bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-700 z-10">
+            <div class="flex items-center px-4 h-12">
+                <button onclick="closeNotifications()" class="mr-4 text-gray-600 dark:text-gray-400">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </button>
+                <span class="font-bold text-lg text-gray-800 dark:text-white">消息通知</span>
+                <button onclick="markAllRead()" class="ml-auto text-sm text-dongqiudi">全部已读</button>
+            </div>
+        </div>
+        <div id="notificationList" class="divide-y divide-gray-200 dark:divide-gray-700">
+            <!-- 动态生成 -->
+        </div>
+    </div>
+
+    <!-- 用户中心/管理页面 -->
+    <div id="userPage" class="fixed inset-0 bg-gray-50 dark:bg-[#0f0f0f] z-50 hidden overflow-y-auto">
+        <div class="sticky top-0 bg-dongqiudi text-white z-10">
+            <div class="flex items-center justify-between px-4 h-12">
+                <button onclick="closeUserPage()" class="text-white">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </button>
+                <span class="font-bold text-lg">个人中心</span>
+                <button onclick="logout()" class="text-sm">退出</button>
+            </div>
+        </div>
+        
+        <div class="bg-white dark:bg-[#1a1a1a] p-6 text-center border-b border-gray-200 dark:border-gray-700">
+            <img id="profileAvatar" src="" class="w-20 h-20 rounded-full mx-auto mb-3 border-4 border-white dark:border-gray-700 shadow-lg">
+            <h2 id="profileName" class="text-xl font-bold text-gray-800 dark:text-white"></h2>
+            <p id="profileType" class="text-sm text-gray-500 mt-1"></p>
+            <div id="adminBadge" class="hidden mt-2">
+                <span class="admin-badge text-white text-xs px-3 py-1 rounded-full">
+                    <i class="fas fa-shield-alt mr-1"></i>全站管理员
+                </span>
+            </div>
+            <div id="circleOwnerBadge" class="hidden mt-2">
+                <span class="bg-orange-500 text-white text-xs px-3 py-1 rounded-full">
+                    <i class="fas fa-crown mr-1"></i>圈主
+                </span>
+            </div>
+            
+            <!-- 主题切换按钮 -->
+            <button onclick="toggleTheme()" class="mt-4 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-full text-sm text-gray-600 dark:text-gray-300 flex items-center mx-auto space-x-2">
+                <i id="profileThemeIcon" class="fas fa-moon"></i>
+                <span id="profileThemeText">切换深色模式</span>
+            </button>
+        </div>
+        
+        <div class="p-4 space-y-3">
+            <button onclick="showEditProfile()" class="w-full bg-white dark:bg-[#1a1a1a] p-4 rounded-lg flex items-center justify-between shadow-sm border border-gray-100 dark:border-gray-800">
+                <div class="flex items-center">
+                    <i class="fas fa-user-edit text-gray-400 mr-3"></i>
+                    <span class="text-gray-800 dark:text-gray-200">编辑资料</span>
+                </div>
+                <i class="fas fa-chevron-right text-gray-300 dark:text-gray-600"></i>
+            </button>
+            
+            <div id="adminPanel" class="hidden space-y-3">
+                <div class="text-sm text-gray-500 font-medium px-2 mt-4">超级管理员功能</div>
+                <button onclick="showCreateCircle()" class="w-full bg-white dark:bg-[#1a1a1a] p-4 rounded-lg flex items-center justify-between shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="flex items-center">
+                        <i class="fas fa-plus-circle text-dongqiudi mr-3"></i>
+                        <span class="text-gray-800 dark:text-gray-200">创建新圈子</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-300 dark:text-gray-600"></i>
+                </button>
+                <button onclick="showCircleManager()" class="w-full bg-white dark:bg-[#1a1a1a] p-4 rounded-lg flex items-center justify-between shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="flex items-center">
+                        <i class="fas fa-users-cog text-dongqiudi mr-3"></i>
+                        <span class="text-gray-800 dark:text-gray-200">圈主管理</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-300 dark:text-gray-600"></i>
+                </button>
+                <button onclick="showUserManager()" class="w-full bg-white dark:bg-[#1a1a1a] p-4 rounded-lg flex items-center justify-between shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="flex items-center">
+                        <i class="fas fa-user-shield text-dongqiudi mr-3"></i>
+                        <span class="text-gray-800 dark:text-gray-200">用户管理</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-300 dark:text-gray-600"></i>
+                </button>
+            </div>
+            
+            <div id="circleOwnerPanel" class="hidden space-y-3">
+                <div class="text-sm text-gray-500 font-medium px-2 mt-4">圈主功能</div>
+                <button onclick="editCircle()" class="w-full bg-white dark:bg-[#1a1a1a] p-4 rounded-lg flex items-center justify-between shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="flex items-center">
+                        <i class="fas fa-cog text-orange-500 mr-3"></i>
+                        <span class="text-gray-800 dark:text-gray-200">圈子设置</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-300 dark:text-gray-600"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 管理员：圈主管理 -->
+    <div id="circleManagerPage" class="fixed inset-0 bg-gray-50 dark:bg-[#0f0f0f] z-50 hidden overflow-y-auto">
+        <div class="sticky top-0 bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-700 z-10">
+            <div class="flex items-center px-4 h-12">
+                <button onclick="closeCircleManager()" class="mr-4 text-gray-600 dark:text-gray-400">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </button>
+                <span class="font-bold text-lg text-gray-800 dark:text-white">设置圈主</span>
+            </div>
+        </div>
+        <div class="p-4">
+            <div class="bg-white dark:bg-[#1a1a1a] p-4 rounded-lg shadow-sm mb-4 border border-gray-100 dark:border-gray-800">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">选择圈子</label>
+                <select id="managerCircleSelect" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 mb-3 bg-white dark:bg-[#262626] text-gray-800 dark:text-white">
+                    <!-- 动态填充 -->
+                </select>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">输入用户登录码</label>
+                <input type="text" id="newManagerCode" placeholder="如：SAVGFC" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 mb-3 uppercase bg-white dark:bg-[#262626] text-gray-800 dark:text-white">
+                <button onclick="addCircleManager()" class="w-full bg-dongqiudi text-white py-2 rounded-lg">设为圈主</button>
+            </div>
+            <div id="managerList" class="space-y-2">
+                <!-- 圈主列表 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 管理员：用户管理 -->
+    <div id="userManagerPage" class="fixed inset-0 bg-gray-50 dark:bg-[#0f0f0f] z-50 hidden overflow-y-auto">
+        <div class="sticky top-0 bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-700 z-10">
+            <div class="flex items-center px-4 h-12">
+                <button onclick="closeUserManager()" class="mr-4 text-gray-600 dark:text-gray-400">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </button>
+                <span class="font-bold text-lg text-gray-800 dark:text-white">用户管理</span>
+            </div>
+        </div>
+        <div class="p-4">
+            <div class="bg-white dark:bg-[#1a1a1a] p-4 rounded-lg shadow-sm mb-4 border border-gray-100 dark:border-gray-800">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">目标用户登录码（ID）</label>
+                <input type="text" id="targetUserCode" placeholder="输入登录码" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 mb-3 uppercase bg-white dark:bg-[#262626] text-gray-800 dark:text-white">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">新外显名称</label>
+                <input type="text" id="newDisplayName" placeholder="输入新名称" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 mb-3 bg-white dark:bg-[#262626] text-gray-800 dark:text-white">
+                <button onclick="updateUserProfile()" class="w-full bg-dongqiudi text-white py-2 rounded-lg">修改用户信息</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑圈子（圈主/管理员） -->
+    <div id="editCircleModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-[#1a1a1a] w-full max-w-md rounded-2xl p-4 slide-up">
+            <h3 class="text-lg font-bold mb-4 text-gray-800 dark:text-white" id="editCircleTitle">编辑圈子信息</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">圈子名称</label>
+                    <input type="text" id="editCircleName" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-[#262626] text-gray-800 dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">简介</label>
+                    <textarea id="editCircleDesc" rows="3" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-[#262626] text-gray-800 dark:text-white"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">头图URL（图床链接）</label>
+                    <input type="text" id="editCircleBanner" placeholder="https://..." class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#262626] text-gray-800 dark:text-white">
+                    <p class="text-xs text-gray-400 mt-1">使用 Boltp、IMGLoc 等图床</p>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">图标URL</label>
+                    <input type="text" id="editCircleIcon" placeholder="https://..." class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#262626] text-gray-800 dark:text-white">
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="closeEditCircle()" class="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-2 rounded-lg">取消</button>
+                    <button onclick="saveCircleEdit()" class="flex-1 bg-dongqiudi text-white py-2 rounded-lg">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 帖子操作菜单 -->
+    <div id="postMenu" class="fixed inset-0 bg-black/50 z-50 hidden flex items-end sm:items-center justify-center">
+        <div class="bg-white dark:bg-[#1a1a1a] w-full max-w-sm rounded-t-2xl sm:rounded-2xl p-4 slide-up space-y-3">
+            <button id="pinPostBtn" onclick="togglePinPost()" class="w-full text-left py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg flex items-center text-gray-800 dark:text-gray-200">
+                <i class="fas fa-thumbtack mr-3 text-gray-400"></i>
+                <span>置顶/取消置顶</span>
+            </button>
+            <button id="globalPinPostBtn" onclick="toggleGlobalPinPost()" class="hidden w-full text-left py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg flex items-center text-gray-800 dark:text-gray-200">
+                <i class="fas fa-globe mr-3 text-green-500"></i>
+                <span>全站置顶/取消全站置顶</span>
+            </button>
+            <button id="highlightPostBtn" onclick="toggleHighlightPost()" class="w-full text-left py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg flex items-center text-gray-800 dark:text-gray-200">
+                <i class="fas fa-gem mr-3 text-gray-400"></i>
+                <span>加精/取消加精</span>
+            </button>
+            <button id="deletePostBtn" onclick="deletePost()" class="w-full text-left py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg flex items-center text-red-500">
+                <i class="fas fa-trash-alt mr-3"></i>
+                <span>删除帖子</span>
+            </button>
+            <button onclick="closePostMenu()" class="w-full text-center py-3 text-gray-500 border-t border-gray-200 dark:border-gray-700 mt-2">取消</button>
+        </div>
+    </div>
+
+    <script>
+        // 配置
+        const SUPABASE_URL = 'https://aiyssfzxqpsnmmlliico.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpeXNzZnp4cXBzbm1tbGxpaWNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMDUwODksImV4cCI6MjA4NzY4MTA4OX0.GLucWd6hra4bUvGjTN-R-TVFEvqO_gcwuWi3voRQJNY';
+        
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        // 登录码配置
+        const LOGIN_CODES = {
+            'SAVGFC': { username: '首都守护者足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%93%88%E5%8D%A1%E6%8B%89%E6%89%98%E7%89%B9%E5%8D%A111.png' },
+            'SEMARANG': { username: '三宝敦队官方', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E4%B8%89%E5%AE%9D%E6%95%A6.png' },
+            'DPEAGLES': { username: '东平雄鹰足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E4%B8%9C%E5%B9%B3%E9%9B%84%E9%B9%B0.png' },
+            'QUEENS': { username: 'TheUnited-女王镇联合足球俱乐部官方', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E4%BC%8A%E4%B8%BD%E8%8E%8E%E7%99%BD%E8%81%94%E5%90%88.png' },
+            'TEKMAUFC': { username: '泰克马联合官方', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E4%BC%8A%E6%96%AF%E7%89%B9%E4%BC%8D%E5%BE%B7%E8%81%94%E5%90%88%E6%96%B02.png' },
+            'HAJADEEN': { username: '哈贾丹太平洋人俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%93%88%E8%B4%BE%E4%B8%B9%E5%A4%AA%E5%B9%B3%E6%B4%8B%E4%BA%BA.png' },
+            'CNLFC': { username: '坎布尔新吕伐登足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%9D%8E%E5%B8%83%E5%B0%94%E6%96%B0%E5%90%95%E4%BC%90%E7%99%BB.png' },
+            'SEAGULL': { username: '奥顿兰海鸥男足', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%A5%A5%E9%A1%BF%E5%85%B0%E6%B5%B7%E6%B8%AF.png' },
+            'EASTWOOD': { username: '东木市职业足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%AD%94%E6%81%A9%E5%BA%A6%E5%8D%A2FC.png' },
+            'LAANA': { username: 'LA\'ANAFC79-拉阿纳队', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E6%8B%89%E9%98%BF%E7%BA%B3%E5%9F%8E%E5%B8%82%E7%AB%9E%E6%8A%80.png' },
+            'SBOTOP': { username: '斯波托普城市足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E6%96%AF%E6%B3%A2%E6%89%98%E6%99%AE%E5%9F%8E%E5%B8%82.png' },
+            'XINNANCHENG': { username: '新南城足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E6%96%B0%E6%B3%B0%E6%96%B03.png' },
+            'HILAL': { username: 'ALHILAL加西亚新月队', type: '球队', avatar: 'https://fclogo.top/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2F11hmdf08%2Fproduction%2F8b173e002d366de185a0b51b67e71d230f63b72e-800x800.png%3Fw%3D800%26fm%3Dwebp%26q%3D80&w=828&q=75' },
+            'RFFC': { username: '奥顿兰富力R&F', type: '球队', avatar: 'https://fclogo.top/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2F11hmdf08%2Fproduction%2F054ad4196adacff7c6d42d35764c892cf950ef0f-800x800.png%3Fw%3D800%26fm%3Dwebp%26q%3D80&w=828&q=75' },
+            'DAHWAHA': { username: '新达华哈海岸官方', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E6%96%B0%E8%BE%BE%E5%8D%8E%E5%93%88%E6%B5%B7%E5%B2%B8.png' },
+            'CAGOUS': { username: '瓦巴萨朱树鸦CAGOUSFC', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E7%93%A6%E5%B7%B4%E8%90%A8%E6%9C%B1%E6%A0%91%E9%B8%A6.png' },
+            'ROYALS': { username: '皇家萨乌萨乌足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E7%9A%87%E5%AE%B6%E8%90%A8%E4%B9%8C%E8%90%A8%E4%B9%8C.png' },
+            'MURAJA': { username: '穆拉哈西部队', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E7%A9%86%E6%8B%89%E5%93%88%E8%A5%BF%E9%83%A8.png' },
+            'LBJ': { username: '三宝敦乐邦战士足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E7%BB%B4%E5%B0%94%E5%9B%BE%E9%92%A2%E7%AE%A1.png' },
+            'DAIZHOU': { username: '色温岱州东岳俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E8%89%B2%E6%B8%A9%E5%B2%B1%E5%B7%9E%E4%B8%9C%E5%B2%B3.png' },
+            'BFFC': { username: '巴峰足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E8%90%A8%E4%B9%8C%E8%90%A8%E4%B9%8C%E6%96%B0.png' },
+            'NORWICH': { username: '诺维奇港NorwichPortFC', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E8%AF%BA%E7%BB%B4%E5%A5%87%E6%B8%AF%E6%96%B0.png' },
+            'ROVERS': { username: 'RoversOfficial流浪者队官方', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E9%98%BF%E5%B0%94%E7%89%B9%E5%BC%97%E9%9B%B7%E5%A5%87%E6%B5%81%E6%B5%AA%E8%80%85.png' },
+            'USP': { username: '南太平洋大学色温校区', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E5%8D%97%E5%A4%AA%E5%A4%A7%E6%96%B0%E6%B3%B0.png' },
+            'MAREK': { username: '马雷克青春之城足球俱乐部', type: '球队', avatar: 'https://huggingface.co/spaces/angreoli-fagioli/garciatest.html/resolve/main/%E9%A9%AC%E9%9B%B7%E5%85%8B%E6%96%B0.png' },
+            'LAXI': { username: '拉西弗谢', type: '个人', avatar: 'https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52870242240935_.png' },
+            'MENFUCIUS': { username: '孟夫子', type: '竞猜', avatar: 'https://free.boltp.com/2026/02/24/699cfc3359d1a.webp' },
+            'LIANSAI': { username: '联赛官方', type: '官方', avatar: 'https://free.boltp.com/2026/02/24/699cfcf25c7e6.webp' },
+            'MAHAOYU': { username: '马浩宇', type: '个人', avatar: 'https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52887690550188_.png' },
+            'CARLO': { username: '卡罗', type: '个人', avatar: 'https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52875610863799_.png' },
+            'DAMIAN': { username: '联合主帅Damian', type: '个人', avatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT56R5vFglOuDzNhWJ86tkbc9E1B2O4WP86PQ&s' },
+            'HAANANGU': { username: '南太助教哈喃咕', type: '个人', avatar: 'https://news.cctv.com/sports/soccer/china_a/20070508/images/20070508104867_hp.jpg' },
+            'JUDE': { username: '裘德·乔克雷斯', type: '个人', avatar: 'https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52892253943504_.png' }
+        };
+        
+        let currentUser = null;
+        let currentCircle = null;
+        let currentPost = null;
+        let postsOffset = 0;
+        const POSTS_LIMIT = 10;
+        let isAdmin = false;
+        let isCircleOwner = false;
+        let managedCircles = [];
+        let allCircles = [];
+        let isSortMode = false; // 排序模式状态
+        let draggedItem = null;
+        
+        // 初始化
+        window.onload = async function() {
+            if (typeof window.supabase === 'undefined') {
+                alert('加载失败，请刷新页面重试');
+                return;
+            }
+            
+            initTheme();
+            
+            const savedCode = localStorage.getItem('circle_login_code');
+            if (savedCode) {
+                await autoLogin(savedCode);
+            }
+            
+            const imageUrlsInput = document.getElementById('imageUrls');
+            if (imageUrlsInput) {
+                imageUrlsInput.addEventListener('input', updateImagePreview);
+            }
+        };
+        
+        // 主题功能
+        function initTheme() {
+            const savedTheme = localStorage.getItem('circle_theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark');
+                updateThemeIcons('moon');
+            } else {
+                updateThemeIcons('sun');
+            }
+        }
+        
+        function toggleTheme() {
+            const isDark = document.body.classList.toggle('dark');
+            const theme = isDark ? 'dark' : 'light';
+            localStorage.setItem('circle_theme', theme);
+            updateThemeIcons(isDark ? 'moon' : 'sun');
+        }
+        
+        function updateThemeIcons(icon) {
+            const icons = ['themeIcon', 'headerThemeIcon', 'profileThemeIcon'];
+            icons.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.className = icon === 'moon' ? 'fas fa-moon' : 'fas fa-sun';
+                }
+            });
+            const text = document.getElementById('profileThemeText');
+            if (text) {
+                text.textContent = icon === 'moon' ? '切换浅色模式' : '切换深色模式';
+            }
+        }
+        
+        async function autoLogin(code) {
+            if (LOGIN_CODES[code] || code === 'OFC2016') {
+                await performLogin(code);
+            }
+        }
+        
+        async function login() {
+            const code = document.getElementById('loginCode').value.toUpperCase().trim();
+            if (!code) {
+                alert('请输入登录码');
+                return;
+            }
+            
+            if (!LOGIN_CODES[code] && code !== 'OFC2016') {
+                alert('无效的登录码');
+                return;
+            }
+            
+            await performLogin(code);
+        }
+        
+        async function performLogin(code) {
+            try {
+                if (code === 'OFC2016') {
+                    currentUser = {
+                        code: 'OFC2016',
+                        username: '超级管理员',
+                        type: '管理',
+                        avatar: 'https://free.boltp.com/2026/02/24/699cfcf25c7e6.webp'
+                    };
+                } else {
+                    currentUser = {
+                        code: code,
+                        ...LOGIN_CODES[code]
+                    };
+                }
+                
+                isAdmin = (code === 'OFC2016');
+                
+                localStorage.setItem('circle_login_code', code);
+                localStorage.setItem('circle_user', JSON.stringify(currentUser));
+                
+                await ensureUserInDB();
+                await loadManagedCircles();
+                
+                document.getElementById('loginPage').classList.add('hidden');
+                await loadCirclesList();
+                document.getElementById('circlesListPage').classList.remove('hidden');
+                
+                if (isAdmin) {
+                    document.getElementById('createCircleBtn').classList.remove('hidden');
+                    document.getElementById('sortModeBtn').classList.remove('hidden');
+                }
+                
+                subscribeNotifications();
+                
+            } catch (error) {
+                console.error('登录错误:', error);
+                alert('登录失败: ' + error.message);
+            }
+        }
+        
+        async function ensureUserInDB() {
+            try {
+                await supabaseClient
+                    .from('user_profiles')
+                    .upsert({
+                        id: currentUser.code,
+                        username: currentUser.username,
+                        display_name: currentUser.username,
+                        avatar_url: currentUser.avatar,
+                        user_type: currentUser.type
+                    }, { onConflict: 'id' });
+            } catch (error) {
+                console.error('确保用户存在错误:', error);
+            }
+        }
+        
+        async function loadManagedCircles() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('circle_managers')
+                    .select('circle_id')
+                    .eq('user_id', currentUser.code);
+                
+                if (error) throw error;
+                
+                managedCircles = data?.map(m => m.circle_id) || [];
+                isCircleOwner = managedCircles.length > 0;
+            } catch (error) {
+                console.error('加载管理的圈子错误:', error);
+                managedCircles = [];
+                isCircleOwner = false;
+            }
+        }
+        
+        function canManagePost(post) {
+            if (isAdmin) return true;
+            if (managedCircles.includes(post.circle_id)) return true;
+            if (post.user_id === currentUser.code) return true;
+            return false;
+        }
+        
+        function canManageComment(comment, post) {
+            if (isAdmin) return true;
+            if (managedCircles.includes(post.circle_id)) return true;
+            if (comment.user_id === currentUser.code) return true;
+            return false;
+        }
+        
+        function canEditCircle(circle) {
+            if (isAdmin) return true;
+            if (managedCircles.includes(circle.id)) return true;
+            return false;
+        }
+        
+        // 切换排序模式
+        function toggleSortMode() {
+            if (!isAdmin) return;
+            
+            isSortMode = !isSortMode;
+            const btn = document.getElementById('sortModeBtn');
+            const hint = document.getElementById('sortModeHint');
+            const grid = document.getElementById('circlesGrid');
+            const list = document.getElementById('circlesSortList');
+            
+            if (isSortMode) {
+                btn.innerHTML = '<i class="fas fa-times mr-1"></i>退出';
+                btn.classList.add('bg-white', 'text-dongqiudi');
+                hint.classList.remove('hidden');
+                grid.classList.add('hidden');
+                list.classList.remove('hidden');
+                renderSortList();
+            } else {
+                btn.innerHTML = '<i class="fas fa-sort mr-1"></i>排序';
+                btn.classList.remove('bg-white', 'text-dongqiudi');
+                hint.classList.add('hidden');
+                grid.classList.remove('hidden');
+                list.classList.add('hidden');
+                loadCirclesList(); // 刷新网格视图
+            }
+        }
+        
+        // 渲染排序列表（排序模式下使用）
+        function renderSortList() {
+            const list = document.getElementById('circlesSortList');
+            list.innerHTML = '';
+            
+            allCircles.forEach((circle, index) => {
+                const div = document.createElement('div');
+                div.className = 'circle-sort-item bg-white dark:bg-[#1a1a1a] p-3 rounded-lg shadow-sm border border-gray-100 dark:border-gray-800 flex items-center space-x-3';
+                div.setAttribute('draggable', 'true');
+                div.dataset.index = index;
+                
+                div.addEventListener('dragstart', handleDragStart);
+                div.addEventListener('dragover', handleDragOver);
+                div.addEventListener('drop', handleDrop);
+                div.addEventListener('dragend', handleDragEnd);
+                
+                div.innerHTML = `
+                    <div class="text-gray-400 dark:text-gray-600 cursor-grab p-2">
+                        <i class="fas fa-grip-lines"></i>
+                    </div>
+                    <img src="${circle.icon_url || 'https://free.boltp.com/2026/02/24/699cfcf25c7e6.webp'}" class="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800">
+                    <div class="flex-1">
+                        <h3 class="font-bold text-gray-800 dark:text-white">${circle.name}</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">${circle.description || '暂无描述'}</p>
+                    </div>
+                    <div class="text-gray-400 dark:text-gray-600 text-sm">
+                        <i class="fas fa-bars"></i>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+        
+        // 拖拽功能
+        function handleDragStart(e) {
+            draggedItem = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+        
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            
+            const afterElement = getDragAfterElement(document.getElementById('circlesSortList'), e.clientY);
+            if (afterElement == null) {
+                document.getElementById('circlesSortList').appendChild(draggedItem);
+            } else {
+                document.getElementById('circlesSortList').insertBefore(draggedItem, afterElement);
+            }
+            
+            return false;
+        }
+        
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.circle-sort-item:not(.dragging)')];
+            
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+        
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+            
+            // 更新allCircles数组顺序
+            const newOrder = [];
+            document.querySelectorAll('.circle-sort-item').forEach(item => {
+                const index = parseInt(item.dataset.index);
+                newOrder.push(allCircles[index]);
+            });
+            allCircles = newOrder;
+            
+            return false;
+        }
+        
+        function handleDragEnd() {
+            this.classList.remove('dragging');
+            draggedItem = null;
+        }
+        
+        // 保存圈子排序
+        async function saveCircleOrder() {
+            if (!isAdmin) return;
+            
+            try {
+                // 更新sort_order
+                for (let i = 0; i < allCircles.length; i++) {
+                    await supabaseClient
+                        .from('circles')
+                        .update({ sort_order: i })
+                        .eq('id', allCircles[i].id);
+                }
+                
+                // 退出排序模式
+                toggleSortMode();
+                alert('排序已保存');
+            } catch (error) {
+                console.error('保存排序错误:', error);
+                alert('保存失败');
+            }
+        }
+        
+        // 圈子列表功能（网格布局）
+        async function loadCirclesList() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('circles')
+                    .select('*')
+                    .order('sort_order', { ascending: true })
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                allCircles = data || [];
+                const grid = document.getElementById('circlesGrid');
+                grid.innerHTML = '';
+                
+                if (!data || data.length === 0) {
+                    grid.innerHTML = '<div class="col-span-4 text-center py-12 text-gray-400 dark:text-gray-500">暂无圈子，超级管理员可以创建</div>';
+                    return;
+                }
+                
+                data.forEach(circle => {
+                    const div = document.createElement('div');
+                    div.className = 'circle-grid-item flex flex-col items-center space-y-2 cursor-pointer';
+                    div.onclick = () => {
+                        if (!isSortMode) enterCircle(circle);
+                    };
+                    
+                    div.innerHTML = `
+                        <div class="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden border-2 border-transparent hover:border-dongqiudi transition-colors">
+                            <img src="${circle.icon_url || 'https://free.boltp.com/2026/02/24/699cfcf25c7e6.webp'}" class="w-full h-full object-cover">
+                        </div>
+                        <span class="text-xs text-center text-gray-800 dark:text-gray-200 line-clamp-2 w-full">${circle.name}</span>
+                    `;
+                    grid.appendChild(div);
+                });
+            } catch (error) {
+                console.error('加载圈子列表错误:', error);
+            }
+        }
+        
+        function enterCircle(circle) {
+            currentCircle = circle;
+            document.getElementById('circlesListPage').classList.add('hidden');
+            document.getElementById('appContainer').classList.remove('hidden');
+            
+            document.getElementById('circleName').textContent = circle.name;
+            document.getElementById('circleDesc').textContent = circle.description || '';
+            document.getElementById('circleIcon').src = circle.icon_url || currentUser.avatar;
+            document.getElementById('circleBanner').src = circle.banner_url || 'https://free.boltp.com/2026/02/24/699d1a2b3c4d5.webp';
+            document.getElementById('userAvatar').src = currentUser.avatar;
+            
+            if (canEditCircle(circle)) {
+                document.getElementById('editCircleBtn').classList.remove('hidden');
+            } else {
+                document.getElementById('editCircleBtn').classList.add('hidden');
+            }
+            
+            loadPosts(true);
+        }
+        
+        function backToCircles() {
+            // 如果在排序模式，先退出排序模式
+            if (isSortMode) {
+                toggleSortMode();
+            }
+            
+            document.getElementById('appContainer').classList.add('hidden');
+            document.getElementById('circlesListPage').classList.remove('hidden');
+            loadCirclesList();
+        }
+        
+        function showCreateCircle() {
+            if (!isAdmin) {
+                alert('只有超级管理员可以创建圈子');
+                return;
+            }
+            document.getElementById('createCircleModal').classList.remove('hidden');
+        }
+        
+        function closeCreateCircle() {
+            document.getElementById('createCircleModal').classList.add('hidden');
+            document.getElementById('newCircleName').value = '';
+            document.getElementById('newCircleDesc').value = '';
+            document.getElementById('newCircleBanner').value = '';
+            document.getElementById('newCircleIcon').value = '';
+        }
+        
+        async function submitCreateCircle() {
+            const name = document.getElementById('newCircleName').value.trim();
+            const desc = document.getElementById('newCircleDesc').value.trim();
+            const banner = document.getElementById('newCircleBanner').value.trim();
+            const icon = document.getElementById('newCircleIcon').value.trim();
+            
+            if (!name) {
+                alert('请输入圈子名称');
+                return;
+            }
+            
+            try {
+                const { data: maxOrder } = await supabaseClient
+                    .from('circles')
+                    .select('sort_order')
+                    .order('sort_order', { ascending: false })
+                    .limit(1);
+                
+                const newOrder = (maxOrder?.[0]?.sort_order || 0) + 1;
+                
+                const { data, error } = await supabaseClient
+                    .from('circles')
+                    .insert({
+                        name: name,
+                        description: desc,
+                        banner_url: banner || 'https://free.boltp.com/2026/02/24/699d1a2b3c4d5.webp',
+                        icon_url: icon || 'https://free.boltp.com/2026/02/24/699cfcf25c7e6.webp',
+                        created_by: currentUser.code,
+                        is_default: false,
+                        sort_order: newOrder
+                    })
+                    .select()
+                    .single();
+                
+                if (error) throw error;
+                
+                alert('圈子创建成功');
+                closeCreateCircle();
+                loadCirclesList();
+            } catch (error) {
+                console.error('创建圈子错误:', error);
+                alert('创建失败: ' + error.message);
+            }
+        }
+        
+        async function loadPosts(reset = false) {
+            if (!currentCircle) return;
+            
+            if (reset) {
+                postsOffset = 0;
+                document.getElementById('postList').innerHTML = '';
+            }
+            
+            try {
+                let query = supabaseClient
+                    .from('posts')
+                    .select('*, user_profiles(*)')
+                    .eq('is_deleted', false)
+                    .or(`circle_id.eq.${currentCircle.id},is_global_pin.eq.true`)
+                    .order('is_global_pin', { ascending: false })
+                    .order('is_pinned', { ascending: false })
+                    .order('created_at', { ascending: false })
+                    .range(postsOffset, postsOffset + POSTS_LIMIT - 1);
+                
+                const { data, error } = await query;
+                
+                if (error) throw error;
+                
+                if (data.length === 0 && postsOffset === 0) {
+                    document.getElementById('postList').innerHTML = '<div class="text-center py-12 text-gray-400 dark:text-gray-500">暂无帖子，快来发布第一条吧！</div>';
+                    return;
+                }
+                
+                data.forEach(post => {
+                    renderPost(post);
+                });
+                
+                postsOffset += data.length;
+                
+                if (data.length < POSTS_LIMIT) {
+                    document.getElementById('loadMore').innerHTML = '<span class="text-gray-300 dark:text-gray-600">没有更多了</span>';
+                }
+            } catch (error) {
+                console.error('加载帖子错误:', error);
+            }
+        }
+        
+        function renderPost(post) {
+            const div = document.createElement('div');
+            div.className = 'post-card bg-white dark:bg-[#1a1a1a] p-4 shadow-sm cursor-pointer border-b border-gray-100 dark:border-gray-800';
+            div.onclick = (e) => {
+                if (!e.target.closest('.post-action')) {
+                    showPostDetail(post.id);
+                }
+            };
+            
+            const time = new Date(post.created_at).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            const displayName = post.user_profiles?.display_name || post.user_profiles?.username || '未知用户';
+            const canManage = canManagePost(post);
+            
+            let badges = '';
+            if (post.is_global_pin) badges += '<span class="global-pin-badge text-white text-xs px-2 py-0.5 rounded mr-2"><i class="fas fa-globe mr-1"></i>全站置顶</span>';
+            else if (post.is_pinned) badges += '<span class="pin-badge text-white text-xs px-2 py-0.5 rounded mr-2"><i class="fas fa-thumbtack mr-1"></i>置顶</span>';
+            if (post.is_highlighted) badges += '<span class="elite-badge text-white text-xs px-2 py-0.5 rounded mr-2"><i class="fas fa-gem mr-1"></i>精华</span>';
+            
+            // 置顶帖子简化显示
+            if (post.is_pinned || post.is_global_pin) {
+                let titleText = post.title;
+                if (!titleText) {
+                    titleText = post.content.substring(0, 20) + (post.content.length > 20 ? '...' : '');
+                }
+                
+                div.innerHTML = `
+                    <div class="flex items-center justify-between py-2">
+                        <div class="flex items-center flex-1">
+                            ${badges}
+                            <h3 class="font-bold text-base text-gray-900 dark:text-white line-clamp-1">${titleText}</h3>
+                        </div>
+                        <span class="text-xs text-gray-400 dark:text-gray-500 ml-2">${time}</span>
+                    </div>
+                `;
+            } else {
+                const titleHtml = post.title ? `<h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2">${post.title}</h3>` : '';
+                
+                let imagesHtml = '';
+                if (post.images && post.images.length > 0) {
+                    const gridClass = post.images.length === 1 ? 'grid-cols-1' : post.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3';
+                    imagesHtml = `<div class="grid ${gridClass} gap-2 mt-3">
+                        ${post.images.slice(0, 9).map(img => `<img src="${img}" class="w-full h-32 object-cover rounded-lg" loading="lazy">`).join('')}
+                    </div>`;
+                }
+                
+                div.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-center space-x-3">
+                            <img src="${post.user_profiles?.avatar_url || ''}" class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700">
+                            <div>
+                                <div class="font-medium text-gray-800 dark:text-gray-200">${displayName}</div>
+                                <div class="text-xs text-gray-400 dark:text-gray-500">${time}</div>
+                            </div>
+                        </div>
+                        ${canManage ? `<button onclick="showPostMenu('${post.id}')" class="post-action text-gray-400 dark:text-gray-600 p-2"><i class="fas fa-ellipsis-h"></i></button>` : ''}
+                    </div>
+                    <div class="mt-3">
+                        ${badges}
+                        ${titleHtml}
+                        <p class="text-gray-700 dark:text-gray-300 leading-relaxed ${post.images?.length > 0 ? 'ellipsis-2' : 'ellipsis-3'}">${post.content}</p>
+                    </div>
+                    ${imagesHtml}
+                    <div class="flex items-center justify-between mt-4 text-gray-500 dark:text-gray-400 text-sm">
+                        <div class="flex space-x-6">
+                            <button class="flex items-center space-x-1 hover:text-dongqiudi"><i class="far fa-comment-alt"></i><span>评论</span></button>
+                            <button class="flex items-center space-x-1 hover:text-red-500"><i class="far fa-heart"></i><span>点赞</span></button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('postList').appendChild(div);
+        }
+        
+        function showCreatePost() {
+            if (!currentCircle) {
+                alert('请先选择一个圈子');
+                return;
+            }
+            
+            const globalPinOption = document.getElementById('globalPinOption');
+            if (isAdmin) {
+                globalPinOption.classList.remove('hidden');
+            } else {
+                globalPinOption.classList.add('hidden');
+            }
+            
+            document.getElementById('createPostModal').classList.remove('hidden');
+        }
+        
+        function closeCreatePost() {
+            document.getElementById('createPostModal').classList.add('hidden');
+            document.getElementById('postTitle').value = '';
+            document.getElementById('postContent').value = '';
+            document.getElementById('imageUrls').value = '';
+            document.getElementById('isGlobalPin').checked = false;
+            document.getElementById('imagePreview').classList.add('hidden');
+        }
+        
+        function updateImagePreview() {
+            const urls = document.getElementById('imageUrls').value.split('\n').filter(u => u.trim());
+            const preview = document.getElementById('imagePreview');
+            
+            if (urls.length > 0) {
+                preview.classList.remove('hidden');
+                preview.innerHTML = urls.slice(0, 9).map(url => 
+                    `<div class="relative aspect-square"><img src="${url}" class="w-full h-full object-cover rounded-lg" onerror="this.style.display='none'"></div>`
+                ).join('');
+            } else {
+                preview.classList.add('hidden');
+            }
+        }
+        
+        async function submitPost() {
+            const title = document.getElementById('postTitle').value.trim();
+            const content = document.getElementById('postContent').value.trim();
+            const imageUrls = document.getElementById('imageUrls').value.split('\n').filter(u => u.trim());
+            const isGlobalPin = document.getElementById('isGlobalPin').checked;
+            
+            if (!title && !content) {
+                alert('请输入标题或内容');
+                return;
+            }
+            
+            try {
+                const mentions = content.match(/@(\S+)/g) || [];
+                
+                const insertData = {
+                    circle_id: currentCircle.id,
+                    user_id: currentUser.code,
+                    title: title,
+                    content: content,
+                    images: imageUrls,
+                    is_pinned: false,
+                    is_global_pin: isGlobalPin && isAdmin
+                };
+                
+                const { data, error } = await supabaseClient
+                    .from('posts')
+                    .insert(insertData)
+                    .select()
+                    .single();
+                
+                if (error) throw error;
+                
+                for (const mention of mentions) {
+                    const username = mention.substring(1);
+                    await createNotification(username, 'mention', '有人@了你', `${currentUser.username} 在帖子中提到了你`, data.id);
+                }
+                
+                closeCreatePost();
+                await loadPosts(true);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (error) {
+                console.error('发布帖子错误:', error);
+                alert('发布失败：' + error.message);
+            }
+        }
+        
+        async function showPostDetail(postId) {
+            currentPost = postId;
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('posts')
+                    .select('*, user_profiles(*)')
+                    .eq('id', postId)
+                    .single();
+                
+                if (error || !data) return;
+                
+                document.getElementById('postDetail').classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                
+                const time = new Date(data.created_at).toLocaleString('zh-CN');
+                const displayName = data.user_profiles?.display_name || data.user_profiles?.username;
+                const canManage = canManagePost(data);
+                
+                document.getElementById('postMenuBtn').classList.toggle('hidden', !canManage);
+                
+                let badges = '';
+                if (data.is_global_pin) badges += '<span class="global-pin-badge text-white text-xs px-2 py-1 rounded mr-2"><i class="fas fa-globe mr-1"></i>全站置顶</span>';
+                else if (data.is_pinned) badges += '<span class="pin-badge text-white text-xs px-2 py-1 rounded mr-2"><i class="fas fa-thumbtack mr-1"></i>置顶</span>';
+                if (data.is_highlighted) badges += '<span class="elite-badge text-white text-xs px-2 py-1 rounded mr-2"><i class="fas fa-gem mr-1"></i>精华</span>';
+                
+                let imagesHtml = '';
+                if (data.images && data.images.length > 0) {
+                    imagesHtml = `<div class="grid grid-cols-1 gap-3 mt-4">
+                        ${data.images.map(img => `<img src="${img}" class="w-full rounded-lg" onclick="window.open('${img}', '_blank')">`).join('')}
+                    </div>`;
+                }
+                
+                const titleHtml = data.title ? `<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">${data.title}</h1>` : '';
+                
+                document.getElementById('postDetailContent').innerHTML = `
+                    <div class="flex items-center space-x-3 mb-4">
+                        <img src="${data.user_profiles?.avatar_url}" class="w-12 h-12 rounded-full">
+                        <div>
+                            <div class="font-bold text-lg text-gray-800 dark:text-white">${displayName}</div>
+                            <div class="text-sm text-gray-400 dark:text-gray-500">${time}</div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        ${badges}
+                        ${titleHtml}
+                        <p class="text-gray-800 dark:text-gray-200 leading-relaxed text-lg whitespace-pre-wrap">${data.content}</p>
+                    </div>
+                    ${imagesHtml}
+                `;
+                
+                loadComments(postId);
+            } catch (error) {
+                console.error('显示帖子详情错误:', error);
+            }
+        }
+        
+        function closePostDetail() {
+            document.getElementById('postDetail').classList.add('hidden');
+            document.body.style.overflow = '';
+            currentPost = null;
+        }
+        
+        async function loadComments(postId) {
+            try {
+                const { data: postData } = await supabaseClient
+                    .from('posts')
+                    .select('circle_id')
+                    .eq('id', postId)
+                    .single();
+                
+                const { data, error } = await supabaseClient
+                    .from('comments')
+                    .select('*, user_profiles(*)')
+                    .eq('post_id', postId)
+                    .eq('is_deleted', false)
+                    .order('created_at', { ascending: true });
+                
+                if (error) throw error;
+                
+                document.getElementById('commentCount').textContent = `(${data?.length || 0})`;
+                
+                const list = document.getElementById('commentList');
+                list.innerHTML = '';
+                
+                if (!data || data.length === 0) {
+                    list.innerHTML = '<div class="text-center py-8 text-gray-400 dark:text-gray-500">暂无评论，来说两句吧</div>';
+                    return;
+                }
+                
+                data.forEach(comment => {
+                    const div = document.createElement('div');
+                    div.className = 'bg-white dark:bg-[#1a1a1a] p-3 rounded-lg border border-gray-100 dark:border-gray-800';
+                    const time = new Date(comment.created_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const displayName = comment.user_profiles?.display_name || comment.user_profiles?.username;
+                    const canManage = canManageComment(comment, postData);
+                    
+                    div.innerHTML = `
+                        <div class="flex items-start space-x-2">
+                            <img src="${comment.user_profiles?.avatar_url}" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700">
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-medium text-sm text-gray-800 dark:text-gray-200">${displayName}</span>
+                                    <span class="text-xs text-gray-400 dark:text-gray-500">${time}</span>
+                                </div>
+                                <p class="text-gray-700 dark:text-gray-300 mt-1 text-sm">${comment.content}</p>
+                            </div>
+                            ${canManage ? `<button onclick="deleteComment('${comment.id}')" class="text-red-400 text-xs ml-2"><i class="fas fa-trash"></i></button>` : ''}
+                        </div>
+                    `;
+                    list.appendChild(div);
+                });
+            } catch (error) {
+                console.error('加载评论错误:', error);
+            }
+        }
+        
+        async function submitComment() {
+            const input = document.getElementById('commentInput');
+            const content = input.value.trim();
+            
+            if (!content || !currentPost) return;
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('comments')
+                    .insert({
+                        post_id: currentPost,
+                        user_id: currentUser.code,
+                        content: content
+                    })
+                    .select()
+                    .single();
+                
+                if (error) throw error;
+                
+                const { data: postData } = await supabaseClient
+                    .from('posts')
+                    .select('user_id')
+                    .eq('id', currentPost)
+                    .single();
+                
+                if (postData && postData.user_id !== currentUser.code) {
+                    await createNotification(null, 'comment', '新评论', `${currentUser.username} 评论了你的帖子`, currentPost, postData.user_id);
+                }
+                
+                const mentions = content.match(/@(\S+)/g) || [];
+                for (const mention of mentions) {
+                    const username = mention.substring(1);
+                    await createNotification(username, 'mention', '有人@了你', `${currentUser.username} 在评论中提到了你`, currentPost);
+                }
+                
+                input.value = '';
+                loadComments(currentPost);
+            } catch (error) {
+                console.error('提交评论错误:', error);
+                alert('评论失败');
+            }
+        }
+        
+        async function createNotification(targetUsername, type, title, content, postId, specificUserId = null) {
+            let targetUserId = specificUserId;
+            
+            if (!targetUserId && targetUsername) {
+                try {
+                    const { data } = await supabaseClient
+                        .from('user_profiles')
+                        .select('id')
+                        .or(`username.eq.${targetUsername},display_name.eq.${targetUsername}`)
+                        .single();
+                    
+                    if (data) targetUserId = data.id;
+                } catch (error) {
+                    console.error('查找用户错误:', error);
+                }
+            }
+            
+            if (!targetUserId) return;
+            
+            try {
+                await supabaseClient.from('notifications').insert({
+                    user_id: targetUserId,
+                    type: type,
+                    title: title,
+                    content: content,
+                    related_post_id: postId,
+                    related_user_id: currentUser.code
+                });
+            } catch (error) {
+                console.error('创建通知错误:', error);
+            }
+        }
+        
+        function showNotifications() {
+            document.getElementById('notificationPage').classList.remove('hidden');
+            loadNotifications();
+        }
+        
+        function closeNotifications() {
+            document.getElementById('notificationPage').classList.add('hidden');
+        }
+        
+        async function loadNotifications() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('notifications')
+                    .select('*, user_profiles!related_user_id(*)')
+                    .eq('user_id', currentUser.code)
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+                
+                if (error) throw error;
+                
+                const list = document.getElementById('notificationList');
+                list.innerHTML = '';
+                
+                if (!data || data.length === 0) {
+                    list.innerHTML = '<div class="text-center py-12 text-gray-400 dark:text-gray-500">暂无通知</div>';
+                    return;
+                }
+                
+                let unreadCount = 0;
+                
+                data.forEach(notif => {
+                    if (!notif.is_read) unreadCount++;
+                    
+                    const div = document.createElement('div');
+                    div.className = `p-4 flex items-start space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 ${!notif.is_read ? 'bg-blue-50 dark:bg-blue-900/10' : ''}`;
+                    div.onclick = () => {
+                        if (notif.related_post_id) {
+                            showPostDetail(notif.related_post_id);
+                            markAsRead(notif.id);
+                        }
+                    };
+                    
+                    let icon = 'fa-bell';
+                    let color = 'text-gray-400';
+                    
+                    if (notif.type === 'comment') { icon = 'fa-comment'; color = 'text-blue-500'; }
+                    else if (notif.type === 'mention') { icon = 'fa-at'; color = 'text-green-500'; }
+                    else if (notif.type === 'post_deleted') { icon = 'fa-trash'; color = 'text-red-500'; }
+                    else if (notif.type === 'post_pinned') { icon = 'fa-thumbtack'; color = 'text-orange-500'; }
+                    else if (notif.type === 'post_highlighted') { icon = 'fa-gem'; color = 'text-pink-500'; }
+                    else if (notif.type === 'global_pin') { icon = 'fa-globe'; color = 'text-green-500'; }
+                    
+                    div.innerHTML = `
+                        <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
+                            <i class="fas ${icon} ${color}"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-medium text-sm text-gray-800 dark:text-gray-200">${notif.title}</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">${notif.content}</div>
+                            <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">${new Date(notif.created_at).toLocaleString('zh-CN')}</div>
+                        </div>
+                        ${!notif.is_read ? '<div class="w-2 h-2 bg-red-500 rounded-full mt-2"></div>' : ''}
+                    `;
+                    
+                    list.appendChild(div);
+                });
+                
+                if (unreadCount > 0) {
+                    const badge = document.getElementById('notifBadge');
+                    const navBadge = document.getElementById('navNotifBadge');
+                    if (badge) {
+                        badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                        badge.classList.remove('hidden');
+                    }
+                    if (navBadge) navBadge.classList.remove('hidden');
+                } else {
+                    const badge = document.getElementById('notifBadge');
+                    const navBadge = document.getElementById('navNotifBadge');
+                    if (badge) badge.classList.add('hidden');
+                    if (navBadge) navBadge.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('加载通知错误:', error);
+            }
+        }
+        
+        async function markAsRead(notifId) {
+            try {
+                await supabaseClient.from('notifications').update({ is_read: true }).eq('id', notifId);
+            } catch (error) {
+                console.error('标记已读错误:', error);
+            }
+        }
+        
+        async function markAllRead() {
+            try {
+                await supabaseClient.from('notifications').update({ is_read: true }).eq('user_id', currentUser.code);
+                loadNotifications();
+            } catch (error) {
+                console.error('标记全部已读错误:', error);
+            }
+        }
+        
+        function subscribeNotifications() {
+            try {
+                supabaseClient
+                    .channel('notifications')
+                    .on('postgres_changes', 
+                        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${currentUser.code}` },
+                        (payload) => {
+                            if (navigator.vibrate) navigator.vibrate(200);
+                            loadNotifications();
+                        }
+                    )
+                    .subscribe();
+            } catch (error) {
+                console.error('订阅通知错误:', error);
+            }
+        }
+        
+        // 帖子操作菜单
+        let currentPostData = null;
+        
+        function showPostMenu(postId) {
+            if (postId) currentPost = postId;
+            document.getElementById('postMenu').classList.remove('hidden');
+            
+            supabaseClient.from('posts').select('*').eq('id', currentPost).single().then(({data, error}) => {
+                if (error || !data) return;
+                
+                currentPostData = data;
+                const pinBtn = document.getElementById('pinPostBtn');
+                const globalPinBtn = document.getElementById('globalPinPostBtn');
+                const highlightBtn = document.getElementById('highlightPostBtn');
+                
+                if (pinBtn) {
+                    pinBtn.innerHTML = data.is_pinned ? 
+                        '<i class="fas fa-thumbtack mr-3 text-orange-500"></i><span>取消置顶</span>' : 
+                        '<i class="fas fa-thumbtack mr-3 text-gray-400"></i><span>置顶帖子</span>';
+                }
+                
+                if (globalPinBtn) {
+                    if (isAdmin) {
+                        globalPinBtn.classList.remove('hidden');
+                        globalPinBtn.innerHTML = data.is_global_pin ? 
+                            '<i class="fas fa-globe mr-3 text-green-500"></i><span>取消全站置顶</span>' : 
+                            '<i class="fas fa-globe mr-3 text-gray-400"></i><span>设为全站置顶</span>';
+                    } else {
+                        globalPinBtn.classList.add('hidden');
+                    }
+                }
+                    
+                if (highlightBtn) {
+                    highlightBtn.innerHTML = data.is_highlighted ? 
+                        '<i class="fas fa-gem mr-3 text-pink-500"></i><span>取消加精</span>' : 
+                        '<i class="fas fa-gem mr-3 text-gray-400"></i><span>加精帖子</span>';
+                }
+            });
+        }
+        
+        function closePostMenu() {
+            document.getElementById('postMenu').classList.add('hidden');
+        }
+        
+        async function togglePinPost() {
+            if (!currentPostData) return;
+            
+            try {
+                const newValue = !currentPostData.is_pinned;
+                await supabaseClient.from('posts').update({ is_pinned: newValue }).eq('id', currentPost);
+                
+                if (newValue && currentPostData.user_id !== currentUser.code) {
+                    await createNotification(null, 'post_pinned', '帖子被置顶', '你的帖子被管理员置顶了', currentPost, currentPostData.user_id);
+                }
+                
+                closePostMenu();
+                loadPosts(true);
+                if (!document.getElementById('postDetail').classList.contains('hidden')) {
+                    showPostDetail(currentPost);
+                }
+            } catch (error) {
+                console.error('置顶帖子错误:', error);
+            }
+        }
+        
+        async function toggleGlobalPinPost() {
+            if (!currentPostData || !isAdmin) return;
+            
+            try {
+                const newValue = !currentPostData.is_global_pin;
+                await supabaseClient.from('posts').update({ is_global_pin: newValue }).eq('id', currentPost);
+                
+                if (newValue && currentPostData.user_id !== currentUser.code) {
+                    await createNotification(null, 'global_pin', '帖子被全站置顶', '你的帖子被管理员设为全站置顶', currentPost, currentPostData.user_id);
+                }
+                
+                closePostMenu();
+                loadPosts(true);
+                if (!document.getElementById('postDetail').classList.contains('hidden')) {
+                    showPostDetail(currentPost);
+                }
+            } catch (error) {
+                console.error('全站置顶帖子错误:', error);
+            }
+        }
+        
+        async function toggleHighlightPost() {
+            if (!currentPostData) return;
+            
+            try {
+                const newValue = !currentPostData.is_highlighted;
+                await supabaseClient.from('posts').update({ is_highlighted: newValue }).eq('id', currentPost);
+                
+                if (newValue && currentPostData.user_id !== currentUser.code) {
+                    await createNotification(null, 'post_highlighted', '帖子被加精', '你的帖子被管理员加精了', currentPost, currentPostData.user_id);
+                }
+                
+                closePostMenu();
+                loadPosts(true);
+                if (!document.getElementById('postDetail').classList.contains('hidden')) {
+                    showPostDetail(currentPost);
+                }
+            } catch (error) {
+                console.error('加精帖子错误:', error);
+            }
+        }
+        
+        async function deletePost() {
+            if (!confirm('确定要删除这个帖子吗？')) return;
+            
+            try {
+                const { data: postData } = await supabaseClient.from('posts').select('user_id').eq('id', currentPost).single();
+                
+                await supabaseClient.from('posts').update({ is_deleted: true }).eq('id', currentPost);
+                
+                if (postData && postData.user_id !== currentUser.code) {
+                    await createNotification(null, 'post_deleted', '帖子被删除', '你的帖子被管理员删除', currentPost, postData.user_id);
+                }
+                
+                closePostMenu();
+                closePostDetail();
+                loadPosts(true);
+            } catch (error) {
+                console.error('删除帖子错误:', error);
+            }
+        }
+        
+        async function deleteComment(commentId) {
+            if (!confirm('确定删除这条评论吗？')) return;
+            
+            try {
+                await supabaseClient.from('comments').update({ is_deleted: true }).eq('id', commentId);
+                loadComments(currentPost);
+            } catch (error) {
+                console.error('删除评论错误:', error);
+            }
+        }
+        
+        // 用户中心
+        function showUserProfile() {
+            document.getElementById('userPage').classList.remove('hidden');
+            document.getElementById('profileAvatar').src = currentUser.avatar;
+            document.getElementById('profileName').textContent = currentUser.display_name || currentUser.username;
+            document.getElementById('profileType').textContent = currentUser.type;
+            
+            document.getElementById('adminBadge').classList.add('hidden');
+            document.getElementById('adminPanel').classList.add('hidden');
+            document.getElementById('circleOwnerBadge').classList.add('hidden');
+            document.getElementById('circleOwnerPanel').classList.add('hidden');
+            
+            if (isAdmin) {
+                document.getElementById('adminBadge').classList.remove('hidden');
+                document.getElementById('adminPanel').classList.remove('hidden');
+            } else if (isCircleOwner) {
+                document.getElementById('circleOwnerBadge').classList.remove('hidden');
+                document.getElementById('circleOwnerPanel').classList.remove('hidden');
+            }
+        }
+        
+        function closeUserPage() {
+            document.getElementById('userPage').classList.add('hidden');
+        }
+        
+        function logout() {
+            localStorage.removeItem('circle_login_code');
+            localStorage.removeItem('circle_user');
+            location.reload();
+        }
+        
+        function showEditProfile() {
+            const newName = prompt('请输入新的外显名称：', currentUser.display_name || currentUser.username);
+            if (newName && newName.trim()) {
+                supabaseClient.from('user_profiles').update({ display_name: newName.trim() }).eq('id', currentUser.code).then(() => {
+                    currentUser.display_name = newName.trim();
+                    localStorage.setItem('circle_user', JSON.stringify(currentUser));
+                    alert('修改成功');
+                    showUserProfile();
+                }).catch(error => {
+                    console.error('修改资料错误:', error);
+                    alert('修改失败');
+                });
+            }
+        }
+        
+        // 管理员功能：圈主管理
+        async function showCircleManager() {
+            document.getElementById('circleManagerPage').classList.remove('hidden');
+            
+            const { data: circles } = await supabaseClient.from('circles').select('*');
+            const select = document.getElementById('managerCircleSelect');
+            select.innerHTML = circles.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            
+            loadManagers();
+        }
+        
+        function closeCircleManager() {
+            document.getElementById('circleManagerPage').classList.add('hidden');
+        }
+        
+        async function loadManagers() {
+            try {
+                const circleId = document.getElementById('managerCircleSelect')?.value;
+                if (!circleId) return;
+                
+                const { data, error } = await supabaseClient
+                    .from('circle_managers')
+                    .select('*, user_profiles(*)')
+                    .eq('circle_id', circleId);
+                
+                if (error) throw error;
+                
+                const list = document.getElementById('managerList');
+                list.innerHTML = '';
+                
+                if (!data || data.length === 0) {
+                    list.innerHTML = '<div class="text-center text-gray-400 dark:text-gray-500 py-4">暂无圈主</div>';
+                    return;
+                }
+                
+                data.forEach(m => {
+                    const div = document.createElement('div');
+                    div.className = 'bg-white dark:bg-[#1a1a1a] p-3 rounded-lg flex items-center justify-between border border-gray-100 dark:border-gray-800';
+                    div.innerHTML = `
+                        <div class="flex items-center space-x-3">
+                            <img src="${m.user_profiles?.avatar_url}" class="w-10 h-10 rounded-full">
+                            <div>
+                                <div class="font-medium text-gray-800 dark:text-gray-200">${m.user_profiles?.display_name || m.user_profiles?.username}</div>
+                                <div class="text-xs text-gray-400 dark:text-gray-500">${m.user_profiles?.user_type}</div>
+                            </div>
+                        </div>
+                        <button onclick="removeManager('${m.id}')" class="text-red-500 text-sm">移除</button>
+                    `;
+                    list.appendChild(div);
+                });
+            } catch (error) {
+                console.error('加载圈主列表错误:', error);
+            }
+        }
+        
+        async function addCircleManager() {
+            const circleId = document.getElementById('managerCircleSelect').value;
+            const code = document.getElementById('newManagerCode').value.toUpperCase().trim();
+            
+            if (!LOGIN_CODES[code]) {
+                alert('无效的用户登录码');
+                return;
+            }
+            
+            try {
+                const { error } = await supabaseClient.from('circle_managers').insert({
+                    circle_id: circleId,
+                    user_id: code,
+                    assigned_by: currentUser.code
+                });
+                
+                if (error) throw error;
+                
+                alert('圈主设置成功');
+                document.getElementById('newManagerCode').value = '';
+                loadManagers();
+            } catch (error) {
+                console.error('添加圈主错误:', error);
+                alert('设置失败：' + error.message);
+            }
+        }
+        
+        async function removeManager(id) {
+            if (!confirm('确定移除该圈主吗？')) return;
+            
+            try {
+                await supabaseClient.from('circle_managers').delete().eq('id', id);
+                loadManagers();
+            } catch (error) {
+                console.error('移除圈主错误:', error);
+            }
+        }
+        
+        // 用户管理（管理员修改其他用户ID和名称）
+        function showUserManager() {
+            document.getElementById('userManagerPage').classList.remove('hidden');
+        }
+        
+        function closeUserManager() {
+            document.getElementById('userManagerPage').classList.add('hidden');
+        }
+        
+        async function updateUserProfile() {
+            const code = document.getElementById('targetUserCode').value.toUpperCase().trim();
+            const newName = document.getElementById('newDisplayName').value.trim();
+            
+            if (!code || !newName) {
+                alert('请填写完整信息');
+                return;
+            }
+            
+            if (!LOGIN_CODES[code] && code !== 'OFC2016') {
+                alert('无效的用户登录码');
+                return;
+            }
+            
+            try {
+                const { error } = await supabaseClient
+                    .from('user_profiles')
+                    .update({ display_name: newName })
+                    .eq('id', code);
+                
+                if (error) throw error;
+                
+                alert('用户资料修改成功');
+                document.getElementById('targetUserCode').value = '';
+                document.getElementById('newDisplayName').value = '';
+            } catch (error) {
+                console.error('更新用户资料错误:', error);
+                alert('修改失败：' + error.message);
+            }
+        }
+        
+        // 编辑圈子
+        function editCircle() {
+            if (!canEditCircle(currentCircle)) {
+                alert('你没有权限编辑这个圈子');
+                return;
+            }
+            
+            document.getElementById('editCircleModal').classList.remove('hidden');
+            document.getElementById('editCircleTitle').textContent = isAdmin ? '编辑圈子信息（管理员）' : '编辑圈子信息（圈主）';
+            document.getElementById('editCircleName').value = currentCircle.name;
+            document.getElementById('editCircleDesc').value = currentCircle.description || '';
+            document.getElementById('editCircleBanner').value = currentCircle.banner_url || '';
+            document.getElementById('editCircleIcon').value = currentCircle.icon_url || '';
+            
+            document.getElementById('editCircleName').disabled = !isAdmin;
+        }
+        
+        function closeEditCircle() {
+            document.getElementById('editCircleModal').classList.add('hidden');
+        }
+        
+        async function saveCircleEdit() {
+            try {
+                const updates = {
+                    description: document.getElementById('editCircleDesc').value,
+                    banner_url: document.getElementById('editCircleBanner').value,
+                    icon_url: document.getElementById('editCircleIcon').value
+                };
+                
+                if (isAdmin) {
+                    updates.name = document.getElementById('editCircleName').value;
+                }
+                
+                await supabaseClient.from('circles').update(updates).eq('id', currentCircle.id);
+                
+                currentCircle = { ...currentCircle, ...updates };
+                
+                document.getElementById('circleName').textContent = currentCircle.name;
+                document.getElementById('circleDesc').textContent = currentCircle.description;
+                document.getElementById('circleBanner').src = currentCircle.banner_url;
+                document.getElementById('circleIcon').src = currentCircle.icon_url;
+                
+                closeEditCircle();
+                alert('圈子信息已更新');
+            } catch (error) {
+                console.error('保存圈子编辑错误:', error);
+                alert('更新失败');
+            }
+        }
+        
+        function switchTab(tab) {
+            if (tab === 'home') {
+                if (currentCircle) {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    backToCircles();
+                }
+            } else if (tab === 'circles') {
+                backToCircles();
+            }
+        }
+        
+        function checkAt() {}
+    </script>
+</body>
+</html>

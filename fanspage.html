@@ -147,6 +147,18 @@
         .dark .team-item:hover {
             background-color: rgba(22, 185, 152, 0.1);
         }
+        
+        .local-fan-bar {
+            background: rgba(22, 185, 152, 0.2);
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+        
+        .local-fan-fill {
+            background: #16b998;
+            height: 100%;
+            transition: width 1s ease-out;
+        }
     </style>
 </head>
 <body class="bg-dqd-light dark:bg-dqd-dark text-gray-800 dark:text-gray-100 transition-colors duration-300 min-h-screen overflow-hidden">
@@ -259,10 +271,9 @@
         let allData = [];
         let teamsData = [];
         let filteredData = [];
-        let currentView = 'city'; // 'city' or 'team'
+        let currentView = 'city';
         let currentSort = 'ratio';
 
-        // Theme Management
         function initTheme() {
             const savedTheme = localStorage.getItem('theme') || 'light';
             if (savedTheme === 'dark') {
@@ -312,7 +323,8 @@
                         alias: '',
                         population: 0,
                         fanRatio: 0,
-                        teams: [] // {name, percentage, fans}
+                        totalLocalFans: 0, // 当地球迷总数
+                        teams: []
                     };
                 } else if (line.startsWith('别称：') && currentCity) {
                     currentCity.alias = line.replace('别称：', '').trim();
@@ -325,21 +337,25 @@
                     const ratioMatch = line.match(/(\d+)/);
                     if (ratioMatch) {
                         currentCity.fanRatio = parseInt(ratioMatch[1]);
+                        // 计算当地球迷总数
+                        currentCity.totalLocalFans = Math.round(currentCity.population * currentCity.fanRatio / 100);
                     }
                 } else if (line.startsWith('当地球迷：') && currentCity) {
                     const teamsText = line.replace('当地球迷：', '').trim();
+                    // 匹配 "xx%支持球队名" 的模式
                     const teamMatches = teamsText.match(/(\d+)%支持([^%\d]+?)(?=\s*\d+%支持|$)/g);
                     if (teamMatches) {
                         teamMatches.forEach(match => {
                             const parts = match.match(/(\d+)%支持(.+)/);
                             if (parts) {
-                                const percentage = parseInt(parts[1]);
+                                const percentage = parseInt(parts[1]); // 这是占当地球迷的比例
                                 const teamName = parts[2].trim();
-                                const fans = Math.round(currentCity.population * percentage / 100);
+                                // 球队球迷数 = 当地球迷总数 × 支持比例
+                                const fans = Math.round(currentCity.totalLocalFans * percentage / 100);
                                 currentCity.teams.push({
                                     name: teamName,
-                                    percentage: percentage,
-                                    fans: fans
+                                    localPercentage: percentage, // 占当地球迷的百分比
+                                    fans: fans // 实际球迷人数
                                 });
                             }
                         });
@@ -375,9 +391,9 @@
                         teamData.cities.push({
                             cityName: city.name,
                             province: province.name,
-                            percentage: team.percentage,
-                            fans: team.fans,
-                            population: city.population
+                            localPercentage: team.localPercentage, // 在该城市当地球迷中的占比
+                            fans: team.fans, // 在该城市的实际球迷数
+                            totalLocalFans: city.totalLocalFans // 该城市总球迷数（用于参考）
                         });
                         teamData.totalFans += team.fans;
                     });
@@ -387,7 +403,6 @@
             return Array.from(teamsMap.values()).sort((a, b) => b.totalFans - a.totalFans);
         }
 
-        // Flatten Cities Data
         function flattenCities(provinces) {
             const flat = [];
             provinces.forEach(province => {
@@ -401,7 +416,6 @@
             return flat;
         }
 
-        // Fetch Data
         async function fetchData() {
             const loadingState = document.getElementById('loadingState');
             const errorState = document.getElementById('errorState');
@@ -437,7 +451,6 @@
             }
         }
 
-        // Update Statistics
         function updateStats() {
             if (currentView === 'city') {
                 document.getElementById('stat1Label').textContent = '总城市数';
@@ -459,7 +472,6 @@
             }
         }
 
-        // Switch View
         function switchView(view) {
             currentView = view;
             const cityTab = document.getElementById('cityTab');
@@ -492,7 +504,6 @@
             handleSearch();
         }
 
-        // Format Number
         function formatNumber(num) {
             if (num >= 10000) {
                 return (num / 10000).toFixed(1) + '万';
@@ -500,7 +511,6 @@
             return num.toLocaleString();
         }
 
-        // Get Color by Ratio
         function getRatioColor(ratio) {
             if (ratio >= 80) return 'bg-green-500';
             if (ratio >= 60) return 'bg-dqd-green';
@@ -517,7 +527,6 @@
             return 'text-red-500 dark:text-red-400';
         }
 
-        // Render Cities
         function renderCities() {
             const container = document.getElementById('citiesList');
             const resultCount = document.getElementById('resultCount');
@@ -556,7 +565,7 @@
                         
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-sm text-gray-500 dark:text-gray-400">人口 ${formatNumber(city.population)}</span>
-                            <span class="text-sm font-medium text-gray-600 dark:text-gray-300">球迷约 ${formatNumber(Math.round(city.population * city.fanRatio / 100))}人</span>
+                            <span class="text-sm font-medium text-gray-600 dark:text-gray-300">当地球迷 ${formatNumber(city.totalLocalFans)}人</span>
                         </div>
                         
                         <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
@@ -570,18 +579,26 @@
                     </div>
                     
                     <div class="expand-content bg-gray-50 dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
-                        <div class="p-4 space-y-2">
-                            ${city.teams.map(team => `
-                                <div class="flex items-center justify-between py-2 px-3 bg-white dark:bg-dqd-card-dark rounded-lg">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-6 h-6 rounded-full bg-dqd-green/10 flex items-center justify-center text-dqd-green text-xs">
-                                            <i class="fas fa-shield-alt"></i>
+                        <div class="p-4 space-y-3">
+                            <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                各队球迷占当地球迷（${formatNumber(city.totalLocalFans)}人）比例：
+                            </div>
+                            ${city.teams.sort((a, b) => b.localPercentage - a.localPercentage).map(team => `
+                                <div class="bg-white dark:bg-dqd-card-dark rounded-lg p-3">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-6 h-6 rounded-full bg-dqd-green/10 flex items-center justify-center text-dqd-green text-xs">
+                                                <i class="fas fa-shield-alt"></i>
+                                            </div>
+                                            <span class="text-sm font-bold text-gray-700 dark:text-gray-200">${team.name}</span>
                                         </div>
-                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">${team.name}</span>
+                                        <div class="text-right">
+                                            <div class="text-sm font-bold text-dqd-green">${team.localPercentage}%</div>
+                                            <div class="text-xs text-gray-400">≈ ${formatNumber(team.fans)}人</div>
+                                        </div>
                                     </div>
-                                    <div class="text-right">
-                                        <div class="text-sm font-bold text-dqd-green">${team.percentage}%</div>
-                                        <div class="text-xs text-gray-400">${formatNumber(team.fans)}人</div>
+                                    <div class="local-fan-bar h-2">
+                                        <div class="local-fan-fill rounded-full" style="width: ${team.localPercentage}%"></div>
                                     </div>
                                 </div>
                             `).join('')}
@@ -592,7 +609,6 @@
             `).join('');
         }
 
-        // Render Teams
         function renderTeams() {
             const container = document.getElementById('teamsList');
             const resultCount = document.getElementById('resultCount');
@@ -634,19 +650,26 @@
                         <div class="p-4">
                             <div class="space-y-2 max-h-64 overflow-y-auto hide-scrollbar">
                                 ${team.cities.sort((a, b) => b.fans - a.fans).map(city => `
-                                    <div class="team-item flex items-center justify-between py-2 px-3 bg-white dark:bg-dqd-card-dark rounded-lg">
+                                    <div class="team-item flex items-center justify-between py-3 px-3 bg-white dark:bg-dqd-card-dark rounded-lg">
                                         <div class="flex-1">
-                                            <div class="flex items-center gap-2 mb-1">
-                                                <span class="text-sm font-medium text-gray-700 dark:text-gray-200">${city.cityName}</span>
-                                                <span class="text-xs text-gray-400">(${city.province})</span>
+                                            <div class="flex items-center justify-between mb-1">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-200">${city.cityName}</span>
+                                                    <span class="text-xs text-gray-400">(${city.province})</span>
+                                                </div>
+                                                <div class="text-right">
+                                                    <div class="text-sm font-bold text-dqd-green">${formatNumber(city.fans)}人</div>
+                                                </div>
                                             </div>
-                                            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                                                <div class="bg-dqd-green h-full rounded-full" style="width: ${city.percentage}%"></div>
+                                            <div class="flex items-center gap-2">
+                                                <div class="flex-1 local-fan-bar h-1.5">
+                                                    <div class="local-fan-fill rounded-full" style="width: ${city.localPercentage}%"></div>
+                                                </div>
+                                                <span class="text-xs text-gray-400 w-10 text-right">${city.localPercentage}%</span>
                                             </div>
-                                        </div>
-                                        <div class="text-right ml-4">
-                                            <div class="text-sm font-bold text-gray-700 dark:text-gray-200">${formatNumber(city.fans)}</div>
-                                            <div class="text-xs text-gray-400">${city.percentage}%</div>
+                                            <div class="text-xs text-gray-400 mt-1">
+                                                占该城市当地球迷（${formatNumber(city.totalLocalFans)}人）的 ${city.localPercentage}%
+                                            </div>
                                         </div>
                                     </div>
                                 `).join('')}
@@ -662,7 +685,6 @@
             return sorted.map(c => c.cityName).join('、') + (team.cities.length > 2 ? '等' : '');
         }
 
-        // Toggle Expand
         function toggleCityExpand(element) {
             const content = element.nextElementSibling;
             const icon = element.querySelector('.fa-chevron-down');
@@ -677,7 +699,6 @@
             icon.style.transform = content.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0deg)';
         }
 
-        // Search
         function handleSearch() {
             const query = document.getElementById('searchInput').value.toLowerCase().trim();
             const clearBtn = document.getElementById('clearBtn');
@@ -714,19 +735,16 @@
             else renderTeams();
         }
 
-        // Sort
         function sortBy(type) {
             currentSort = type;
             renderCities();
         }
 
-        // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             initTheme();
             fetchData();
         });
 
-        // Pull to refresh
         let touchStartY = 0;
         document.addEventListener('touchstart', e => {
             touchStartY = e.touches[0].clientY;

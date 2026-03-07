@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>加西亚群岛共和国 - 台湾格式公文生成器 V2</title>
+    <script src="https://cdn.bootcdn.net"></script>
+    <style>
+        :root { --taiwan-red: #e60000; }
+        body { background-color: #f4f4f4; font-family: "华文仿宋", "STFangsong", "FangSong", serif; display: flex; padding: 20px; gap: 20px; }
+        
+        /* 控制台 */
+        .controls { width: 320px; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); height: fit-content; position: sticky; top: 20px; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 13px; margin-bottom: 4px; font-weight: bold; }
+        input, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; }
+        button { width: 100%; padding: 12px; background: #333; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        button:hover { background: #000; }
+
+        /* A4 预览区 */
+        #doc-paper {
+            width: 794px; min-height: 1123px; background: white; padding: 60px 85px;
+            box-sizing: border-box; position: relative; color: #000;
+        }
+
+        /* 1. 页眉小字 */
+        .header-meta { font-size: 14px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .header-left div { margin-bottom: 2px; }
+        .gov-tag { font-size: 16px; font-weight: bold; border-bottom: 1px solid #000; }
+
+        /* 2. 方正小标宋标题 */
+        .main-title {
+            font-family: "方正小标宋简体", "FZXiaoBiaoSong-B05S", "SimSun", serif;
+            font-size: 32px; font-weight: 900; text-align: center;
+            margin: 40px 0 10px 0; letter-spacing: 2px;
+        }
+        .title-underline { border-bottom: 2px solid #000; width: 100%; margin-bottom: 40px; }
+
+        /* 3. 华文仿宋正文 */
+        .doc-content {
+            font-size: 20px; line-height: 1.8; text-align: justify; min-height: 400px;
+            white-space: pre-wrap; word-wrap: break-word;
+        }
+
+        /* 4. 底部签署区 */
+        .footer-sign {
+            margin-top: 100px; position: relative; display: flex; align-items: center;
+            font-size: 24px; font-weight: bold;
+        }
+        .minister-label { margin-right: 40px; }
+        .minister-name { font-size: 48px; font-family: "STKaiti", "Kaiti", serif; letter-spacing: 5px; }
+
+        /* 5. 真实化印章 */
+        .real-seal {
+            position: absolute; left: 160px; top: -40px;
+            width: 140px; height: 140px;
+            border: 4px solid rgba(230, 0, 0, 0.85);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: rgba(230, 0, 0, 0.85);
+            font-size: 16px; font-weight: bold; text-align: center;
+            transform: rotate(-12deg);
+            box-shadow: inset 0 0 2px rgba(230,0,0,0.5);
+            background: radial-gradient(circle, transparent 30%, rgba(255,255,255,0.2) 31%);
+            background-size: 3px 3px;
+            pointer-events: none;
+            mix-blend-mode: multiply; /* 使印章与签名颜色融合，更真实 */
+        }
+        .real-seal::before {
+            content: ""; position: absolute; width: 92%; height: 92%;
+            border: 1px solid rgba(230, 0, 0, 0.4); border-radius: 50%;
+        }
+        .star { font-size: 24px; position: absolute; top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="controls">
+    <h2 style="margin-top:0">公文编辑器</h2>
+    <div class="form-group">
+        <label>文件摘要</label>
+        <input type="text" id="in-no" value="加外务字第00010030007号">
+    </div>
+    <div class="form-group">
+        <label>公文标题 (方正小标宋)</label>
+        <input type="text" id="in-title" value="关于对美利坚合众国实施全面制裁之公告">
+    </div>
+    <div class="form-group">
+        <label>正文内容 (华文仿宋)</label>
+        <textarea id="in-content" rows="12">测试内容：
+根据加西亚群岛共和国宪法及外交管理条例，鉴于当前国际局势之变动，本政府特此公告：
+一、自公告之日起，限制特定物资出口。
+二、所有行政部门需依此执行。</textarea>
+    </div>
+    <div class="form-group">
+        <label>签署部长</label>
+        <input type="text" id="in-boss" value="嬴政">
+    </div>
+    <button onclick="download()">保存为高清图片</button>
+</div>
+
+<div id="doc-paper">
+    <!-- 页眉区域 -->
+    <div class="header-meta">
+        <div class="header-left">
+            <div class="gov-tag">加西亚政府公告</div>
+            <div id="out-date">日期：二〇二六年三月七日</div>
+            <div id="out-no">摘要：加外务字第00010030007号</div>
+        </div>
+        <div style="text-align: right;">
+            <div>文件号：<span id="out-ts">20260307-220205-X</span></div>
+        </div>
+    </div>
+
+    <!-- 标题 -->
+    <div class="main-title" id="out-title">关于对美利坚合众国实施全面制裁之公告</div>
+    <div class="title-underline"></div>
+
+    <!-- 正文 -->
+    <div class="doc-content" id="out-content"></div>
+
+    <!-- 签署 -->
+    <div class="footer-sign">
+        <div class="minister-label">部长</div>
+        <div class="minister-name" id="out-boss">嬴政</div>
+        
+        <!-- 印章 -->
+        <div class="real-seal">
+            <span class="star">★</span>
+            <div>加西亚群岛共和国<br>公文用印</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 自动更新逻辑
+    function update() {
+        document.getElementById('out-no').innerText = "字号：" + document.getElementById('in-no').value;
+        document.getElementById('out-title').innerText = document.getElementById('in-title').value;
+        document.getElementById('out-content').innerText = document.getElementById('in-content').value;
+        document.getElementById('out-boss').innerText = document.getElementById('in-boss').value;
+        
+        // 更新即时时间戳
+        const now = new Date();
+        const ts = now.getFullYear() + 
+                   String(now.getMonth()+1).padStart(2,'0') + 
+                   String(now.getDate()).padStart(2,'0') + "-" +
+                   String(now.getHours()).padStart(2,'0') + 
+                   String(now.getMinutes()).padStart(2,'0') + 
+                   String(now.getSeconds()).padStart(2,'0');
+        document.getElementById('out-ts').innerText = ts + "-ARC";
+    }
+
+    // 初始化与监听
+    ['in-no', 'in-title', 'in-content', 'in-boss'].forEach(id => {
+        document.getElementById(id).addEventListener('input', update);
+    });
+    update();
+
+    // 导出图片
+    function download() {
+        const paper = document.getElementById('doc-paper');
+        html2canvas(paper, { scale: 3 }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `加西亚公文_${new Date().getTime()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+    }
+</script>
+
+</body>
+</html>

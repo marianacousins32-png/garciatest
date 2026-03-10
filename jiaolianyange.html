@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>教练沿革时间轴</title>
+    <style>
+        :root {
+            --bg-color: #f5f5f5;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --text-secondary: #666666;
+            --border-color: #e0e0e0;
+            --accent-color: #1a73e8;
+            --accent-light: #e8f0fe;
+            --timeline-line: #ddd;
+            --shadow: 0 2px 8px rgba(0,0,0,0.1);
+            --keyword-bg: #e3f2fd;
+            --keyword-color: #1565c0;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --border-color: #333333;
+            --accent-color: #64b5f6;
+            --accent-light: #1e3a5f;
+            --timeline-line: #444;
+            --shadow: 0 2px 8px rgba(0,0,0,0.3);
+            --keyword-bg: #1e3a5f;
+            --keyword-color: #64b5f6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            transition: background-color 0.3s, color 0.3s;
+            min-height: 100vh;
+        }
+
+        /* 头部 */
+        .header {
+            position: sticky;
+            top: 0;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 16px;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+            color: var(--text-color);
+        }
+
+        .theme-toggle:active {
+            background-color: var(--accent-light);
+        }
+
+        .theme-toggle svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        /* 搜索框 */
+        .search-container {
+            position: relative;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 10px 40px 10px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-size: 15px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .search-box:focus {
+            border-color: var(--accent-color);
+            background-color: var(--card-bg);
+        }
+
+        .search-clear {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+            display: none;
+            font-size: 18px;
+        }
+
+        .search-clear.show {
+            display: block;
+        }
+
+        /* 筛选标签 */
+        .filter-bar {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+            animation: slideDown 0.3s ease;
+        }
+
+        .filter-bar.show {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .filter-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .filter-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 12px;
+            background-color: var(--accent-light);
+            color: var(--accent-color);
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .filter-tag button {
+            background: none;
+            border: none;
+            color: var(--accent-color);
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            padding: 0 2px;
+        }
+
+        .clear-filter {
+            margin-left: auto;
+            font-size: 13px;
+            color: var(--text-secondary);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        /* 加载状态 */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 时间轴 */
+        .timeline {
+            padding: 20px 16px 40px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .timeline-marker {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .timeline-dot {
+            width: 12px;
+            height: 12px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            border: 3px solid var(--card-bg);
+            box-shadow: 0 0 0 2px var(--accent-color);
+            margin-top: 6px;
+        }
+
+        .timeline-line-vertical {
+            width: 2px;
+            flex: 1;
+            background-color: var(--timeline-line);
+            margin-top: 8px;
+            min-height: 40px;
+        }
+
+        .timeline-content {
+            flex: 1;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .timeline-date {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent-color);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .timeline-date::before {
+            content: "";
+            display: inline-block;
+            width: 4px;
+            height: 16px;
+            background-color: var(--accent-color);
+            border-radius: 2px;
+        }
+
+        .timeline-text {
+            font-size: 15px;
+            line-height: 1.8;
+            color: var(--text-color);
+        }
+
+        /* 关键词 */
+        .keyword {
+            display: inline;
+            color: var(--keyword-color);
+            background-color: var(--keyword-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 0 2px;
+        }
+
+        .keyword:active {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+
+        /* 统计信息 */
+        .stats-bar {
+            padding: 12px 16px;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .refresh-btn {
+            background: none;
+            border: none;
+            color: var(--accent-color);
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .refresh-btn:active {
+            background-color: var(--accent-light);
+        }
+
+        .refresh-btn.spinning svg {
+            animation: spin 1s linear infinite;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-text {
+            font-size: 15px;
+        }
+
+        /* 错误提示 */
+        .error-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: #d32f2f;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1000;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .error-toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* 回到顶部 */
+        .back-to-top {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            z-index: 99;
+        }
+
+        .back-to-top.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .back-to-top:active {
+            transform: scale(0.9);
+        }
+
+        /* 响应式优化 */
+        @media (min-width: 768px) {
+            .header {
+                padding: 16px 24px;
+            }
+            
+            .timeline {
+                padding: 24px 24px 40px;
+            }
+            
+            .timeline-content {
+                padding: 20px;
+            }
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-color);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-top">
+            <h1 class="title">📋 教练沿革</h1>
+            <button class="theme-toggle" onclick="toggleTheme()" aria-label="切换主题">
+                <svg class="sun-icon" style="display:none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="5" stroke-width="2"></circle>
+                    <path stroke-width="2" stroke-linecap="round" d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                </svg>
+                <svg class="moon-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2" stroke-linecap="round" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="search-container">
+            <input type="text" class="search-box" id="searchBox" placeholder="搜索球队、教练或关键词..." oninput="handleSearch(this.value)">
+            <button class="search-clear" id="searchClear" onclick="clearSearch()">×</button>
+        </div>
+        <div class="filter-bar" id="filterBar">
+            <span class="filter-label">筛选:</span>
+            <span class="filter-tag" id="activeFilter">
+                <span id="filterText"></span>
+                <button onclick="clearFilter()">×</button>
+            </span>
+            <button class="clear-filter" onclick="clearAll()">清除全部</button>
+        </div>
+    </div>
+
+    <div class="stats-bar" id="statsBar">
+        <span id="statsText">正在加载数据...</span>
+        <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            刷新
+        </button>
+    </div>
+
+    <div class="timeline" id="timeline">
+        <div class="loading">
+            <div class="loading-spinner"></div>
+            <div>正在加载时间轴数据...</div>
+        </div>
+    </div>
+
+    <button class="back-to-top" id="backToTop" onclick="scrollToTop()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 15l-6-6-6 6"></path>
+        </svg>
+    </button>
+
+    <div class="error-toast" id="errorToast"></div>
+
+    <script>
+        // 数据存储
+        let allData = [];
+        let filteredData = [];
+        let currentFilter = null;
+        let currentSearch = '';
+
+        const DATA_URL = 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E6%95%99%E7%BB%83%E6%B2%BF%E9%9D%A9.txt';
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            loadData();
+            
+            // 滚动监听
+            window.addEventListener('scroll', () => {
+                const backToTop = document.getElementById('backToTop');
+                if (window.scrollY > 300) {
+                    backToTop.classList.add('show');
+                } else {
+                    backToTop.classList.remove('show');
+                }
+            });
+        });
+
+        // 主题切换
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const sunIcon = document.querySelector('.sun-icon');
+            const moonIcon = document.querySelector('.moon-icon');
+            if (theme === 'dark') {
+                sunIcon.style.display = 'block';
+                moonIcon.style.display = 'none';
+            } else {
+                sunIcon.style.display = 'none';
+                moonIcon.style.display = 'block';
+            }
+        }
+
+        // 加载数据
+        async function loadData() {
+            try {
+                const response = await fetch(DATA_URL + '?t=' + Date.now(), {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'text/plain, */*',
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('网络请求失败: ' + response.status);
+                }
+                
+                const text = await response.text();
+                parseData(text);
+                applyFilters();
+                updateStats();
+            } catch (error) {
+                console.error('加载数据失败:', error);
+                showError('数据加载失败，请检查网络连接后点击刷新重试');
+                document.getElementById('timeline').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">⚠️</div>
+                        <div class="empty-text">数据加载失败<br>请检查网络后点击上方刷新按钮</div>
+                    </div>
+                `;
+            }
+        }
+
+        // 刷新数据
+        function refreshData() {
+            const btn = document.getElementById('refreshBtn');
+            btn.classList.add('spinning');
+            
+            loadData().finally(() => {
+                setTimeout(() => {
+                    btn.classList.remove('spinning');
+                }, 500);
+            });
+        }
+
+        // 解析数据
+        function parseData(text) {
+            const lines = text.trim().split('\n');
+            allData = [];
+            let currentDate = '';
+            
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+                
+                // 日期行：以 / 开头
+                if (line.startsWith('/')) {
+                    currentDate = line.substring(1).trim();
+                    continue;
+                }
+                
+                // 内容行：提取关键词（#...#）
+                if (line && currentDate) {
+                    const keywords = [];
+                    
+                    // 匹配 #关键词# 格式
+                    const regex = /#([^#]+)#/g;
+                    let match;
+                    while ((match = regex.exec(line)) !== null) {
+                        keywords.push(match[1]);
+                    }
+                    
+                    // 如果有关键词，创建HTML内容
+                    if (keywords.length > 0) {
+                        let htmlContent = line;
+                        keywords.forEach(keyword => {
+                            htmlContent = htmlContent.replace(
+                                new RegExp(`#${keyword}#`, 'g'),
+                                `<span class="keyword" onclick="filterByKeyword('${keyword}')">${keyword}</span>`
+                            );
+                        });
+                        
+                        allData.push({
+                            date: currentDate,
+                            content: htmlContent,
+                            keywords: keywords,
+                            rawText: line.replace(/#/g, '')
+                        });
+                    }
+                }
+            }
+            
+            // 按日期倒序排列（最新的在前）
+            allData.sort((a, b) => {
+                return parseDate(b.date) - parseDate(a.date);
+            });
+        }
+
+        // 解析日期为时间戳（用于排序）
+        function parseDate(dateStr) {
+            // 格式：2026年3月10日
+            const match = dateStr.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+            if (match) {
+                return new Date(match[1], match[2] - 1, match[3]).getTime();
+            }
+            return 0;
+        }
+
+        // 应用筛选和搜索
+        function applyFilters() {
+            filteredData = allData.filter(item => {
+                // 关键词筛选
+                if (currentFilter && !item.keywords.includes(currentFilter)) {
+                    return false;
+                }
+                
+                // 搜索筛选
+                if (currentSearch) {
+                    const searchLower = currentSearch.toLowerCase();
+                    const matchDate = item.date.toLowerCase().includes(searchLower);
+                    const matchContent = item.rawText.toLowerCase().includes(searchLower);
+                    const matchKeyword = item.keywords.some(k => k.toLowerCase().includes(searchLower));
+                    
+                    if (!matchDate && !matchContent && !matchKeyword) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+            
+            renderTimeline();
+        }
+
+        // 渲染时间轴
+        function renderTimeline() {
+            const container = document.getElementById('timeline');
+            
+            if (filteredData.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <div class="empty-text">没有找到匹配的内容</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            filteredData.forEach((item, index) => {
+                const isLast = index === filteredData.length - 1;
+                html += `
+                    <div class="timeline-item">
+                        <div class="timeline-marker">
+                            <div class="timeline-dot"></div>
+                            ${!isLast ? '<div class="timeline-line-vertical"></div>' : ''}
+                        </div>
+                        <div class="timeline-content">
+                            <div class="timeline-date">${escapeHtml(item.date)}</div>
+                            <div class="timeline-text">${item.content}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // HTML转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 关键词筛选
+        function filterByKeyword(keyword) {
+            currentFilter = keyword;
+            document.getElementById('filterText').textContent = keyword;
+            document.getElementById('filterBar').classList.add('show');
+            applyFilters();
+            updateStats();
+            
+            // 滚动到顶部
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 搜索处理
+        function handleSearch(value) {
+            currentSearch = value.trim();
+            const clearBtn = document.getElementById('searchClear');
+            
+            if (currentSearch) {
+                clearBtn.classList.add('show');
+            } else {
+                clearBtn.classList.remove('show');
+            }
+            
+            applyFilters();
+            updateStats();
+        }
+
+        function clearSearch() {
+            document.getElementById('searchBox').value = '';
+            currentSearch = '';
+            document.getElementById('searchClear').classList.remove('show');
+            applyFilters();
+            updateStats();
+        }
+
+        // 清除筛选
+        function clearFilter() {
+            currentFilter = null;
+            document.getElementById('filterBar').classList.remove('show');
+            applyFilters();
+            updateStats();
+        }
+
+        function clearAll() {
+            currentFilter = null;
+            currentSearch = '';
+            document.getElementById('searchBox').value = '';
+            document.getElementById('filterBar').classList.remove('show');
+            document.getElementById('searchClear').classList.remove('show');
+            applyFilters();
+            updateStats();
+        }
+
+        // 更新统计
+        function updateStats() {
+            const statsText = document.getElementById('statsText');
+            if (currentFilter || currentSearch) {
+                statsText.textContent = `显示 ${filteredData.length} / ${allData.length} 条记录`;
+            } else {
+                statsText.textContent = `共 ${allData.length} 条记录`;
+            }
+        }
+
+        // 显示错误提示
+        function showError(message) {
+            const toast = document.getElementById('errorToast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // 回到顶部
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

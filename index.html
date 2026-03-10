@@ -17,7 +17,7 @@
                     colors: {
                         primary: '#1e3a5f',
                         accent: '#c9a227',
-                        dark: { bg: '#121212', surface: '#1e1e1e', border: '#2c2c2c' }
+                        dark: { bg: '#121212', surface: '#1e1e1e', border: '#2c2c2c', card: '#1a1a1a' }
                     }
                 }
             }
@@ -780,102 +780,219 @@
             transform: scale(0.95);
             background: #059669;
         }
-        .login-modal {
+        
+        /* 负一屏样式 */
+        .minus-one-screen {
             position: fixed;
             inset: 0;
+            z-index: 150;
+            pointer-events: none;
+            visibility: hidden;
+        }
+        .minus-one-screen.show {
+            pointer-events: auto;
+            visibility: visible;
+        }
+        .minus-one-overlay {
+            position: absolute;
+            inset: 0;
             background: rgba(0,0,0,0.6);
-            z-index: 200;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .minus-one-screen.show .minus-one-overlay {
+            opacity: 1;
+        }
+        .minus-one-content {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 85%;
+            max-width: 360px;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .dark .minus-one-content {
+            background: linear-gradient(180deg, #0f0f1a 0%, #12121f 100%);
+        }
+        .minus-one-screen.show .minus-one-content {
+            transform: translateX(0);
+        }
+        .minus-one-header {
+            padding: 20px 16px;
+            background: linear-gradient(135deg, rgba(30, 58, 95, 0.8) 0%, rgba(44, 82, 130, 0.6) 100%);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .minus-one-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .minus-one-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.3);
+            object-fit: cover;
+            background: #2c3e50;
+        }
+        .minus-one-user-info {
+            flex: 1;
+        }
+        .minus-one-username {
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .minus-one-user-type {
+            color: rgba(255,255,255,0.7);
+            font-size: 13px;
+        }
+        .minus-one-stats {
+            display: flex;
+            gap: 16px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .minus-one-stat {
+            text-align: center;
+            color: white;
+        }
+        .minus-one-stat-value {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .minus-one-stat-label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.6);
+            margin-top: 2px;
+        }
+        .minus-one-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+        .minus-one-section {
+            margin-bottom: 24px;
+        }
+        .minus-one-section-title {
+            color: #10b981;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .minus-one-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+        .minus-one-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 12px 4px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .minus-one-item:active {
+            background: rgba(255,255,255,0.1);
+            transform: scale(0.95);
+        }
+        .minus-one-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s;
+            font-size: 20px;
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
         }
-        .login-modal.show {
-            opacity: 1;
-            visibility: visible;
+        .minus-one-item:nth-child(2n) .minus-one-icon {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
         }
-        .login-content {
-            background: white;
-            width: 90%;
-            max-width: 400px;
-            border-radius: 20px;
-            padding: 24px;
-            max-height: 80vh;
-            overflow-y: auto;
-            transform: scale(0.9);
-            transition: transform 0.3s;
+        .minus-one-item:nth-child(3n) .minus-one-icon {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
         }
-        .login-modal.show .login-content {
-            transform: scale(1);
+        .minus-one-item:nth-child(4n) .minus-one-icon {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
         }
-        .dark .login-content {
-            background: #1e1e1e;
-            color: white;
+        .minus-one-label {
+            color: rgba(255,255,255,0.9);
+            font-size: 11px;
+            text-align: center;
+            line-height: 1.2;
         }
-        .login-input {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            font-size: 15px;
-            margin-bottom: 12px;
-            outline: none;
+        .minus-one-footer {
+            padding: 16px;
+            border-top: 1px solid rgba(255,255,255,0.1);
         }
-        .dark .login-input {
-            background: #2c2c2c;
-            border-color: #374151;
-            color: white;
-        }
-        .login-input:focus {
-            border-color: #10b981;
-        }
-        .login-btn {
-            width: 100%;
-            background: #10b981;
-            color: white;
-            padding: 14px;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 16px;
-            border: none;
-            cursor: pointer;
-            margin-top: 8px;
-        }
-        .login-btn:active {
-            background: #059669;
-        }
-        .media-switcher {
-            background: #f3f4f6;
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 12px;
-        }
-        .dark .media-switcher {
-            background: #2c2c2c;
-        }
-        .media-account-item {
+        .minus-one-actions {
             display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px;
-            border-radius: 8px;
+            gap: 12px;
+        }
+        .minus-one-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
-        .media-account-item:hover {
-            background: #e5e7eb;
+        .minus-one-btn-switch {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
         }
-        .dark .media-account-item:hover {
-            background: #374151;
+        .minus-one-btn-logout {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
         }
-        .media-account-item.active {
-            background: #d1fae5;
+        .minus-one-btn:active {
+            transform: scale(0.95);
+            opacity: 0.8;
         }
-        .dark .media-account-item.active {
-            background: #065f46;
+        .minus-one-guest {
+            text-align: center;
+            color: rgba(255,255,255,0.6);
+            padding: 20px;
         }
+        .minus-one-login-btn {
+            width: 100%;
+            padding: 14px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 12px;
+            cursor: pointer;
+        }
+
         .comment-item {
             padding: 12px 0;
             border-bottom: 1px solid #f3f4f6;
@@ -937,38 +1054,226 @@
     <div id="refreshToast" class="refresh-toast"><i class="fas fa-check-circle mr-1"></i> 已更新</div>
     <div id="errorToast" class="error-toast"></div>
 
-    <!-- 登录模态框 -->
-    <div id="loginModal" class="login-modal">
-        <div class="login-content">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold dark:text-white">登录广场</h2>
-                <button onclick="closeLoginModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
+    <!-- 负一屏 -->
+    <div id="minusOneScreen" class="minus-one-screen">
+        <div class="minus-one-overlay" onclick="closeMinusOne()"></div>
+        <div class="minus-one-content">
+            <div class="minus-one-header">
+                <div id="minusOneUserSection">
+                    <div class="minus-one-user">
+                        <img id="minusOneAvatar" src="https://huggingface.co/spaces/angreoli-fagioli/十周年纪念.png" alt="" class="minus-one-avatar">
+                        <div class="minus-one-user-info">
+                            <div class="minus-one-username" id="minusOneUsername">游客用户</div>
+                            <div class="minus-one-user-type" id="minusOneUserType">点击登录广场账号</div>
+                        </div>
+                    </div>
+                    <div class="minus-one-stats">
+                        <div class="minus-one-stat">
+                            <div class="minus-one-stat-value" id="minusOnePosts">0</div>
+                            <div class="minus-one-stat-label">帖子</div>
+                        </div>
+                        <div class="minus-one-stat">
+                            <div class="minus-one-stat-value" id="minusOneLikes">0</div>
+                            <div class="minus-one-stat-label">获赞</div>
+                        </div>
+                        <div class="minus-one-stat">
+                            <div class="minus-one-stat-value" id="minusOneComments">0</div>
+                            <div class="minus-one-stat-label">评论</div>
+                        </div>
+                    </div>
+                </div>
             </div>
             
-            <div id="supabaseConfigSection" class="mb-6">
-                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Supabase 配置（首次需要）</h3>
-                <input type="text" id="supabaseUrl" class="login-input" placeholder="Supabase URL (如: https://xxx.supabase.co)">
-                <input type="text" id="supabaseKey" class="login-input" placeholder="Supabase Anon Key">
-            </div>
-
-            <div id="loginCodeSection">
-                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">输入登录码</h3>
-                <input type="text" id="loginCodeInput" class="login-input" placeholder="输入登录码（如: SAVGFC）" style="text-transform: uppercase;">
-                <div id="mediaAccountsList" class="hidden media-switcher">
-                    <h4 class="text-sm font-medium mb-2 dark:text-gray-300">选择媒体身份</h4>
-                    <div id="mediaAccountsContainer" class="space-y-1 max-h-40 overflow-y-auto"></div>
+            <div class="minus-one-body">
+                <!-- 常用功能 -->
+                <div class="minus-one-section">
+                    <div class="minus-one-section-title">
+                        <i class="fas fa-star"></i> 常用功能
+                    </div>
+                    <div class="minus-one-grid">
+                        <a href="https://angreoli-fagioli-garciatest-html.static.hf.space/jiaolianyange.html" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-users"></i></div>
+                            <span class="minus-one-label">教练沿革</span>
+                        </a>
+                        <a href="https://angreoli-fagioli-garciatest-html.static.hf.space/zhanshuban.html" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-chess-board"></i></div>
+                            <span class="minus-one-label">战术板</span>
+                        </a>
+                        <a href="https://angreoli-fagioli-garciatest-html.static.hf.space/rssreader.html" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-rss"></i></div>
+                            <span class="minus-one-label">RSS阅读器</span>
+                        </a>
+                        <a href="https://angreoli-fagioli-garciatest-html.static.hf.space/fm2026database.html" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-database"></i></div>
+                            <span class="minus-one-label">FM数据库</span>
+                        </a>
+                        <a href="https://angreoli-fagioli-garciatest-html.static.hf.space/menfucius.html" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-trophy"></i></div>
+                            <span class="minus-one-label">竞猜中心</span>
+                        </a>
+                        <a href="https://angreoli-fagioli-garciatest-html.static.hf.space/quanzi.html" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-circle-notch"></i></div>
+                            <span class="minus-one-label">圈子</span>
+                        </a>
+                        <a href="https://angreoli-fagioli-garciatest-html.static.hf.space/fanspage.html" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-chart-pie"></i></div>
+                            <span class="minus-one-label">球迷数据</span>
+                        </a>
+                    </div>
                 </div>
-                <button onclick="handleLogin()" class="login-btn">登录</button>
-            </div>
 
-            <div id="userInfoSection" class="hidden text-center">
-                <img id="currentUserAvatar" src="" alt="" class="w-20 h-20 rounded-full mx-auto mb-4 object-cover border-4 border-emerald-500">
-                <h3 id="currentUserName" class="text-lg font-bold dark:text-white mb-1"></h3>
-                <p id="currentUserType" class="text-sm text-gray-500 dark:text-gray-400 mb-4"></p>
-                <button onclick="switchAccount()" class="text-emerald-600 font-medium text-sm mr-4">切换账号</button>
-                <button onclick="logout()" class="text-red-500 font-medium text-sm">退出登录</button>
+                <!-- 小游戏 -->
+                <div class="minus-one-section">
+                    <div class="minus-one-section-title">
+                        <i class="fas fa-gamepad"></i> 小游戏
+                    </div>
+                    <div class="minus-one-grid">
+                        <a href="https://app-9k8wrqx31ji9.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-fighter-jet"></i></div>
+                            <span class="minus-one-label">像素雷电</span>
+                        </a>
+                        <a href="https://app-9cl76c0rbytd.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-running"></i></div>
+                            <span class="minus-one-label">竹节人快跑</span>
+                        </a>
+                        <a href="https://app-8w3usr6iefi8.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-train"></i></div>
+                            <span class="minus-one-label">回家的列车</span>
+                        </a>
+                        <a href="https://app-9wz8z3qe3tvl.appmiaoda.com/game" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-magic"></i></div>
+                            <span class="minus-one-label">棍子超人</span>
+                        </a>
+                        <a href="https://app-75xgtv1pdmgx.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-chess"></i></div>
+                            <span class="minus-one-label">国际象棋</span>
+                        </a>
+                        <a href="https://app-98j5y8jjnpj5.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-snowflake"></i></div>
+                            <span class="minus-one-label">冰雪求生</span>
+                        </a>
+                        <a href="https://app-a0zyaaexu8ld.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-bomb"></i></div>
+                            <span class="minus-one-label">扫雷</span>
+                        </a>
+                        <a href="https://app-a108fj0whn9d.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-wind"></i></div>
+                            <span class="minus-one-label">修仙模拟器</span>
+                        </a>
+                        <a href="https://app-5kg4msadt7gi.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-dragon"></i></div>
+                            <span class="minus-one-label">修仙模拟器2</span>
+                        </a>
+                        <a href="https://app-9gi2yehccdmp.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-home"></i></div>
+                            <span class="minus-one-label">盖房子</span>
+                        </a>
+                        <a href="https://app-97r2cv7h41z5.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-th"></i></div>
+                            <span class="minus-one-label">俄罗斯方块</span>
+                        </a>
+                        <a href="https://app-7no2ed1mbcw1.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-paw"></i></div>
+                            <span class="minus-one-label">宝可梦世界</span>
+                        </a>
+                        <a href="https://app-9ch141ed730h.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-question-circle"></i></div>
+                            <span class="minus-one-label">答题闯关</span>
+                        </a>
+                        <a href="https://app-a010k166hnnl.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-compass"></i></div>
+                            <span class="minus-one-label">在线探险</span>
+                        </a>
+                        <a href="https://app-7a2ze6bfo9a9.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-basketball-ball"></i></div>
+                            <span class="minus-one-label">红球蹦蹦跳</span>
+                        </a>
+                        <a href="https://app-94e47fv7mjnl.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-th-large"></i></div>
+                            <span class="minus-one-label">2048</span>
+                        </a>
+                        <a href="https://app-8c5yah9htgxt.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-paint-brush"></i></div>
+                            <span class="minus-one-label">AI你画我猜</span>
+                        </a>
+                        <a href="http://101.43.194.154:83/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-sword"></i></div>
+                            <span class="minus-one-label">大天使之剑</span>
+                        </a>
+                        <a href="http://82.157.23.123:99/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-dragon"></i></div>
+                            <span class="minus-one-label">九州神魔录</span>
+                        </a>
+                        <a href="https://www.miaoda.cn/apps/app-92saethay8zl" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-child"></i></div>
+                            <span class="minus-one-label">熊孩子制裁</span>
+                        </a>
+                        <a href="https://app-8h9kcci128e9.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-bullseye"></i></div>
+                            <span class="minus-one-label">套圈机</span>
+                        </a>
+                        <a href="https://app-56nnqyqrjncy.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-border-all"></i></div>
+                            <span class="minus-one-label">一起铺地砖</span>
+                        </a>
+                        <a href="https://app-88mku7pp3m69.appmiaoda.com/game" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-water"></i></div>
+                            <span class="minus-one-label">虾米江湖</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 实用工具 -->
+                <div class="minus-one-section">
+                    <div class="minus-one-section-title">
+                        <i class="fas fa-tools"></i> 实用工具
+                    </div>
+                    <div class="minus-one-grid">
+                        <a href="https://app-9y24oydm639d.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-music"></i></div>
+                            <span class="minus-one-label">音乐播放器</span>
+                        </a>
+                        <a href="https://app-8bh89u9jd7up.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-play-circle"></i></div>
+                            <span class="minus-one-label">音乐播放2</span>
+                        </a>
+                        <a href="https://app-9zp8hndclibl.appmiaoda.com/#/pages/index/index" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-wine-bottle"></i></div>
+                            <span class="minus-one-label">漂流瓶</span>
+                        </a>
+                        <a href="https://app-7td1bx6ynh1d.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-language"></i></div>
+                            <span class="minus-one-label">官腔翻译器</span>
+                        </a>
+                        <a href="https://app-6i6y9sgv0cu9.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-file-alt"></i></div>
+                            <span class="minus-one-label">论文写作辅助</span>
+                        </a>
+                        <a href="https://app-a09bfwdr32td.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-envelope"></i></div>
+                            <span class="minus-one-label">临时邮箱</span>
+                        </a>
+                        <a href="https://app-7zsl1rrpzj0h.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-magic"></i></div>
+                            <span class="minus-one-label">在线塔罗牌</span>
+                        </a>
+                        <a href="https://app-81fbluup569t.appmiaoda.com/" class="minus-one-item" target="_blank">
+                            <div class="minus-one-icon"><i class="fas fa-th"></i></div>
+                            <span class="minus-one-label">拼豆图纸生成</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="minus-one-footer" id="minusOneFooter" style="display: none;">
+                <div class="minus-one-actions">
+                    <button class="minus-one-btn minus-one-btn-switch" onclick="switchAccountFromMinusOne()">
+                        <i class="fas fa-exchange-alt"></i> 切换账号
+                    </button>
+                    <button class="minus-one-btn minus-one-btn-logout" onclick="logoutFromMinusOne()">
+                        <i class="fas fa-sign-out-alt"></i> 退出登录
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1039,7 +1344,7 @@
             </div>
         </div>
         <div class="px-4 py-2 flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden cursor-pointer" onclick="openLoginModal()">
+            <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden cursor-pointer" onclick="openMinusOne()">
                 <img id="headerAvatar" src="https://huggingface.co/spaces/angreoli-fagioli/十周年纪念.png" alt="avatar" class="w-full h-full object-cover">
             </div>
             <div class="flex-1 relative" onclick="openSearch()">
@@ -1071,8 +1376,8 @@
         <div id="squarePage" class="hidden min-h-[60vh] scroll-container bg-gray-50 dark:bg-dark-bg pb-20">
             <div class="bg-white dark:bg-dark-surface border-b border-gray-200 dark:border-dark-border sticky top-0 z-40 px-4 py-3 flex items-center justify-between">
                 <h2 class="font-bold text-lg dark:text-white">广场</h2>
-                <button onclick="openLoginModal()" class="text-sm text-emerald-600 font-medium">
-                    <i class="fas fa-user-circle mr-1"></i><span id="loginStatusText">登录</span>
+                <button onclick="openMinusOne()" class="text-sm text-emerald-600 font-medium">
+                    <i class="fas fa-user-circle mr-1"></i><span id="loginStatusText">菜单</span>
                 </button>
             </div>
             
@@ -1418,6 +1723,35 @@
         <button onclick="switchTab('team')" class="bottom-nav-item flex flex-col items-center gap-1 text-gray-400 dark:text-gray-500 flex-1" data-tab="team"><i class="fas fa-shield-alt text-xl"></i><span class="text-xs">球队</span></button>
         <button onclick="switchTab('data')" class="bottom-nav-item flex flex-col items-center gap-1 text-gray-400 dark:text-gray-500 flex-1" data-tab="data"><i class="fas fa-database text-xl"></i><span class="text-xs">数据</span></button>
     </nav>
+
+    <!-- 登录模态框（保留用于广场发帖） -->
+    <div id="loginModal" class="fixed inset-0 z-[200] bg-black/60 hidden flex items-center justify-center">
+        <div class="bg-white dark:bg-dark-surface w-[90%] max-w-[400px] rounded-2xl p-6 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold dark:text-white">登录广场</h2>
+                <button onclick="closeLoginModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div id="supabaseConfigSection" class="mb-6">
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Supabase 配置（首次需要）</h3>
+                <input type="text" id="supabaseUrl" class="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl mb-3 text-sm dark:bg-gray-800 dark:text-white" placeholder="Supabase URL (如: https://xxx.supabase.co)">
+                <input type="text" id="supabaseKey" class="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl text-sm dark:bg-gray-800 dark:text-white" placeholder="Supabase Anon Key">
+            </div>
+
+            <div id="loginCodeSection">
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">输入登录码</h3>
+                <input type="text" id="loginCodeInput" class="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl text-sm dark:bg-gray-800 dark:text-white mb-3" placeholder="输入登录码（如: SAVGFC）" style="text-transform: uppercase;">
+                <div id="mediaAccountsList" class="hidden bg-gray-50 dark:bg-gray-800 rounded-xl p-3 mb-3">
+                    <h4 class="text-sm font-medium mb-2 dark:text-gray-300">选择媒体身份</h4>
+                    <div id="mediaAccountsContainer" class="space-y-1 max-h-40 overflow-y-auto"></div>
+                </div>
+                <button onclick="handleLogin()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-semibold text-base hover:bg-emerald-700 transition">登录</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // 更新为新的HF Space域名
         const BASE_URL = 'https://angreoli-fagioli-garciatest-html.static.hf.space';
@@ -1572,6 +1906,8 @@
         let currentPKPlayer = null;
         let pkPlayer2 = null;
         let playerExtraData = {};
+        let pageHistory = [];
+        let isPopState = false;
         
         // 广场相关变量
         let supabase = null;
@@ -1594,7 +1930,107 @@
             initBackButtonHandler();
             loadPlayerExtraData();
             initSupabaseConfig();
+            initMinusOne();
         });
+
+        // 初始化负一屏
+        function initMinusOne() {
+            const savedUser = localStorage.getItem('square_user');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                updateMinusOneUI();
+            }
+        }
+
+        // 打开负一屏
+        function openMinusOne() {
+            const screen = document.getElementById('minusOneScreen');
+            if (screen) {
+                screen.classList.add('show');
+                document.body.style.overflow = 'hidden';
+                pushPageState('minusOne');
+            }
+        }
+
+        // 关闭负一屏
+        function closeMinusOne() {
+            const screen = document.getElementById('minusOneScreen');
+            if (screen) {
+                screen.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+        }
+
+        // 更新负一屏UI
+        function updateMinusOneUI() {
+            const avatar = document.getElementById('minusOneAvatar');
+            const username = document.getElementById('minusOneUsername');
+            const userType = document.getElementById('minusOneUserType');
+            const footer = document.getElementById('minusOneFooter');
+            const headerAvatar = document.getElementById('headerAvatar');
+            
+            if (currentUser) {
+                if (avatar) avatar.src = currentUser.avatar;
+                if (username) username.textContent = currentUser.username;
+                if (userType) userType.textContent = currentUser.type + (currentUser.isMedia ? ` (${currentUser.mediaGroup})` : '');
+                if (footer) footer.style.display = 'block';
+                if (headerAvatar) headerAvatar.src = currentUser.avatar;
+                
+                // 加载用户统计数据
+                loadMinusOneStats();
+            } else {
+                if (avatar) avatar.src = 'https://huggingface.co/spaces/angreoli-fagioli/十周年纪念.png';
+                if (username) username.textContent = '游客用户';
+                if (userType) userType.textContent = '点击登录广场账号';
+                if (footer) footer.style.display = 'none';
+            }
+        }
+
+        // 加载负一屏统计数据
+        async function loadMinusOneStats() {
+            if (!supabase && !initSupabase()) return;
+            
+            try {
+                // 获取帖子数
+                const { data: posts } = await supabase
+                    .from('posts')
+                    .select('id')
+                    .eq('author', currentUser.username);
+                
+                // 获取获赞数
+                const { data: userPosts } = await supabase
+                    .from('posts')
+                    .select('likes')
+                    .eq('author', currentUser.username);
+                
+                const totalLikes = userPosts?.reduce((sum, p) => sum + (p.likes || 0), 0) || 0;
+                
+                document.getElementById('minusOnePosts').textContent = posts?.length || 0;
+                document.getElementById('minusOneLikes').textContent = totalLikes;
+                document.getElementById('minusOneComments').textContent = '0';
+            } catch (e) {
+                console.error('加载统计数据失败:', e);
+            }
+        }
+
+        // 从负一屏切换账号
+        function switchAccountFromMinusOne() {
+            closeMinusOne();
+            currentUser = null;
+            localStorage.removeItem('square_user');
+            updateMinusOneUI();
+            updateLoginUI();
+            setTimeout(() => openLoginModal(), 300);
+        }
+
+        // 从负一屏退出登录
+        function logoutFromMinusOne() {
+            currentUser = null;
+            localStorage.removeItem('square_user');
+            updateMinusOneUI();
+            updateLoginUI();
+            showRefreshToast('已退出登录');
+        }
 
         // 初始化 Supabase 配置
         function initSupabaseConfig() {
@@ -1679,6 +2115,13 @@
         }
 
         function handleBackButton() {
+            // 优先关闭负一屏
+            const minusOneScreen = document.getElementById('minusOneScreen');
+            if (minusOneScreen && minusOneScreen.classList.contains('show')) {
+                closeMinusOne();
+                return;
+            }
+
             const searchPage = document.getElementById('searchPage');
             if (searchPage && searchPage.classList.contains('show')) {
                 closeSearch();
@@ -1736,6 +2179,12 @@
             const userProfilePage = document.getElementById('userProfilePage');
             if (userProfilePage && !userProfilePage.classList.contains('hidden')) {
                 closeUserProfile();
+                return;
+            }
+
+            const loginModal = document.getElementById('loginModal');
+            if (loginModal && !loginModal.classList.contains('hidden')) {
+                closeLoginModal();
                 return;
             }
 
@@ -4074,7 +4523,7 @@ async function refreshTeamStats() {
             // 弱项
             if (extraInfo['球员弱项']) {
                 hasTraits = true;
-                const weaknesses = extraInfo['球员弱项'].split(/[、,，]/).filter(w => w.trim());
+                const weaknesses = extraInfo['球员弱项'].split(/[、,،]/).filter(w => w.trim());
                 if (weaknessesEl) weaknessesEl.innerHTML = weaknesses.map(w => 
                     `<span class="trait-tag weakness"><i class="fas fa-arrow-down mr-1"></i>${w.trim()}</span>`
                 ).join('');
@@ -4159,27 +4608,21 @@ async function refreshTeamStats() {
             return false;
         }
 
-        // 打开登录模态框
+        // 打开登录模态框（保留用于广场发帖）
         function openLoginModal() {
             const modal = document.getElementById('loginModal');
-            if (modal) modal.classList.add('show');
+            if (modal) modal.classList.remove('hidden');
             
-            // 如果已登录，显示用户信息
+            // 如果已登录，关闭模态框
             if (currentUser) {
-                document.getElementById('supabaseConfigSection').classList.add('hidden');
-                document.getElementById('loginCodeSection').classList.add('hidden');
-                document.getElementById('userInfoSection').classList.remove('hidden');
-            } else {
-                document.getElementById('supabaseConfigSection').classList.remove('hidden');
-                document.getElementById('loginCodeSection').classList.remove('hidden');
-                document.getElementById('userInfoSection').classList.add('hidden');
+                closeLoginModal();
             }
         }
 
         // 关闭登录模态框
         function closeLoginModal() {
             const modal = document.getElementById('loginModal');
-            if (modal) modal.classList.remove('show');
+            if (modal) modal.classList.add('hidden');
         }
 
         // 处理登录码输入
@@ -4269,6 +4712,7 @@ async function refreshTeamStats() {
             localStorage.setItem('square_user', JSON.stringify(currentUser));
             
             updateLoginUI();
+            updateMinusOneUI();
             closeLoginModal();
             showRefreshToast('登录成功');
             
@@ -4281,7 +4725,6 @@ async function refreshTeamStats() {
         // 更新登录UI
         function updateLoginUI() {
             const headerAvatar = document.getElementById('headerAvatar');
-            const loginStatusText = document.getElementById('loginStatusText');
             const postInputArea = document.getElementById('postInputArea');
             const postAvatar = document.getElementById('postAvatar');
             const postUsername = document.getElementById('postUsername');
@@ -4289,42 +4732,14 @@ async function refreshTeamStats() {
             
             if (currentUser) {
                 if (headerAvatar) headerAvatar.src = currentUser.avatar;
-                if (loginStatusText) loginStatusText.textContent = currentUser.username;
                 if (postInputArea) postInputArea.classList.remove('hidden');
                 if (postAvatar) postAvatar.src = currentUser.avatar;
                 if (postUsername) postUsername.textContent = currentUser.username;
                 if (postUserHandle) postUserHandle.textContent = `@${currentUser.loginCode || 'user'}`;
-                
-                // 更新用户信息显示
-                document.getElementById('currentUserAvatar').src = currentUser.avatar;
-                document.getElementById('currentUserName').textContent = currentUser.username;
-                document.getElementById('currentUserType').textContent = currentUser.type + (currentUser.isMedia ? ` (${currentUser.mediaGroup})` : '');
             } else {
                 if (headerAvatar) headerAvatar.src = 'https://huggingface.co/spaces/angreoli-fagioli/十周年纪念.png';
-                if (loginStatusText) loginStatusText.textContent = '登录';
                 if (postInputArea) postInputArea.classList.add('hidden');
             }
-        }
-
-        // 切换账号
-        function switchAccount() {
-            currentUser = null;
-            localStorage.removeItem('square_user');
-            updateLoginUI();
-            document.getElementById('supabaseConfigSection').classList.remove('hidden');
-            document.getElementById('loginCodeSection').classList.remove('hidden');
-            document.getElementById('userInfoSection').classList.add('hidden');
-            document.getElementById('loginCodeInput').value = '';
-            document.getElementById('mediaAccountsList').classList.add('hidden');
-        }
-
-        // 退出登录
-        function logout() {
-            currentUser = null;
-            localStorage.removeItem('square_user');
-            updateLoginUI();
-            closeLoginModal();
-            showRefreshToast('已退出登录');
         }
 
         // 刷新广场
@@ -4335,7 +4750,7 @@ async function refreshTeamStats() {
                         <div class="p-8 text-center text-gray-400 dark:text-gray-500">
                             <i class="fas fa-lock text-4xl mb-3"></i>
                             <p>请先登录以查看广场</p>
-                            <button onclick="openLoginModal()" class="mt-4 px-6 py-2 bg-emerald-600 text-white rounded-lg text-sm">立即登录</button>
+                            <button onclick="openMinusOne()" class="mt-4 px-6 py-2 bg-emerald-600 text-white rounded-lg text-sm">去登录</button>
                         </div>
                     `;
                     return;
@@ -4359,7 +4774,7 @@ async function refreshTeamStats() {
                     <div class="p-8 text-center text-gray-400 dark:text-gray-500">
                         <i class="fas fa-exclamation-circle text-4xl mb-3"></i>
                         <p>加载失败，请检查 Supabase 配置</p>
-                        <button onclick="openLoginModal()" class="mt-4 px-6 py-2 bg-emerald-600 text-white rounded-lg text-sm">重新配置</button>
+                        <button onclick="openMinusOne()" class="mt-4 px-6 py-2 bg-emerald-600 text-white rounded-lg text-sm">重新配置</button>
                     </div>
                 `;
             }
@@ -4426,6 +4841,7 @@ async function refreshTeamStats() {
             
             if (!currentUser) {
                 showErrorToast('请先登录');
+                openMinusOne();
                 return;
             }
             
@@ -4670,6 +5086,7 @@ async function refreshTeamStats() {
         // 键盘事件
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
+                closeMinusOne();
                 closeArticle();
                 backToTeamDetail();
                 backToTeamList();

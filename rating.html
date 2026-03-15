@@ -1,0 +1,1946 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>加西亚评分 - 虎扑风格评分社区</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #00b96b;
+            --primary-dark: #009955;
+            --bg: #f5f5f5;
+            --card-bg: #ffffff;
+            --text: #333333;
+            --text-secondary: #666666;
+            --text-light: #999999;
+            --border: #e0e0e0;
+            --shadow: 0 2px 8px rgba(0,0,0,0.1);
+            --red: #ff4757;
+            --orange: #ff6348;
+            --yellow: #ffa502;
+            --gold: #ffd700;
+        }
+        
+        [data-theme="dark"] {
+            --bg: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --text: #ffffff;
+            --text-secondary: #b0b0b0;
+            --text-light: #808080;
+            --border: #404040;
+            --shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        html, body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+        }
+        
+        body {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        
+        body::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: var(--bg);
+            position: relative;
+        }
+        
+        /* Header */
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 12px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .icon-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px;
+        }
+        
+        /* User Badge */
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.2);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        
+        .user-badge img {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 56px;
+            z-index: 99;
+        }
+        
+        .nav-tab {
+            flex: 1;
+            padding: 14px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s;
+        }
+        
+        .nav-tab.active {
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        .nav-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 25%;
+            right: 25%;
+            height: 3px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+        
+        /* Page Content */
+        .page {
+            display: none;
+            padding: 12px;
+            animation: fadeIn 0.3s;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Series Card */
+        .series-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .series-card:active {
+            transform: scale(0.98);
+        }
+        
+        .series-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 8px;
+        }
+        
+        .series-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+            flex: 1;
+        }
+        
+        .series-meta {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+        
+        .series-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-top: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .series-stats {
+            display: flex;
+            gap: 16px;
+            margin-top: 12px;
+            font-size: 13px;
+            color: var(--text-light);
+        }
+        
+        /* Rating Item Card */
+        .item-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow);
+            display: flex;
+            gap: 12px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .item-card:active {
+            transform: scale(0.98);
+        }
+        
+        .item-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: var(--bg);
+            flex-shrink: 0;
+        }
+        
+        .item-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .item-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .item-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        
+        .item-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+        }
+        
+        .rating-badge {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+        
+        .rating-score {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .rating-max {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+        
+        .rating-count {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+        
+        /* Detail Page */
+        .detail-header {
+            background: var(--card-bg);
+            padding: 20px 16px;
+            margin: -12px -12px 12px -12px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .detail-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .detail-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        
+        .big-rating {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 24px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .big-score {
+            font-size: 56px;
+            font-weight: 800;
+            line-height: 1;
+        }
+        
+        .big-rating-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 8px;
+        }
+        
+        /* Rating List */
+        .rating-section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 20px 0 12px 0;
+            padding-left: 12px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .comment-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow);
+        }
+        
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .comment-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .comment-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .comment-user-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .comment-username {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .comment-time {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+        
+        .comment-score {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .comment-text {
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--text);
+            margin-bottom: 12px;
+        }
+        
+        .comment-actions {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: var(--text-light);
+        }
+        
+        .comment-action {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+        
+        .pinned-badge, .highlight-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+        
+        .pinned-badge {
+            background: #fff3e0;
+            color: #ff9800;
+        }
+        
+        .highlight-badge {
+            background: #e8f5e9;
+            color: #4caf50;
+        }
+        
+        /* Buttons */
+        .fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,185,107,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 90;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            width: 100%;
+        }
+        
+        .btn-primary:active {
+            background: var(--primary-dark);
+            transform: scale(0.98);
+        }
+        
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text);
+        }
+        
+        .btn-danger {
+            background: var(--red);
+            color: white;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 200;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            border-radius: 20px 20px 0 0;
+            overflow: hidden;
+            animation: slideUp 0.3s;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .modal-close {
+            font-size: 24px;
+            color: var(--text-light);
+            cursor: pointer;
+        }
+        
+        .modal-body {
+            padding: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
+        
+        .modal-body::-webkit-scrollbar {
+            display: none;
+        }
+        
+        /* Form */
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+        
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 15px;
+            background: var(--bg);
+            color: var(--text);
+        }
+        
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        /* Star Rating */
+        .star-rating {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        .star {
+            font-size: 32px;
+            color: var(--border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .star.active {
+            color: var(--gold);
+        }
+        
+        .star:active {
+            transform: scale(1.2);
+        }
+        
+        /* Login Prompt */
+        .login-prompt {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 24px;
+            text-align: center;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        
+        .login-prompt h3 {
+            margin-bottom: 12px;
+            font-size: 18px;
+        }
+        
+        .login-prompt p {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 16px;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-light);
+        }
+        
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        .empty-state p {
+            font-size: 14px;
+        }
+        
+        /* Admin Actions */
+        .admin-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+        
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 14px;
+            z-index: 300;
+            transition: transform 0.3s;
+        }
+        
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        /* Score Distribution */
+        .score-bars {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .score-bar-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .score-bar-label {
+            width: 30px;
+            color: var(--text-secondary);
+        }
+        
+        .score-bar-track {
+            flex: 1;
+            height: 8px;
+            background: var(--bg);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .score-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .score-bar-count {
+            width: 30px;
+            text-align: right;
+            color: var(--text-light);
+        }
+        
+        /* Search Bar */
+        .search-bar {
+            background: var(--card-bg);
+            padding: 12px 16px;
+            margin: -12px -12px 12px -12px;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 56px;
+            z-index: 98;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 10px 16px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 14px;
+            background: var(--bg);
+            color: var(--text);
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        /* Back Button */
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary);
+            font-size: 14px;
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+        
+        /* Responsive */
+        @media (max-width: 600px) {
+            .container {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1><i class="fas fa-star"></i> 加西亚评分</h1>
+            <div class="header-actions">
+                <button class="icon-btn" onclick="toggleTheme()">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                </button>
+                <div class="user-badge" id="userBadge" onclick="showLoginModal()">
+                    <span id="userName">登录</span>
+                    <i class="fas fa-user-circle" id="userAvatarIcon" style="font-size: 20px;"></i>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Navigation -->
+        <div class="nav-tabs">
+            <div class="nav-tab active" onclick="showPage('series')">系列</div>
+            <div class="nav-tab" onclick="showPage('hot')">热门</div>
+            <div class="nav-tab" onclick="showPage('my')">我的</div>
+        </div>
+        
+        <!-- Page: Series List -->
+        <div class="page active" id="page-series">
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="搜索系列..." id="searchInput" oninput="searchSeries()">
+            </div>
+            <div id="seriesList"></div>
+        </div>
+        
+        <!-- Page: Hot Ratings -->
+        <div class="page" id="page-hot">
+            <div id="hotList"></div>
+        </div>
+        
+        <!-- Page: My Activity -->
+        <div class="page" id="page-my">
+            <div id="myContent"></div>
+        </div>
+        
+        <!-- Page: Series Detail -->
+        <div class="page" id="page-series-detail">
+            <div class="detail-header">
+                <div class="back-btn" onclick="backToSeries()">
+                    <i class="fas fa-arrow-left"></i> 返回系列列表
+                </div>
+                <h2 class="detail-title" id="seriesDetailTitle">系列名称</h2>
+                <p class="detail-desc" id="seriesDetailDesc">系列简介</p>
+                <div class="series-meta" style="margin-top: 12px;">
+                    创建者: <span id="seriesCreator">-</span> · <span id="seriesItemCount">0</span>个评分对象
+                </div>
+            </div>
+            <div id="itemsList"></div>
+        </div>
+        
+        <!-- Page: Item Detail -->
+        <div class="page" id="page-item-detail">
+            <div class="detail-header">
+                <div class="back-btn" onclick="backToSeriesDetail()">
+                    <i class="fas fa-arrow-left"></i> 返回
+                </div>
+                <div style="display: flex; gap: 16px; align-items: start;">
+                    <img id="itemDetailImage" src="" class="item-image" style="width: 100px; height: 100px;">
+                    <div style="flex: 1;">
+                        <h2 class="detail-title" id="itemDetailName">对象名称</h2>
+                        <p class="detail-desc" id="itemDetailDesc">对象简介</p>
+                        <div class="series-meta" style="margin-top: 8px;">
+                            创建者: <span id="itemCreator">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="big-rating">
+                <div class="big-score" id="itemBigScore">0.0</div>
+                <div class="big-rating-label">综合评分 · <span id="itemTotalRatings">0</span>人评分</div>
+            </div>
+            
+            <div class="score-bars" id="scoreDistribution"></div>
+            
+            <div id="loginPromptArea"></div>
+            
+            <div class="rating-section-title">评分列表</div>
+            <div id="ratingsList"></div>
+        </div>
+        
+        <!-- FAB -->
+        <button class="fab" id="fabBtn" onclick="handleFabClick()">
+            <i class="fas fa-plus"></i>
+        </button>
+    </div>
+    
+    <!-- Login Modal -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal-content" style="max-height: 50vh;">
+            <div class="modal-header">
+                <div class="modal-title">登录</div>
+                <div class="modal-close" onclick="closeModal('loginModal')">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">请输入登录码</label>
+                    <input type="text" class="form-input" id="loginCodeInput" placeholder="输入登录码...">
+                </div>
+                <button class="btn btn-primary" onclick="login()">登录</button>
+                <p style="margin-top: 16px; font-size: 13px; color: var(--text-light); text-align: center;">
+                    游客可以查看评分，登录后可评分和创建内容
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Create Series Modal -->
+    <div class="modal-overlay" id="createSeriesModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">创建新系列</div>
+                <div class="modal-close" onclick="closeModal('createSeriesModal')">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">系列名称</label>
+                    <input type="text" class="form-input" id="seriesNameInput" placeholder="例如：世界杯最佳球员">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">系列简介</label>
+                    <textarea class="form-textarea" id="seriesDescInput" placeholder="描述这个系列的内容..."></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="createSeries()">创建系列</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Create Item Modal -->
+    <div class="modal-overlay" id="createItemModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">添加评分对象</div>
+                <div class="modal-close" onclick="closeModal('createItemModal')">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">对象名称</label>
+                    <input type="text" class="form-input" id="itemNameInput" placeholder="例如：梅西">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">简介</label>
+                    <textarea class="form-textarea" id="itemDescInput" placeholder="描述这个对象..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">图片链接 (可选)</label>
+                    <input type="text" class="form-input" id="itemImageInput" placeholder="https://...">
+                </div>
+                <button class="btn btn-primary" onclick="createItem()">添加对象</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Rating Modal -->
+    <div class="modal-overlay" id="ratingModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">评分</div>
+                <div class="modal-close" onclick="closeModal('ratingModal')">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;" id="ratingTargetName">对象名称</div>
+                    <div style="font-size: 14px; color: var(--text-light);">点击星星进行评分</div>
+                </div>
+                
+                <div class="star-rating" id="starContainer">
+                    <span class="star" data-score="1" onclick="setRating(1)">★</span>
+                    <span class="star" data-score="2" onclick="setRating(2)">★</span>
+                    <span class="star" data-score="3" onclick="setRating(3)">★</span>
+                    <span class="star" data-score="4" onclick="setRating(4)">★</span>
+                    <span class="star" data-score="5" onclick="setRating(5)">★</span>
+                    <span class="star" data-score="6" onclick="setRating(6)">★</span>
+                    <span class="star" data-score="7" onclick="setRating(7)">★</span>
+                    <span class="star" data-score="8" onclick="setRating(8)">★</span>
+                    <span class="star" data-score="9" onclick="setRating(9)">★</span>
+                    <span class="star" data-score="10" onclick="setRating(10)">★</span>
+                </div>
+                
+                <div style="text-align: center; font-size: 24px; font-weight: 700; color: var(--primary); margin: 16px 0;" id="selectedScore">0</div>
+                
+                <div class="form-group">
+                    <label class="form-label">评语 (可选)</label>
+                    <textarea class="form-textarea" id="ratingCommentInput" placeholder="说说你的看法..."></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="submitRating()">提交评分</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Series Modal -->
+    <div class="modal-overlay" id="editSeriesModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">编辑系列</div>
+                <div class="modal-close" onclick="closeModal('editSeriesModal')">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">系列名称</label>
+                    <input type="text" class="form-input" id="editSeriesNameInput">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">系列简介</label>
+                    <textarea class="form-textarea" id="editSeriesDescInput"></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="updateSeries()">保存修改</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Item Modal -->
+    <div class="modal-overlay" id="editItemModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">编辑评分对象</div>
+                <div class="modal-close" onclick="closeModal('editItemModal')">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">对象名称</label>
+                    <input type="text" class="form-input" id="editItemNameInput">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">简介</label>
+                    <textarea class="form-textarea" id="editItemDescInput"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">图片链接</label>
+                    <input type="text" class="form-input" id="editItemImageInput">
+                </div>
+                <button class="btn btn-primary" onclick="updateItem()">保存修改</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // 登录码配置
+        const loginCodes = {
+            "SAVGFC": { name: "首都守护者足球俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E5%93%88%E5%8D%A1%E6%8B%89%E6%89%98%E7%89%B9%E5%8D%A111.png" },
+            "SEMARANG": { name: "三宝敦队官方", type: "球队", avatar: "https://suttergov.github.io/%E4%B8%89%E5%AE%9D%E6%95%A6.png" },
+            "DPEAGLES": { name: "东平雄鹰足球俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E4%B8%9C%E5%B9%B3%E9%9B%84%E9%B9%B0.png" },
+            "QUEENS": { name: "TheUnited-女王镇联合足球俱乐部官方", type: "球队", avatar: "https://suttergov.github.io/%E4%BC%8A%E4%B8%BD%E8%8E%8E%E7%99%BD%E8%81%94%E5%90%88.png" },
+            "TEKMAUFC": { name: "泰克马联合官方", type: "球队", avatar: "https://suttergov.github.io/%E4%BC%8A%E6%96%AF%E7%89%B9%E4%BC%8D%E5%BE%B7%E8%81%94%E5%90%88%E6%96%B02.png" },
+            "HAJADEEN": { name: "哈贾丹太平洋人俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E5%93%88%E8%B4%BE%E4%B8%B9%E5%A4%AA%E5%B9%B3%E6%B4%8B%E4%BA%BA.png" },
+            "CNLFC": { name: "坎布尔新吕伐登足球俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E5%9D%8E%E5%B8%83%E5%B0%94%E6%96%B0%E5%90%95%E4%BC%90%E7%99%BB.png" },
+            "SEAGULL": { name: "奥顿兰海鸥男足", type: "球队", avatar: "https://suttergov.github.io/%E5%A5%A5%E9%A1%BF%E5%85%B0%E6%B5%B7%E6%B8%AF.png" },
+            "EASTWOOD": { name: "东木市职业足球俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E5%AD%94%E6%81%A9%E5%BA%A6%E5%8D%A2FC.png" },
+            "LAANA": { name: "LA'ANAFC79-拉阿纳队", type: "球队", avatar: "https://suttergov.github.io/%E6%8B%89%E9%98%BF%E7%BA%B3%E5%9F%8E%E5%B8%82%E7%AB%9E%E6%8A%80.png" },
+            "SBOTOP": { name: "斯波托普城市足球俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E6%96%AF%E6%B3%A2%E6%89%98%E6%99%AE%E5%9F%8E%E5%B8%82.png" },
+            "XINNANCHENG": { name: "新南城足球俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E6%96%B0%E6%B3%B0%E6%96%B03.png" },
+            "DAHWAHA": { name: "新达华哈海岸官方", type: "球队", avatar: "https://suttergov.github.io/%E6%96%B0%E8%BE%BE%E5%8D%8E%E5%93%88%E6%B5%B7%E5%B2%B8.png" },
+            "CAGOUS": { name: "瓦巴萨朱树鸦CAGOUSFC", type: "球队", avatar: "https://suttergov.github.io/%E7%93%A6%E5%B7%B4%E8%90%A8%E6%9C%B1%E6%A0%91%E9%B8%A6.png" },
+            "ROYALS": { name: "皇家萨乌萨乌足球俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E7%9A%87%E5%AE%B6%E8%90%A8%E4%B9%8C%E8%90%A8%E4%B9%8C.png" },
+            "MURAJA": { name: "穆拉哈西部队", type: "球队", avatar: "https://suttergov.github.io/%E7%A9%86%E6%8B%89%E5%93%88%E8%A5%BF%E9%83%A8.png" },
+            "LBJ": { name: "三宝敦乐邦战士足球俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E7%BB%B4%E5%B0%94%E5%9B%BE%E9%92%A2%E7%AE%A1.png" },
+            "DAIZHOU": { name: "色温岱州东岳俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E8%89%B2%E6%B8%A9%E5%B2%B1%E5%B7%9E%E4%B8%9C%E5%B2%B3.png" },
+            "BFFC": { name: "巴峰足球俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E8%90%A8%E4%B9%8C%E8%90%A8%E4%B9%8C%E6%96%B0.png" },
+            "NORWICH": { name: "诺维奇港NorwichPortFC", type: "球队", avatar: "https://suttergov.github.io/%E8%AF%BA%E7%BB%B4%E5%A5%87%E6%B8%AF%E6%96%B0.png" },
+            "ROVERS": { name: "RoversOfficial流浪者队官方", type: "球队", avatar: "https://suttergov.github.io/%E9%98%BF%E5%B0%94%E7%89%B9%E5%BC%97%E9%9B%B7%E5%A5%87%E6%B5%81%E6%B5%AA%E8%80%85.png" },
+            "USP": { name: "南太平洋大学色温校区", type: "球队", avatar: "https://suttergov.github.io/%E5%8D%97%E5%A4%AA%E5%A4%A7%E6%96%B0%E6%B3%B0.png" },
+            "MAREK": { name: "马雷克青春之城足球俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E9%A9%AC%E9%9B%B7%E5%85%8B%E6%96%B0.png" },
+            "LAXI": { name: "拉西弗谢", type: "个人", avatar: "https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52870242240935_.png" },
+            "MAHAOYU": { name: "马浩宇", type: "个人", avatar: "https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52887690550188_.png" },
+            "CARLO": { name: "卡罗", type: "个人", avatar: "https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52875610863799_.png" },
+            "JUDE": { name: "裘德·乔克雷斯", type: "个人", avatar: "https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52892253943504_.png" },
+            "MEDIA": { 
+                name: "媒体账号", 
+                type: "超级管理员", 
+                avatar: "https://cdn.brandfetch.io/footmercato.net/fallback/lettermark/theme/dark/h/256/w/256/icon?c=1bfwsmEH20zzEfSNTed",
+                subAccounts: [
+                    { name: "足球市场网", type: "媒体", avatar: "https://cdn.brandfetch.io/footmercato.net/fallback/lettermark/theme/dark/h/256/w/256/icon?c=1bfwsmEH20zzEfSNTed" },
+                    { name: "队报", type: "媒体", avatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTOiDuzVeBrpk8XzlT--IPXX67Vj6MRxBzTYw&s" },
+                    { name: "DavidOrnstein", type: "媒体", avatar: "https://i.namu.wiki/i/XC4wy5GaIVBbUDyH6RzFvd_Brfj8K3V0CfShFPTlhEO4IpwVuqKBv5SIK8FUjqGXyMCQ9DB1UjMGituufctDaA.webp" },
+                    { name: "FabrizioRomano", type: "媒体", avatar: "https://cachedimages.podchaser.com/256x256/aHR0cHM6Ly9jb250ZW50LnByb2R1Y3Rpb24uY2RuLmFydDE5LmNvbS9pbWFnZXMvZTUvNTQvMTYvMTgvZTU1NDE2MTgtNzc1Ni00ZmY1LWE5MTgtZDhiOGIwZTlhZTU2L2MwN2Q5OWFiNmVmZGEwY2Y1ZWViOWQwZmNmMTQ1NDY5YjcxNTljYjUwMmM4Yzg0NjMyNWZmNzJiMjhlZDczYmNiM2Y3ZmJiYTJlMzQyZjNkMjE1YmJmNzg1OGU0YWZkNmMxNmQyNDYxYjhhYTdiZTViY2IyMDc5YmRmMDE2NmIzLmpwZWc%3D/aHR0cHM6Ly93d3cucG9kY2hhc2VyLmNvbS9pbWFnZXMvbWlzc2luZy1pbWFnZS5wbmc%3D" },
+                    { name: "加西亚邮报", type: "媒体", avatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT7A2UlVPRErxcM3xCJNLkCyAfPUUAGI1sKuw&s" },
+                    { name: "ESPN", type: "媒体", avatar: "https://cdn.iconscout.com/icon/free/png-256/free-espn-logo-icon-svg-download-png-461787.png" },
+                    { name: "大巴姆岛先驱者早报", type: "媒体", avatar: "https://d3g9pb5nvr3u7.cloudfront.net/sites/529657a5bc4626126841af46/2078558977/256.png" },
+                    { name: "泰克马广播网", type: "媒体", avatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTnFfUS6rne2qcqcXn7LoXCnjZUFMwAnJs1ZQ&s" },
+                    { name: "马雷克晚旗报", type: "媒体", avatar: "https://weshipyou.com/_next/static/media/we-ship-you-logo.e8e4ea74.png" },
+                    { name: "比列趋势电讯报", type: "媒体", avatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgiLqXK1a6T4yNxtVZ8ftWJR8tSWo3TJWt-A&s" },
+                    { name: "穆拉哈体育图片报", type: "媒体", avatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRR5z_UIup_BW25Km2jiDRVeX8GGtMu-h6DBg&s" },
+                    { name: "群岛标准早报", type: "媒体", avatar: "https://cdn.brandfetch.io/efe.com/fallback/lettermark/theme/dark/h/256/w/256/icon?c=1bfwsmEH20zzEfSNTed" }
+                ]
+            }
+        };
+        
+        // Supabase配置
+        const supabaseUrl = 'https://ufzfjtupttqrqbmrzuen.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmemZqdHVwdHRxcnFibXJ6dWVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NTAxOTksImV4cCI6MjA4NzQyNjE5OX0.QEmHWxfNJgHNf6uIdmXydRmE2D2wE5AKgBGJU_6fEPc';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        // 全局状态
+        let currentUser = null;
+        let currentMediaSubAccount = null;
+        let currentPage = 'series';
+        let currentSeries = null;
+        let currentItem = null;
+        let currentRating = 0;
+        let allSeries = [];
+        let allItems = [];
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            checkStoredLogin();
+            loadTheme();
+            loadSeries();
+            loadHotItems();
+        });
+        
+        // 检查存储的登录信息
+        function checkStoredLogin() {
+            const stored = localStorage.getItem('garcia_rating_user');
+            if (stored) {
+                const data = JSON.parse(stored);
+                if (data.code === 'MEDIA' && data.subAccount) {
+                    currentUser = loginCodes['MEDIA'];
+                    currentMediaSubAccount = data.subAccount;
+                } else {
+                    currentUser = loginCodes[data.code];
+                }
+                if (currentUser) {
+                    updateUserUI();
+                }
+            }
+        }
+        
+        // 主题切换
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            document.getElementById('themeIcon').className = next === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        }
+        
+        function loadTheme() {
+            const saved = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', saved);
+            document.getElementById('themeIcon').className = saved === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        }
+        
+        // 页面导航
+        function showPage(page) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            
+            document.getElementById('page-' + page).classList.add('active');
+            event.target.classList.add('active');
+            
+            currentPage = page;
+            updateFabButton();
+            
+            if (page === 'my') {
+                loadMyContent();
+            } else if (page === 'hot') {
+                loadHotItems();
+            }
+        }
+        
+        function showSeriesDetail(seriesId) {
+            const series = allSeries.find(s => s.id === seriesId);
+            if (!series) return;
+            
+            currentSeries = series;
+            document.getElementById('seriesDetailTitle').textContent = series.name;
+            document.getElementById('seriesDetailDesc').textContent = series.description || '暂无简介';
+            document.getElementById('seriesCreator').textContent = series.creator_name || '未知';
+            document.getElementById('seriesItemCount').textContent = series.item_count || 0;
+            
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-series-detail').classList.add('active');
+            
+            loadItems(seriesId);
+            updateFabButton();
+        }
+        
+        function backToSeries() {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-series').classList.add('active');
+            document.querySelectorAll('.nav-tab')[0].classList.add('active');
+            currentSeries = null;
+            updateFabButton();
+        }
+        
+        function showItemDetail(itemId) {
+            const item = allItems.find(i => i.id === itemId);
+            if (!item) return;
+            
+            currentItem = item;
+            document.getElementById('itemDetailName').textContent = item.name;
+            document.getElementById('itemDetailDesc').textContent = item.description || '暂无简介';
+            document.getElementById('itemCreator').textContent = item.creator_name || '未知';
+            document.getElementById('itemDetailImage').src = item.image_url || 'https://via.placeholder.com/100';
+            
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-item-detail').classList.add('active');
+            
+            loadRatings(itemId);
+            updateLoginPrompt();
+            updateFabButton();
+        }
+        
+        function backToSeriesDetail() {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-series-detail').classList.add('active');
+            currentItem = null;
+            updateFabButton();
+        }
+        
+        // 加载系列列表
+        async function loadSeries() {
+            try {
+                const { data, error } = await supabase
+                    .from('series')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                allSeries = data || [];
+                renderSeriesList(allSeries);
+            } catch (err) {
+                console.error('加载系列失败:', err);
+                showToast('加载失败，请检查网络');
+            }
+        }
+        
+        function renderSeriesList(series) {
+            const container = document.getElementById('seriesList');
+            if (!series || series.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-folder-open"></i>
+                        <p>暂无系列，点击右下角创建</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = series.map(s => `
+                <div class="series-card" onclick="showSeriesDetail('${s.id}')">
+                    <div class="series-header">
+                        <div>
+                            <div class="series-title">${s.name}</div>
+                            <div class="series-meta">${s.creator_name || '未知用户'} · ${new Date(s.created_at).toLocaleDateString()}</div>
+                        </div>
+                    </div>
+                    <div class="series-desc">${s.description || '暂无简介'}</div>
+                    <div class="series-stats">
+                        <span><i class="fas fa-list"></i> ${s.item_count || 0} 个对象</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 搜索系列
+        function searchSeries() {
+            const keyword = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allSeries.filter(s => 
+                s.name.toLowerCase().includes(keyword) || 
+                (s.description && s.description.toLowerCase().includes(keyword))
+            );
+            renderSeriesList(filtered);
+        }
+        
+        // 加载评分对象
+        async function loadItems(seriesId) {
+            try {
+                const { data, error } = await supabase
+                    .from('rating_items')
+                    .select('*')
+                    .eq('series_id', seriesId)
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                allItems = data || [];
+                renderItemsList(allItems);
+            } catch (err) {
+                console.error('加载评分对象失败:', err);
+                showToast('加载失败');
+            }
+        }
+        
+        function renderItemsList(items) {
+            const container = document.getElementById('itemsList');
+            if (!items || items.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-star"></i>
+                        <p>暂无评分对象，点击右下角添加</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = items.map(item => {
+                const avg = item.avg_rating ? parseFloat(item.avg_rating).toFixed(1) : '0.0';
+                const count = item.rating_count || 0;
+                return `
+                    <div class="item-card" onclick="showItemDetail('${item.id}')">
+                        <img src="${item.image_url || 'https://via.placeholder.com/80'}" class="item-image" onerror="this.src='https://via.placeholder.com/80'">
+                        <div class="item-content">
+                            <div>
+                                <div class="item-name">${item.name}</div>
+                                <div class="item-desc">${item.description || '暂无简介'}</div>
+                            </div>
+                            <div class="item-footer">
+                                <div class="rating-badge">
+                                    <span class="rating-score">${avg}</span>
+                                    <span class="rating-max">/10</span>
+                                </div>
+                                <div class="rating-count">${count}人评分</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // 加载评分列表
+        async function loadRatings(itemId) {
+            try {
+                // 获取评分统计
+                const { data: stats } = await supabase
+                    .from('ratings')
+                    .select('score')
+                    .eq('item_id', itemId);
+                
+                // 计算分布
+                const distribution = {};
+                for (let i = 1; i <= 10; i++) distribution[i] = 0;
+                if (stats) {
+                    stats.forEach(r => {
+                        distribution[r.score] = (distribution[r.score] || 0) + 1;
+                    });
+                }
+                
+                // 渲染分布图
+                const maxCount = Math.max(...Object.values(distribution), 1);
+                document.getElementById('scoreDistribution').innerHTML = Object.entries(distribution).map(([score, count]) => `
+                    <div class="score-bar-item">
+                        <div class="score-bar-label">${score}分</div>
+                        <div class="score-bar-track">
+                            <div class="score-bar-fill" style="width: ${(count / maxCount * 100)}%"></div>
+                        </div>
+                        <div class="score-bar-count">${count}</div>
+                    </div>
+                `).join('');
+                
+                // 获取详细评分（置顶和加精的在前）
+                const { data: ratings, error } = await supabase
+                    .from('ratings')
+                    .select('*')
+                    .eq('item_id', itemId)
+                    .order('is_pinned', { ascending: false })
+                    .order('is_highlighted', { ascending: false })
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                // 更新总分显示
+                const item = allItems.find(i => i.id === itemId);
+                if (item) {
+                    document.getElementById('itemBigScore').textContent = item.avg_rating ? parseFloat(item.avg_rating).toFixed(1) : '0.0';
+                    document.getElementById('itemTotalRatings').textContent = item.rating_count || 0;
+                }
+                
+                renderRatingsList(ratings || []);
+            } catch (err) {
+                console.error('加载评分失败:', err);
+            }
+        }
+        
+        function renderRatingsList(ratings) {
+            const container = document.getElementById('ratingsList');
+            if (!ratings || ratings.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-comment-slash"></i>
+                        <p>暂无评分，快来抢沙发吧</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const isAdmin = currentUser && currentUser.type === '超级管理员';
+            
+            container.innerHTML = ratings.map(r => {
+                const isPinned = r.is_pinned;
+                const isHighlighted = r.is_highlighted;
+                
+                let badges = '';
+                if (isPinned) badges += `<span class="pinned-badge"><i class="fas fa-thumbtack"></i> 置顶</span>`;
+                if (isHighlighted) badges += `<span class="highlight-badge"><i class="fas fa-gem"></i> 精华</span>`;
+                
+                return `
+                    <div class="comment-card" style="${isPinned ? 'border: 2px solid var(--gold);' : ''}">
+                        <div class="comment-header">
+                            <div class="comment-user">
+                                <img src="${r.user_avatar || 'https://via.placeholder.com/36'}" class="comment-avatar" onerror="this.src='https://via.placeholder.com/36'">
+                                <div class="comment-user-info">
+                                    <div class="comment-username">${r.user_name} ${badges}</div>
+                                    <div class="comment-time">${new Date(r.created_at).toLocaleString()}</div>
+                                </div>
+                            </div>
+                            <div class="comment-score">${r.score}</div>
+                        </div>
+                        <div class="comment-text">${r.comment || '用户未填写评语'}</div>
+                        ${isAdmin ? `
+                            <div class="admin-actions">
+                                <button class="btn btn-sm ${isPinned ? 'btn-secondary' : 'btn-primary'}" onclick="togglePin('${r.id}', ${!isPinned})">
+                                    <i class="fas fa-thumbtack"></i> ${isPinned ? '取消置顶' : '置顶'}
+                                </button>
+                                <button class="btn btn-sm ${isHighlighted ? 'btn-secondary' : 'btn-primary'}" onclick="toggleHighlight('${r.id}', ${!isHighlighted})">
+                                    <i class="fas fa-gem"></i> ${isHighlighted ? '取消加精' : '加精'}
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteRating('${r.id}')">
+                                    <i class="fas fa-trash"></i> 删除
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // 加载热门
+        async function loadHotItems() {
+            try {
+                const { data, error } = await supabase
+                    .from('rating_items')
+                    .select('*')
+                    .order('rating_count', { ascending: false })
+                    .limit(20);
+                
+                if (error) throw error;
+                
+                const container = document.getElementById('hotList');
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><p>暂无热门评分</p></div>';
+                    return;
+                }
+                
+                container.innerHTML = data.map(item => `
+                    <div class="item-card" onclick="showItemDetail('${item.id}')">
+                        <img src="${item.image_url || 'https://via.placeholder.com/80'}" class="item-image" onerror="this.src='https://via.placeholder.com/80'">
+                        <div class="item-content">
+                            <div>
+                                <div class="item-name">${item.name}</div>
+                                <div class="item-desc">${item.description || '暂无简介'}</div>
+                            </div>
+                            <div class="item-footer">
+                                <div class="rating-badge">
+                                    <span class="rating-score">${item.avg_rating ? parseFloat(item.avg_rating).toFixed(1) : '0.0'}</span>
+                                    <span class="rating-max">/10</span>
+                                </div>
+                                <div class="rating-count">${item.rating_count || 0}人评分</div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('加载热门失败:', err);
+            }
+        }
+        
+        // 加载我的内容
+        function loadMyContent() {
+            const container = document.getElementById('myContent');
+            
+            if (!currentUser) {
+                container.innerHTML = `
+                    <div class="login-prompt">
+                        <h3>未登录</h3>
+                        <p>登录后可查看你创建的系列和评分历史</p>
+                        <button class="btn btn-primary" onclick="showLoginModal()" style="background: white; color: var(--primary);">立即登录</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            const userCode = currentMediaSubAccount ? currentMediaSubAccount.name : (currentUser.name || currentUser);
+            
+            // 过滤我创建的系列
+            const mySeries = allSeries.filter(s => s.creator_code === userCode);
+            
+            let html = '<div class="rating-section-title">我创建的系列</div>';
+            if (mySeries.length === 0) {
+                html += '<p style="padding: 20px; color: var(--text-light); text-align: center;">暂无创建的系列</p>';
+            } else {
+                html += mySeries.map(s => `
+                    <div class="series-card" onclick="showSeriesDetail('${s.id}')">
+                        <div class="series-title">${s.name}</div>
+                        <div class="series-desc">${s.description || '暂无简介'}</div>
+                        <div class="admin-actions">
+                            <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); showEditSeriesModal('${s.id}')">编辑</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        // 登录相关
+        function showLoginModal() {
+            document.getElementById('loginModal').classList.add('active');
+        }
+        
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+        
+        function login() {
+            const code = document.getElementById('loginCodeInput').value.toUpperCase().trim();
+            
+            if (!loginCodes[code]) {
+                showToast('登录码错误');
+                return;
+            }
+            
+            const userData = loginCodes[code];
+            
+            if (code === 'MEDIA') {
+                // 媒体账号，显示子账号选择
+                showMediaAccountSelector();
+            } else {
+                currentUser = userData;
+                currentUser.code = code;
+                currentMediaSubAccount = null;
+                localStorage.setItem('garcia_rating_user', JSON.stringify({ code: code }));
+                closeModal('loginModal');
+                updateUserUI();
+                showToast(`欢迎，${userData.name}`);
+                updateFabButton();
+                if (currentPage === 'my') loadMyContent();
+            }
+        }
+        
+        function showMediaAccountSelector() {
+            const accounts = loginCodes['MEDIA'].subAccounts;
+            const html = accounts.map((acc, idx) => `
+                <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer;" onclick="selectMediaAccount(${idx})">
+                    <img src="${acc.avatar}" style="width: 40px; height: 40px; border-radius: 50%;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600;">${acc.name}</div>
+                        <div style="font-size: 12px; color: var(--text-light);">${acc.type}</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.querySelector('#loginModal .modal-body').innerHTML = `
+                <div style="margin-bottom: 16px; font-weight: 600;">选择媒体账号：</div>
+                ${html}
+            `;
+        }
+        
+        function selectMediaAccount(index) {
+            currentUser = loginCodes['MEDIA'];
+            currentMediaSubAccount = loginCodes['MEDIA'].subAccounts[index];
+            localStorage.setItem('garcia_rating_user', JSON.stringify({ 
+                code: 'MEDIA', 
+                subAccount: currentMediaSubAccount 
+            }));
+            closeModal('loginModal');
+            updateUserUI();
+            showToast(`欢迎，${currentMediaSubAccount.name}`);
+            updateFabButton();
+            if (currentPage === 'my') loadMyContent();
+        }
+        
+        function updateUserUI() {
+            const badge = document.getElementById('userBadge');
+            const nameEl = document.getElementById('userName');
+            const iconEl = document.getElementById('userAvatarIcon');
+            
+            if (currentMediaSubAccount) {
+                nameEl.textContent = currentMediaSubAccount.name;
+                badge.innerHTML = `
+                    <span>${currentMediaSubAccount.name}</span>
+                    <img src="${currentMediaSubAccount.avatar}" style="width: 24px; height: 24px; border-radius: 50%;">
+                `;
+            } else if (currentUser) {
+                nameEl.textContent = currentUser.name || currentUser;
+                if (currentUser.avatar) {
+                    badge.innerHTML = `
+                        <span>${currentUser.name}</span>
+                        <img src="${currentUser.avatar}" style="width: 24px; height: 24px; border-radius: 50%;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
+                        <i class="fas fa-user-circle" style="display: none; font-size: 20px;"></i>
+                    `;
+                }
+            }
+        }
+        
+        function updateLoginPrompt() {
+            const area = document.getElementById('loginPromptArea');
+            if (!currentUser) {
+                area.innerHTML = `
+                    <div class="login-prompt">
+                        <h3>登录后评分</h3>
+                        <p>游客可以查看评分，登录后可参与评分和评论</p>
+                        <button class="btn btn-primary" onclick="showLoginModal()" style="background: white; color: var(--primary);">登录评分</button>
+                    </div>
+                `;
+            } else {
+                area.innerHTML = '';
+            }
+        }
+        
+        // FAB按钮逻辑
+        function updateFabButton() {
+            const fab = document.getElementById('fabBtn');
+            
+            if (!currentUser) {
+                // 未登录时，如果在详情页可以评分，否则提示登录
+                if (currentItem) {
+                    fab.innerHTML = '<i class="fas fa-star"></i>';
+                    fab.onclick = () => showRatingModal();
+                } else {
+                    fab.innerHTML = '<i class="fas fa-plus"></i>';
+                    fab.onclick = () => {
+                        showToast('请先登录');
+                        showLoginModal();
+                    };
+                }
+            } else {
+                fab.innerHTML = '<i class="fas fa-plus"></i>';
+                fab.onclick = handleFabClick;
+            }
+        }
+        
+        function handleFabClick() {
+            if (!currentUser) {
+                showLoginModal();
+                return;
+            }
+            
+            if (currentItem) {
+                // 在评分对象详情页，打开评分
+                showRatingModal();
+            } else if (currentSeries) {
+                // 在系列详情页，添加评分对象
+                document.getElementById('createItemModal').classList.add('active');
+            } else {
+                // 在列表页，创建系列
+                document.getElementById('createSeriesModal').classList.add('active');
+            }
+        }
+        
+        // 创建系列
+        async function createSeries() {
+            const name = document.getElementById('seriesNameInput').value.trim();
+            const desc = document.getElementById('seriesDescInput').value.trim();
+            
+            if (!name) {
+                showToast('请输入系列名称');
+                return;
+            }
+            
+            const creatorName = currentMediaSubAccount ? currentMediaSubAccount.name : (currentUser.name || currentUser);
+            const creatorCode = currentMediaSubAccount ? currentMediaSubAccount.name : (currentUser.code || currentUser.name);
+            
+            try {
+                const { data, error } = await supabase
+                    .from('series')
+                    .insert([{
+                        name: name,
+                        description: desc,
+                        creator_code: creatorCode,
+                        creator_name: creatorName
+                    }])
+                    .select();
+                
+                if (error) throw error;
+                
+                closeModal('createSeriesModal');
+                document.getElementById('seriesNameInput').value = '';
+                document.getElementById('seriesDescInput').value = '';
+                showToast('创建成功');
+                loadSeries();
+            } catch (err) {
+                console.error('创建系列失败:', err);
+                showToast('创建失败');
+            }
+        }
+        
+        // 创建评分对象
+        async function createItem() {
+            const name = document.getElementById('itemNameInput').value.trim();
+            const desc = document.getElementById('itemDescInput').value.trim();
+            const image = document.getElementById('itemImageInput').value.trim();
+            
+            if (!name) {
+                showToast('请输入对象名称');
+                return;
+            }
+            
+            if (!currentSeries) {
+                showToast('请先选择系列');
+                return;
+            }
+            
+            const creatorName = currentMediaSubAccount ? currentMediaSubAccount.name : (currentUser.name || currentUser);
+            const creatorCode = currentMediaSubAccount ? currentMediaSubAccount.name : (currentUser.code || currentUser.name);
+            
+            try {
+                const { data, error } = await supabase
+                    .from('rating_items')
+                    .insert([{
+                        series_id: currentSeries.id,
+                        name: name,
+                        description: desc,
+                        image_url: image,
+                        creator_code: creatorCode,
+                        creator_name: creatorName
+                    }])
+                    .select();
+                
+                if (error) throw error;
+                
+                // 更新系列计数
+                await supabase
+                    .from('series')
+                    .update({ item_count: (currentSeries.item_count || 0) + 1 })
+                    .eq('id', currentSeries.id);
+                
+                closeModal('createItemModal');
+                document.getElementById('itemNameInput').value = '';
+                document.getElementById('itemDescInput').value = '';
+                document.getElementById('itemImageInput').value = '';
+                showToast('添加成功');
+                loadItems(currentSeries.id);
+                loadSeries(); // 刷新列表以更新计数
+            } catch (err) {
+                console.error('添加评分对象失败:', err);
+                showToast('添加失败');
+            }
+        }
+        
+        // 评分功能
+        function showRatingModal() {
+            if (!currentUser) {
+                showToast('请先登录');
+                showLoginModal();
+                return;
+            }
+            
+            if (!currentItem) return;
+            
+            document.getElementById('ratingTargetName').textContent = currentItem.name;
+            document.getElementById('ratingModal').classList.add('active');
+            currentRating = 0;
+            updateStarDisplay();
+            document.getElementById('selectedScore').textContent = '0';
+            document.getElementById('ratingCommentInput').value = '';
+        }
+        
+        function setRating(score) {
+            currentRating = score;
+            updateStarDisplay();
+            document.getElementById('selectedScore').textContent = score;
+        }
+        
+        function updateStarDisplay() {
+            document.querySelectorAll('.star').forEach((star, idx) => {
+                if (idx < currentRating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+        
+        async function submitRating() {
+            if (currentRating === 0) {
+                showToast('请选择评分');
+                return;
+            }
+            
+            const comment = document.getElementById('ratingCommentInput').value.trim();
+            const userName = currentMediaSubAccount ? currentMediaSubAccount.name : (currentUser.name || currentUser);
+            const userAvatar = currentMediaSubAccount ? currentMediaSubAccount.avatar : (currentUser.avatar || '');
+            
+            try {
+                // 检查是否已评分
+                const { data: existing } = await supabase
+                    .from('ratings')
+                    .select('id')
+                    .eq('item_id', currentItem.id)
+                    .eq('user_code', userName);
+                
+                if (existing && existing.length > 0) {
+                    showToast('你已经评分过了');
+                    return;
+                }
+                
+                // 添加评分
+                const { error } = await supabase
+                    .from('ratings')
+                    .insert([{
+                        item_id: currentItem.id,
+                        user_code: userName,
+                        user_name: userName,
+                        user_avatar: userAvatar,
+                        score: currentRating,
+                        comment: comment
+                    }]);
+                
+                if (error) throw error;
+                
+                // 更新对象的平均分和计数
+                const { data: allRatings } = await supabase
+                    .from('ratings')
+                    .select('score')
+                    .eq('item_id', currentItem.id);
+                
+                const totalScore = allRatings.reduce((sum, r) => sum + r.score, 0);
+                const avgRating = totalScore / allRatings.length;
+                
+                await supabase
+                    .from('rating_items')
+                    .update({
+                        avg_rating: avgRating.toFixed(1),
+                        total_score: totalScore,
+                        rating_count: allRatings.length
+                    })
+                    .eq('id', currentItem.id);
+                
+                closeModal('ratingModal');
+                showToast('评分成功');
+                loadRatings(currentItem.id);
+                
+                // 更新当前item数据
+                currentItem.avg_rating = avgRating.toFixed(1);
+                currentItem.rating_count = allRatings.length;
+            } catch (err) {
+                console.error('评分失败:', err);
+                showToast('评分失败');
+            }
+        }
+        
+        // 管理员功能
+        async function togglePin(ratingId, pin) {
+            try {
+                const { error } = await supabase
+                    .from('ratings')
+                    .update({ is_pinned: pin })
+                    .eq('id', ratingId);
+                
+                if (error) throw error;
+                showToast(pin ? '已置顶' : '已取消置顶');
+                loadRatings(currentItem.id);
+            } catch (err) {
+                showToast('操作失败');
+            }
+        }
+        
+        async function toggleHighlight(ratingId, highlight) {
+            try {
+                const { error } = await supabase
+                    .from('ratings')
+                    .update({ is_highlighted: highlight })
+                    .eq('id', ratingId);
+                
+                if (error) throw error;
+                showToast(highlight ? '已加精' : '已取消加精');
+                loadRatings(currentItem.id);
+            } catch (err) {
+                showToast('操作失败');
+            }
+        }
+        
+        async function deleteRating(ratingId) {
+            if (!confirm('确定要删除这条评分吗？')) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('ratings')
+                    .delete()
+                    .eq('id', ratingId);
+                
+                if (error) throw error;
+                showToast('已删除');
+                loadRatings(currentItem.id);
+            } catch (err) {
+                showToast('删除失败');
+            }
+        }
+        
+        // 编辑功能
+        function showEditSeriesModal(seriesId) {
+            const series = allSeries.find(s => s.id === seriesId);
+            if (!series) return;
+            
+            currentSeries = series;
+            document.getElementById('editSeriesNameInput').value = series.name;
+            document.getElementById('editSeriesDescInput').value = series.description || '';
+            document.getElementById('editSeriesModal').classList.add('active');
+        }
+        
+        async function updateSeries() {
+            const name = document.getElementById('editSeriesNameInput').value.trim();
+            const desc = document.getElementById('editSeriesDescInput').value.trim();
+            
+            if (!name) {
+                showToast('请输入名称');
+                return;
+            }
+            
+            try {
+                const { error } = await supabase
+                    .from('series')
+                    .update({ name: name, description: desc })
+                    .eq('id', currentSeries.id);
+                
+                if (error) throw error;
+                closeModal('editSeriesModal');
+                showToast('修改成功');
+                loadSeries();
+            } catch (err) {
+                showToast('修改失败');
+            }
+        }
+        
+        // Toast提示
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+        
+        // 点击遮罩关闭
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

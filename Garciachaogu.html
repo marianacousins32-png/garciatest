@@ -1,0 +1,2384 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>加西亚股指交易</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        success: '#10b981',
+                        danger: '#ef4444',
+                        warning: '#f59e0b',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* 隐藏滚动条 */
+        ::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none !important; }
+        * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+        
+        /* 玻璃拟态效果 */
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .dark .glass {
+            background: rgba(30, 30, 30, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .light .glass {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        /* 动画效果 */
+        @keyframes pulse-up {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        @keyframes pulse-down {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(0.98); }
+        }
+        .pulse-up { animation: pulse-up 2s infinite; }
+        .pulse-down { animation: pulse-down 2s infinite; }
+        
+        /* 游戏股指卡片样式 */
+        .fictional-card {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.05));
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        /* 英雄榜样式 */
+        .hero-card {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.05));
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+        
+        .hero-rank-1 { background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 215, 0, 0.05)); border-color: rgba(255, 215, 0, 0.4); }
+        .hero-rank-2 { background: linear-gradient(135deg, rgba(192, 192, 192, 0.2), rgba(192, 192, 192, 0.05)); border-color: rgba(192, 192, 192, 0.4); }
+        .hero-rank-3 { background: linear-gradient(135deg, rgba(205, 127, 50, 0.2), rgba(205, 127, 50, 0.05)); border-color: rgba(205, 127, 50, 0.4); }
+        
+        /* 倒计时动画 */
+        .countdown {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+        
+        /* 移动端优化 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            touch-action: pan-y;
+            overflow-x: hidden;
+        }
+
+        /* 隐藏收盘数据的模糊效果 */
+        .hidden-close {
+            filter: blur(8px);
+            user-select: none;
+            opacity: 0.5;
+        }
+
+        /* 操作日志样式 */
+        .log-entry {
+            border-left: 3px solid transparent;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .log-buy { border-left-color: #10b981; }
+        .log-sell { border-left-color: #ef4444; }
+        .log-settle { border-left-color: #3b82f6; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white dark:bg-gray-900 dark:text-white light:bg-gray-100 light:text-gray-900 transition-colors duration-300">
+    
+    <!-- 登录页面 -->
+    <div id="loginPage" class="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 light:from-gray-100 light:via-gray-200 light:to-gray-100">
+        <div class="w-full max-w-sm">
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-10 h-10 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-bold mb-2">加西亚股指交易</h1>
+                <p class="text-sm opacity-60">模拟炒股平台</p>
+            </div>
+            
+            <div class="glass rounded-2xl p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-medium mb-2 opacity-80">输入登录码</label>
+                    <input type="text" id="loginCodeInput" placeholder="例如: MEDIA" 
+                        class="w-full px-4 py-3 rounded-xl bg-black/10 dark:bg-white/10 border border-transparent focus:border-primary focus:outline-none text-center font-bold uppercase tracking-wider"
+                        onkeypress="if(event.key==='Enter') app.login()">
+                </div>
+                <button onclick="app.login()" class="w-full py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-colors">
+                    登录
+                </button>
+            </div>
+            
+            <div class="mt-6 text-center text-xs opacity-40">
+                <p>支持的账号类型：球队 / 个人 / 媒体</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主页面 -->
+    <div id="mainPage" class="hidden min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 light:from-gray-100 light:via-gray-200 light:to-gray-100 pb-20">
+        
+        <!-- 顶部导航 -->
+        <header class="sticky top-0 z-50 glass border-b border-white/5 px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <img id="userAvatar" src="" class="w-10 h-10 rounded-full object-cover bg-gray-700 border-2 border-primary/30">
+                <div>
+                    <h2 id="userName" class="font-bold text-sm leading-tight"></h2>
+                    <span id="accountType" class="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium"></span>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <!-- Media账号切换按钮 -->
+                <button id="mediaSwitchBtn" onclick="app.showMediaSwitch()" class="hidden p-2 rounded-full bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                    </svg>
+                </button>
+                <button onclick="app.toggleTheme()" class="p-2 rounded-full hover:bg-white/10 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                    </svg>
+                </button>
+                <button id="adminBtn" onclick="app.showAdminPanel()" class="hidden p-2 rounded-full bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </button>
+                <button onclick="app.logout()" class="p-2 rounded-full hover:bg-white/10 transition-colors text-danger">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Media账号切换面板 -->
+        <div id="mediaSwitchPanel" class="hidden fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="glass w-full max-w-md rounded-2xl p-6 bg-gray-900 dark:bg-gray-900 light:bg-white max-h-[80vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold">切换媒体账号</h3>
+                    <button onclick="app.closeMediaSwitch()" class="p-2 hover:bg-white/10 rounded-full">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <div id="mediaAccountList" class="space-y-2">
+                    <!-- 媒体账号列表 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 资产概览 -->
+        <section class="px-4 py-4">
+            <div class="glass rounded-2xl p-4 mb-4">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs opacity-60">总资产</span>
+                    <span id="profitBadge" class="px-3 py-1 rounded-full text-xs font-medium bg-success/20 text-success">+0 (0.00%)</span>
+                </div>
+                <div class="text-3xl font-bold mb-4" id="totalAsset">¥0</div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-black/5 dark:bg-white/5 rounded-xl p-3">
+                        <p class="text-xs opacity-60 mb-1">可用资金</p>
+                        <p id="availableBalance" class="font-bold text-sm">¥0</p>
+                    </div>
+                    <div class="bg-black/5 dark:bg-white/5 rounded-xl p-3">
+                        <p class="text-xs opacity-60 mb-1">持仓市值</p>
+                        <p id="positionValue" class="font-bold text-sm">¥0</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 英雄榜 -->
+        <section class="px-4 mb-6">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <span class="w-1 h-5 bg-warning rounded-full"></span>
+                    英雄榜
+                </h3>
+                <span class="text-[10px] px-2 py-1 rounded bg-warning/20 text-warning">基于500万基准</span>
+            </div>
+            <div id="heroList" class="space-y-2">
+                <!-- 英雄榜将在这里渲染 -->
+                <div class="text-center py-4 opacity-50">加载中...</div>
+            </div>
+        </section>
+
+        <!-- 实时汇率（原实时股指） -->
+        <section class="px-4 mb-6">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <span class="w-1 h-5 bg-primary rounded-full"></span>
+                    实时汇率
+                </h3>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] px-2 py-1 rounded bg-success/20 text-success">实时数据</span>
+                    <span id="updateTime" class="text-xs opacity-40">更新: --:--</span>
+                </div>
+            </div>
+            <div id="indexList" class="grid grid-cols-2 gap-3">
+                <!-- 汇率卡片将在这里渲染 -->
+                <div class="text-center py-4 opacity-50 col-span-2">加载中...</div>
+            </div>
+        </section>
+
+        <!-- 游戏股指 -->
+        <section class="px-4 mb-6">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <span class="w-1 h-5 bg-purple-500 rounded-full"></span>
+                    游戏股指
+                </h3>
+            </div>
+            <div id="fictionalList" class="space-y-3">
+                <!-- 游戏股指将在这里渲染 -->
+            </div>
+        </section>
+
+        <!-- 我的持仓 -->
+        <section class="px-4 mb-6">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <span class="w-1 h-5 bg-success rounded-full"></span>
+                    我的持仓 <span id="positionCount" class="text-xs font-normal opacity-60 ml-2">0个仓位</span>
+                </h3>
+            </div>
+            <div id="positionsList" class="space-y-3">
+                <div class="glass rounded-xl p-8 text-center opacity-50">
+                    <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    <p>暂无持仓</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 操作日志 -->
+        <section class="px-4 mb-6">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <span class="w-1 h-5 bg-warning rounded-full"></span>
+                    操作日志 <span id="logCount" class="text-xs font-normal opacity-60 ml-2">0条记录</span>
+                </h3>
+                <button onclick="app.clearLogs()" class="text-xs opacity-60 hover:opacity-100">清空</button>
+            </div>
+            <div id="logsList" class="space-y-2 max-h-64 overflow-y-auto">
+                <p class="text-center opacity-40 text-sm py-4">暂无操作记录</p>
+            </div>
+        </section>
+
+        <!-- 历史记录 -->
+        <section class="px-4 mb-20">
+            <h3 class="font-bold text-lg flex items-center gap-2 mb-3">
+                <span class="w-1 h-5 bg-gray-500 rounded-full"></span>
+                结算记录
+            </h3>
+            <div id="historyList" class="space-y-2">
+                <p class="text-center opacity-40 text-sm py-4">暂无结算记录</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- 建仓模态框 -->
+    <div id="positionModal" class="hidden fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="glass w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 max-h-[90vh] overflow-y-auto bg-gray-900 dark:bg-gray-900 light:bg-white">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold" id="modalTitle">建仓</h3>
+                <button onclick="app.closePositionModal()" class="p-2 hover:bg-white/10 rounded-full">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="mb-4">
+                <p class="text-sm opacity-60 mb-1">选中标的</p>
+                <div class="flex items-center gap-3 p-3 bg-black/5 dark:bg-white/5 rounded-xl">
+                    <div>
+                        <p id="selectedIndexName" class="font-bold"></p>
+                        <p id="selectedIndexValue" class="text-sm font-mono opacity-80"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 实时汇率类型选择 -->
+            <div id="positionTypeContainer" class="mb-4">
+                <p class="text-sm opacity-60 mb-2">仓位类型</p>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="app.selectType('half')" data-type="half" class="type-btn px-3 py-2 rounded-lg border border-transparent bg-black/5 dark:bg-white/10 text-xs font-medium">半日仓</button>
+                    <button onclick="app.selectType('one')" data-type="one" class="type-btn px-3 py-2 rounded-lg border border-transparent bg-black/5 dark:bg-white/10 text-xs font-medium">一日仓</button>
+                    <button onclick="app.selectType('one_half')" data-type="one_half" class="type-btn px-3 py-2 rounded-lg border border-transparent bg-black/5 dark:bg-white/10 text-xs font-medium">1.5日仓</button>
+                    <button onclick="app.selectType('two')" data-type="two" class="type-btn px-3 py-2 rounded-lg border border-transparent bg-black/5 dark:bg-white/10 text-xs font-medium">二日仓</button>
+                    <button onclick="app.selectType('three')" data-type="three" class="type-btn px-3 py-2 rounded-lg border border-transparent bg-black/5 dark:bg-white/10 text-xs font-medium">三日仓</button>
+                </div>
+            </div>
+
+            <!-- 游戏股指类型选择 -->
+            <div id="fictionalTypeContainer" class="hidden mb-4">
+                <p class="text-sm opacity-60 mb-2">持仓时长</p>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="app.selectFictionalType(5)" data-fic-type="5" class="fic-type-btn px-3 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-xs font-medium border border-transparent">5分钟</button>
+                    <button onclick="app.selectFictionalType(15)" data-fic-type="15" class="fic-type-btn px-3 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-xs font-medium border border-transparent">15分钟</button>
+                    <button onclick="app.selectFictionalType(30)" data-fic-type="30" class="fic-type-btn px-3 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-xs font-medium border border-transparent">30分钟</button>
+                    <button onclick="app.selectFictionalType(60)" data-fic-type="60" class="fic-type-btn px-3 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-xs font-medium border border-transparent">1小时</button>
+                    <button onclick="app.selectFictionalType(180)" data-fic-type="180" class="fic-type-btn px-3 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-xs font-medium border border-transparent">3小时</button>
+                    <button onclick="app.selectFictionalType(480)" data-fic-type="480" class="fic-type-btn px-3 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-xs font-medium border border-transparent">8小时</button>
+                    <button onclick="app.selectFictionalType(720)" data-fic-type="720" class="fic-type-btn px-3 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-xs font-medium border border-transparent">12小时</button>
+                    <button onclick="app.selectFictionalType(1440)" data-fic-type="1440" class="fic-type-btn px-3 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-xs font-medium border border-transparent">24小时</button>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <p class="text-sm opacity-60 mb-2">结算时间</p>
+                <p id="settlementDesc" class="text-xs text-primary font-medium"></p>
+            </div>
+
+            <div class="mb-4">
+                <p class="text-sm opacity-60 mb-2">投入金额</p>
+                <div class="flex gap-2 mb-2">
+                    <button onclick="app.setAmount(100000)" class="flex-1 py-1 rounded bg-black/5 dark:bg-white/5 text-xs">10万</button>
+                    <button onclick="app.setAmount(500000)" class="flex-1 py-1 rounded bg-black/5 dark:bg-white/5 text-xs">50万</button>
+                    <button onclick="app.setAmount(1000000)" class="flex-1 py-1 rounded bg-black/5 dark:bg-white/5 text-xs">100万</button>
+                </div>
+                <input type="number" id="positionAmount" placeholder="最低50000" class="w-full px-4 py-3 rounded-xl bg-black/10 dark:bg-white/10 border border-transparent focus:border-primary focus:outline-none text-right font-mono">
+            </div>
+
+            <button onclick="app.createPosition()" class="w-full py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-colors">
+                确认建仓
+            </button>
+        </div>
+    </div>
+
+    <!-- 游戏股指详情模态框 -->
+    <div id="fictionalDetailModal" class="hidden fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass w-full max-w-md rounded-2xl p-6 bg-gray-900 dark:bg-gray-900 light:bg-white max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h3 id="ficDetailName" class="text-lg font-bold text-purple-300"></h3>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300">游戏股指</span>
+                </div>
+                <button onclick="app.closeFictionalDetail()" class="p-2 hover:bg-white/10 rounded-full">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="mb-4">
+                <div class="flex justify-between items-end mb-2">
+                    <span class="text-3xl font-bold font-mono" id="ficDetailCurrent"></span>
+                    <span class="text-xs countdown text-purple-400" id="ficDetailCountdown"></span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-xs mb-4">
+                    <div class="bg-black/5 dark:bg-white/5 rounded-lg p-2 text-center">
+                        <p class="opacity-60">开盘</p>
+                        <p id="ficDetailStart" class="font-bold"></p>
+                    </div>
+                    <div class="bg-black/5 dark:bg-white/5 rounded-lg p-2 text-center">
+                        <p class="opacity-60">收盘</p>
+                        <p id="ficDetailEnd" class="font-bold hidden-close">***</p>
+                        <p id="ficDetailEndReal" class="font-bold hidden"></p>
+                    </div>
+                    <div class="bg-black/5 dark:bg-white/5 rounded-lg p-2 text-center">
+                        <p class="opacity-60">波动</p>
+                        <p id="ficDetailVol" class="font-bold text-purple-300 hidden-close">**%</p>
+                        <p id="ficDetailVolReal" class="font-bold text-purple-300 hidden"></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="h-48 mb-4">
+                <canvas id="ficDetailChart"></canvas>
+            </div>
+            
+            <div id="ficEndedNotice" class="hidden mb-4 p-3 rounded-lg bg-success/20 text-success text-sm text-center">
+                该股指已收盘
+            </div>
+            
+            <button id="ficTradeBtn" onclick="app.openPositionModalFromDetail()" class="w-full py-3 rounded-xl bg-purple-500 text-white font-bold text-sm hover:bg-purple-500/90 transition-colors mb-2">
+                对此建仓
+            </button>
+        </div>
+    </div>
+
+    <!-- 管理面板 -->
+    <div id="adminPanel" class="hidden fixed inset-0 z-[70] bg-black/90 backdrop-blur-sm overflow-y-auto">
+        <div class="min-h-screen p-4 pb-20">
+            <div class="sticky top-0 z-10 glass rounded-xl px-4 py-3 mb-4 flex justify-between items-center bg-gray-900/80 dark:bg-gray-900/80 light:bg-white/80">
+                <h3 class="font-bold text-lg">超级管理面板</h3>
+                <button onclick="app.closeAdminPanel()" class="p-2 hover:bg-white/10 rounded-full">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <!-- 创建游戏股指 -->
+            <div class="glass rounded-xl p-4 mb-4">
+                <h4 class="font-bold mb-3 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                    游戏股指管理
+                </h4>
+                <button onclick="app.showCreateFictionalModal()" class="w-full py-2 rounded-lg bg-purple-500/20 text-purple-300 text-sm font-medium hover:bg-purple-500/30 transition-colors mb-3">
+                    + 创建新游戏股指
+                </button>
+                <div id="adminFictionalList" class="space-y-2">
+                    <!-- 管理列表 -->
+                </div>
+            </div>
+
+            <!-- 用户管理 -->
+            <div class="glass rounded-xl p-4">
+                <h4 class="font-bold mb-3 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-primary"></span>
+                    用户资金管理
+                </h4>
+                <div id="adminUserList" class="space-y-2">
+                    <!-- 用户列表 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建游戏股指模态框 -->
+    <div id="createFictionalModal" class="hidden fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass w-full max-w-md rounded-2xl p-6 bg-gray-900 dark:bg-gray-900 light:bg-white max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-purple-300">创建游戏股指</h3>
+                <button onclick="app.closeCreateFictionalModal()" class="p-2 hover:bg-white/10 rounded-full">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs opacity-60 mb-1">股指名称</label>
+                    <input type="text" id="ficName" placeholder="例如：超级牛市指数" class="w-full px-4 py-3 rounded-xl bg-black/10 dark:bg-white/10 border border-transparent focus:border-purple-500 focus:outline-none">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs opacity-60 mb-1">开盘点数</label>
+                        <input type="number" id="ficStartIndex" value="3000" class="w-full px-4 py-3 rounded-xl bg-black/10 dark:bg-white/10 border border-transparent focus:border-purple-500 focus:outline-none font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs opacity-60 mb-1">收盘点数</label>
+                        <input type="number" id="ficEndIndex" value="3500" class="w-full px-4 py-3 rounded-xl bg-black/10 dark:bg-white/10 border border-transparent focus:border-purple-500 focus:outline-none font-mono">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs opacity-60 mb-2">交易时长</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button onclick="app.selectFicDuration(5)" data-dur="5" class="dur-btn px-2 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-xs border border-purple-500">5分</button>
+                        <button onclick="app.selectFicDuration(15)" data-dur="15" class="dur-btn px-2 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-xs border border-transparent">15分</button>
+                        <button onclick="app.selectFicDuration(30)" data-dur="30" class="dur-btn px-2 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-xs border border-transparent">30分</button>
+                        <button onclick="app.selectFicDuration(60)" data-dur="60" class="dur-btn px-2 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-xs border border-transparent">1小时</button>
+                        <button onclick="app.selectFicDuration(180)" data-dur="180" class="dur-btn px-2 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-xs border border-transparent">3小时</button>
+                        <button onclick="app.selectFicDuration(480)" data-dur="480" class="dur-btn px-2 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-xs border border-transparent">8小时</button>
+                        <button onclick="app.selectFicDuration(720)" data-dur="720" class="dur-btn px-2 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-xs border border-transparent">12小时</button>
+                        <button onclick="app.selectFicDuration(1440)" data-dur="1440" class="dur-btn px-2 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-xs border border-transparent">24小时</button>
+                    </div>
+                </div>
+
+                <!-- 震荡模式选择 -->
+                <div>
+                    <label class="block text-xs opacity-60 mb-2">震荡模式</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="app.selectVolatility(0.003)" data-vol="0.003" class="vol-btn px-3 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-xs border border-transparent">小幅震荡</button>
+                        <button onclick="app.selectVolatility(0.01)" data-vol="0.01" class="vol-btn px-3 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-xs border border-purple-500">中等震荡</button>
+                        <button onclick="app.selectVolatility(0.03)" data-vol="0.03" class="vol-btn px-3 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-xs border border-transparent">大幅震荡</button>
+                    </div>
+                    <p class="text-[10px] opacity-60 mt-1">震荡幅度决定运行过程中的价格波动大小</p>
+                </div>
+
+                <div class="h-32 bg-black/5 dark:bg-white/5 rounded-xl p-2">
+                    <canvas id="ficPreviewChart"></canvas>
+                </div>
+            </div>
+
+            <button onclick="app.createFictionalIndex()" class="w-full mt-4 py-3 rounded-xl bg-purple-500 text-white font-bold text-sm hover:bg-purple-500/90 transition-colors">
+                创建股指
+            </button>
+        </div>
+    </div>
+
+    <!-- 修改余额模态框 -->
+    <div id="editBalanceModal" class="hidden fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass w-full max-w-sm rounded-2xl p-6 bg-gray-900 dark:bg-gray-900 light:bg-white">
+            <h3 class="font-bold mb-4">修改用户余额</h3>
+            <p id="editTargetUser" class="text-sm opacity-60 mb-4"></p>
+            <input type="number" id="newBalanceInput" class="w-full px-4 py-3 rounded-xl bg-black/10 dark:bg-white/10 border border-transparent focus:border-primary focus:outline-none mb-4 font-mono text-lg">
+            <div class="flex gap-3">
+                <button onclick="app.closeEditBalanceModal()" class="flex-1 py-3 rounded-xl bg-white/10 text-sm font-medium">取消</button>
+                <button onclick="app.saveUserBalance()" class="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-bold">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认卖出模态框 -->
+    <div id="sellModal" class="hidden fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass w-full max-w-sm rounded-2xl p-6 bg-gray-900 dark:bg-gray-900 light:bg-white">
+            <h3 class="font-bold mb-4">确认卖出</h3>
+            <div class="mb-4 space-y-2">
+                <p class="text-sm opacity-60">标的：<span id="sellTargetName" class="font-bold text-white"></span></p>
+                <p class="text-sm opacity-60">当前盈亏：<span id="sellTargetProfit" class="font-bold"></span></p>
+                <p class="text-xs text-warning mt-2">注：实时卖出将立即结算，按照当前指数价格计算盈亏。</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="app.closeSellModal()" class="flex-1 py-3 rounded-xl bg-white/10 text-sm font-medium">取消</button>
+                <button onclick="app.confirmSell()" class="flex-1 py-3 rounded-xl bg-danger text-white text-sm font-bold">确认卖出</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast提示 -->
+    <div id="toast" class="hidden fixed top-20 left-1/2 transform -translate-x-1/2 z-[100] px-6 py-3 rounded-full bg-gray-800 text-white text-sm font-medium shadow-lg border border-white/10">
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- JavaScript代码 -->
+    <script>
+        // 登录码配置（来自文本文档）
+        const LOGIN_CODES = {
+            // 球队账号
+            "SAVGFC": { name: "首都守护者足球俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E5%93%88%E5%8D%A1%E6%8B%89%E6%89%98%E7%89%B9%E5%8D%A111.png" },
+            "SEMARANG": { name: "三宝敦队官方", type: "球队", avatar: "https://suttergov.github.io/%E4%B8%89%E5%AE%9D%E6%95%A6.png" },
+            "DPEAGLES": { name: "东平雄鹰足球俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E4%B8%9C%E5%B9%B3%E9%9B%84%E9%B9%B0.png" },
+            "QUEENS": { name: "TheUnited-女王镇联合足球俱乐部官方", type: "球队", avatar: "https://suttergov.github.io/%E4%BC%8A%E4%B8%BD%E8%8E%8E%E7%99%BD%E8%81%94%E5%90%88.png" },
+            "TEKMAUFC": { name: "泰克马联合官方", type: "球队", avatar: "https://suttergov.github.io/%E4%BC%8A%E6%96%AF%E7%89%B9%E4%BC%8D%E5%BE%B7%E8%81%94%E5%90%88%E6%96%B02.png" },
+            "HAJADEEN": { name: "哈贾丹太平洋人俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E5%93%88%E8%B4%BE%E4%B8%B9%E5%A4%AA%E5%B9%B3%E6%B4%8B%E4%BA%BA.png" },
+            "CNLFC": { name: "坎布尔新吕伐登足球俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E5%9D%8E%E5%B8%83%E5%B0%94%E6%96%B0%E5%90%95%E4%BC%90%E7%99%BB.png" },
+            "SEAGULL": { name: "奥顿兰海鸥男足", type: "球队", avatar: "https://suttergov.github.io/%E5%A5%A5%E9%A1%BF%E5%85%B0%E6%B5%B7%E6%B8%AF.png" },
+            "EASTWOOD": { name: "东木市职业足球俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E5%AD%94%E6%81%A9%E5%BA%A6%E5%8D%A2FC.png" },
+            "LAANA": { name: "LA'ANAFC79-拉阿纳队", type: "球队", avatar: "https://suttergov.github.io/%E6%8B%89%E9%98%BF%E7%BA%B3%E5%9F%8E%E5%B8%82%E7%AB%9E%E6%8A%80.png" },
+            "SBOTOP": { name: "斯波托普城市足球俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E6%96%AF%E6%B3%A2%E6%89%98%E6%99%AE%E5%9F%8E%E5%B8%82.png" },
+            "XINNANCHENG": { name: "新南城足球俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E6%96%B0%E6%B3%B0%E6%96%B03.png" },
+            "DAHWAHA": { name: "新达华哈海岸官方", type: "球队", avatar: "https://suttergov.github.io/%E6%96%B0%E8%BE%BE%E5%8D%8E%E5%93%88%E6%B5%B7%E5%B2%B8.png" },
+            "CAGOUS": { name: "瓦巴萨朱树鸦CAGOUSFC", type: "球队", avatar: "https://suttergov.github.io/%E7%93%A6%E5%B7%B4%E8%90%A8%E6%9C%B1%E6%A0%91%E9%B8%A6.png" },
+            "ROYALS": { name: "皇家萨乌萨乌足球俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E7%9A%87%E5%AE%B6%E8%90%A8%E4%B9%8C%E8%90%A8%E4%B9%8C.png" },
+            "MURAJA": { name: "穆拉哈西部队", type: "球队", avatar: "https://suttergov.github.io/%E7%A9%86%E6%8B%89%E5%93%88%E8%A5%BF%E9%83%A8.png" },
+            "LBJ": { name: "三宝敦乐邦战士足球俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E7%BB%B4%E5%B0%94%E5%9B%BE%E9%92%A2%E7%AE%A1.png" },
+            "DAIZHOU": { name: "色温岱州东岳俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E8%89%B2%E6%B8%A9%E5%B2%B1%E5%B7%9E%E4%B8%9C%E5%B2%B3.png" },
+            "BFFC": { name: "巴峰足球俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E8%90%A8%E4%B9%8C%E8%90%A8%E4%B9%8C%E6%96%B0.png" },
+            "NORWICH": { name: "诺维奇港NorwichPortFC", type: "球队", avatar: "https://suttergov.github.io/%E8%AF%BA%E7%BB%B4%E5%A5%87%E6%B8%AF%E6%96%B0.png" },
+            "ROVERS": { name: "RoversOfficial流浪者队官方", type: "球队", avatar: "https://suttergov.github.io/%E9%98%BF%E5%B0%94%E7%89%B9%E5%BC%97%E9%9B%B7%E5%A5%87%E6%B5%81%E6%B5%AA%E8%80%85.png" },
+            "USP": { name: "南太平洋大学色温校区", type: "球队", avatar: "https://suttergov.github.io/%E5%8D%97%E5%A4%AA%E5%A4%A7%E6%96%B0%E6%B3%B0.png" },
+            "MAREK": { name: "马雷克青春之城足球俱乐部", type: "球队", avatar: "https://suttergov.github.io/%E9%A9%AC%E9%9B%B7%E5%85%8B%E6%96%B0.png" },
+            // 个人账号
+            "LAXI": { name: "拉西弗谢", type: "个人", avatar: "https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52870242240935_.png" },
+            "MAHAOYU": { name: "马浩宇", type: "个人", avatar: "https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52887690550188_.png" },
+            "CARLO": { name: "卡罗", type: "个人", avatar: "https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52875610863799_.png" },
+            "JUDE": { name: "裘德·乔克雷斯", type: "个人", avatar: "https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52892253943504_.png" },
+            // Media媒体账号组
+            "MEDIA": { 
+                name: "足球市场网", 
+                type: "媒体", 
+                avatar: "https://cdn.brandfetch.io/footmercato.net/fallback/lettermark/theme/dark/h/256/w/256/icon?c=1bfwsmEH20zzEfSNTed", 
+                isAdmin: true,
+                isMediaGroup: true,
+                subAccounts: [
+                    { name: "足球市场网", avatar: "https://cdn.brandfetch.io/footmercato.net/fallback/lettermark/theme/dark/h/256/w/256/icon?c=1bfwsmEH20zzEfSNTed" },
+                    { name: "队报", avatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTOiDuzVeBrpk8XzlT--IPXX67Vj6MRxBzTYw&s" },
+                    { name: "DavidOrnstein", avatar: "https://i.namu.wiki/i/XC4wy5GaIVBbUDyH6RzFvd_Brfj8K3V0CfShFPTlhEO4IpwVuqKBv5SIK8FUjqGXyMCQ9DB1UjMGituufctDaA.webp" },
+                    { name: "FabrizioRomano", avatar: "https://cachedimages.podchaser.com/256x256/aHR0cHM6Ly9jb250ZW50LnByb2R1Y3Rpb24uY2RuLmFydDE5LmNvbS9pbWFnZXMvZTUvNTQvMTYvMTgvZTU1NDE2MTgtNzc1Ni00ZmY1LWE5MTgtZDhiOGIwZTlhZTU2L2MwN2Q5OWFiNmVmZGEwY2Y1ZWViOWQwZmNmMTQ1NDY5YjcxNTljYjUwMmM4Yzg0NjMyNWZmNzJiMjhlZDczYmNiM2Y3ZmJiYTJlMzQyZjNkMjE1YmJmNzg1OGU0YWZkNmMxNmQyNDYxYjhhYTdiZTViY2IyMDc5YmRmMDE2NmIzLmpwZWc%3D/aHR0cHM6Ly93d3cucG9kY2hhc2VyLmNvbS9pbWFnZXMvbWlzc2luZy1pbWFnZS5wbmc%3D" },
+                    { name: "加西亚邮报", avatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT7A2UlVPRErxcM3xCJNLkCyAfPUUAGI1sKuw&s" },
+                    { name: "ESPN", avatar: "https://cdn.iconscout.com/icon/free/png-256/free-espn-logo-icon-svg-download-png-461787.png" },
+                    { name: "大巴姆岛先驱者早报", avatar: "https://d3g9pb5nvr3u7.cloudfront.net/sites/529657a5bc4626126841af46/2078558977/256.png" },
+                    { name: "泰克马广播网", avatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTnFfUS6rne2qcqcXn7LoXCnjZUFMwAnJs1ZQ&s" },
+                    { name: "马雷克晚旗报", avatar: "https://weshipyou.com/_next/static/media/we-ship-you-logo.e8e4ea74.png" },
+                    { name: "比列趋势电讯报", avatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgiLqXK1a6T4yNxtVZ8ftWJR8tSWo3TJWt-A&s" },
+                    { name: "穆拉哈体育图片报", avatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRR5z_UIup_BW25Km2jiDRVeX8GGtMu-h6DBg&s" },
+                    { name: "群岛标准早报", avatar: "https://cdn.brandfetch.io/efe.com/fallback/lettermark/theme/dark/h/256/w/256/icon?c=1bfwsmEH20zzEfSNTed" }
+                ]
+            }
+        };
+
+        // 汇率配置 - 使用 Frankfurter API (免费，无需API Key)
+        const CURRENCY_PAIRS = {
+            'EURUSD': { name: '欧元/美元', base: 'EUR', quote: 'USD', unit: '汇率' },
+            'GBPUSD': { name: '英镑/美元', base: 'GBP', quote: 'USD', unit: '汇率' },
+            'USDJPY': { name: '美元/日元', base: 'USD', quote: 'JPY', unit: '汇率' },
+            'USDCNY': { name: '美元/人民币', base: 'USD', quote: 'CNY', unit: '汇率' },
+            'AUDUSD': { name: '澳元/美元', base: 'AUD', quote: 'USD', unit: '汇率' },
+            'USDCAD': { name: '美元/加元', base: 'USD', quote: 'CAD', unit: '汇率' },
+            'USDCHF': { name: '美元/瑞郎', base: 'USD', quote: 'CHF', unit: '汇率' },
+            'EURCNY': { name: '欧元/人民币', base: 'EUR', quote: 'CNY', unit: '汇率' }
+        };
+
+        // Supabase配置
+        const SUPABASE_URL = 'https://ufzfjtupttqrqbmrzuen.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmemZqdHVwdHRxcnFibXJ6dWVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NTAxOTksImV4cCI6MjA4NzQyNjE5OX0.QEmHWxfNJgHNf6uIdmXydRmE2D2wE5AKgBGJU_6fEPc';
+        let supabaseClient = null;
+
+        // 全局错误处理
+        window.onerror = function(msg, url, line) {
+            console.error('Error: ' + msg + '\nURL: ' + url + '\nLine: ' + line);
+            return false;
+        };
+
+        const app = {
+            currentUser: null,
+            currentIndices: {},
+            fictionalIndices: [],
+            selectedIndex: null,
+            selectedType: 'half',
+            selectedFicType: 5,
+            selectedFicDuration: 5,
+            selectedVolatility: 0.01, // 默认中等震荡
+            isFictionalPosition: false,
+            currentFictionalIndex: null,
+            positions: [],
+            allUsers: [],
+            editingUser: null,
+            sellingPosition: null,
+            operationLogs: [],
+            updateInterval: null,
+            balanceUpdateInterval: null, // 新增：余额实时更新定时器
+            fictionalIntervals: {},
+            previewChart: null,
+            detailChart: null,
+
+            async init() {
+                try {
+                    this.loadTheme();
+                    
+                    // 初始化Supabase
+                    try {
+                        if (typeof supabase !== 'undefined' && supabase.createClient) {
+                            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                            console.log('Supabase initialized');
+                        }
+                    } catch(e) {
+                        console.log('Supabase init failed, using local mode:', e);
+                    }
+                    
+                    // 立即获取真实数据
+                    await this.fetchIndices();
+                    await this.loadFictionalIndices();
+                    
+                    // 设置实时汇率刷新间隔（30秒）
+                    this.updateInterval = setInterval(() => this.fetchIndices(), 30 * 1000);
+                    
+                    // 设置持仓盈亏实时更新（每秒更新一次显示）
+                    this.balanceUpdateInterval = setInterval(() => {
+                        if (this.currentUser && this.positions.length > 0) {
+                            this.updateBalance();
+                            this.renderPositions();
+                            this.renderHeroList(); // 实时更新英雄榜
+                        }
+                    }, 1000);
+                    
+                    // 检查登录状态
+                    const saved = localStorage.getItem('stockGameUser');
+                    if (saved) {
+                        this.currentUser = JSON.parse(saved);
+                        this.showMain();
+                    }
+                } catch (error) {
+                    console.error('Init error:', error);
+                }
+            },
+
+            // 根据仓位类型获取刷新间隔（毫秒）
+            getRefreshInterval(durationMinutes) {
+                if (durationMinutes === 5) return 30 * 1000;      // 5分钟：30秒
+                if (durationMinutes === 15 || durationMinutes === 30) return 60 * 1000; // 15/30分钟：1分钟
+                return 5 * 60 * 1000; // 1/3/8/12/24小时：5分钟
+            },
+
+            toggleTheme() {
+                const isDark = document.documentElement.classList.toggle('dark');
+                document.documentElement.classList.toggle('light', !isDark);
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            },
+
+            loadTheme() {
+                const saved = localStorage.getItem('theme');
+                const isDark = saved ? saved === 'dark' : true;
+                document.documentElement.classList.toggle('dark', isDark);
+                document.documentElement.classList.toggle('light', !isDark);
+            },
+
+            async login() {
+                try {
+                    const code = document.getElementById('loginCodeInput').value.toUpperCase().trim();
+                    const user = LOGIN_CODES[code];
+                    if (!user) { 
+                        this.showToast('❌ 登录码错误'); 
+                        return; 
+                    }
+                    
+                    // 处理Media媒体组账号
+                    if (user.isMediaGroup) {
+                        this.currentUser = { 
+                            code: code, 
+                            name: user.subAccounts[0].name,
+                            type: user.type, 
+                            avatar: user.subAccounts[0].avatar,
+                            isAdmin: true,
+                            isMediaGroup: true,
+                            mediaGroup: user.subAccounts,
+                            currentMediaIndex: 0,
+                            balance: 5000000, 
+                            id: code 
+                        };
+                    } else {
+                        this.currentUser = { 
+                            code: code, 
+                            name: user.name,
+                            type: user.type, 
+                            avatar: user.avatar,
+                            isAdmin: user.isAdmin || false,
+                            balance: 5000000, 
+                            id: code 
+                        };
+                    }
+                    
+                    await this.initUserData();
+                    localStorage.setItem('stockGameUser', JSON.stringify(this.currentUser));
+                    this.showToast('✅ 登录成功');
+                    this.showMain();
+                } catch (error) {
+                    console.error('Login error:', error);
+                    this.showToast('登录失败');
+                }
+            },
+
+            // Media账号切换功能
+            showMediaSwitch() {
+                if (!this.currentUser || !this.currentUser.isMediaGroup) return;
+                
+                const list = document.getElementById('mediaAccountList');
+                list.innerHTML = this.currentUser.mediaGroup.map((acc, idx) => `
+                    <div onclick="app.switchMediaAccount(${idx})" class="flex items-center gap-3 p-3 rounded-lg ${idx === this.currentUser.currentMediaIndex ? 'bg-purple-500/30 border border-purple-500' : 'bg-black/5 dark:bg-white/5 hover:bg-white/10'} cursor-pointer transition-colors">
+                        <img src="${acc.avatar}" class="w-10 h-10 rounded-full object-cover bg-gray-700">
+                        <div class="flex-1">
+                            <p class="font-bold text-sm">${acc.name}</p>
+                            <p class="text-xs opacity-60">媒体账号</p>
+                        </div>
+                        ${idx === this.currentUser.currentMediaIndex ? '<span class="text-purple-400 text-xs">当前</span>' : ''}
+                    </div>
+                `).join('');
+                
+                document.getElementById('mediaSwitchPanel').classList.remove('hidden');
+            },
+
+            closeMediaSwitch() {
+                document.getElementById('mediaSwitchPanel').classList.add('hidden');
+            },
+
+            switchMediaAccount(index) {
+                if (!this.currentUser || !this.currentUser.mediaGroup) return;
+                
+                const acc = this.currentUser.mediaGroup[index];
+                this.currentUser.currentMediaIndex = index;
+                this.currentUser.name = acc.name;
+                this.currentUser.avatar = acc.avatar;
+                
+                // 更新显示
+                document.getElementById('userName').textContent = this.currentUser.name;
+                document.getElementById('userAvatar').src = this.currentUser.avatar;
+                
+                localStorage.setItem('stockGameUser', JSON.stringify(this.currentUser));
+                this.closeMediaSwitch();
+                this.showToast(`✅ 已切换至 ${acc.name}`);
+            },
+
+            async initUserData() {
+                if (!supabaseClient) return;
+                try {
+                    const { data } = await supabaseClient
+                        .from('users')
+                        .select('*')
+                        .eq('login_code', this.currentUser.code)
+                        .single();
+                    
+                    if (!data) {
+                        await supabaseClient.from('users').insert({
+                            login_code: this.currentUser.code,
+                            username: this.currentUser.name,
+                            account_type: this.currentUser.type,
+                            avatar: this.currentUser.avatar,
+                            balance: 5000000,
+                            created_at: new Date().toISOString()
+                        });
+                    } else { 
+                        this.currentUser.balance = data.balance || 5000000; 
+                    }
+                } catch(e) {
+                    console.log('User init error:', e);
+                }
+            },
+
+            logout() {
+                this.currentUser = null;
+                localStorage.removeItem('stockGameUser');
+                Object.values(this.fictionalIntervals).forEach(interval => clearInterval(interval));
+                this.fictionalIntervals = {};
+                if (this.balanceUpdateInterval) {
+                    clearInterval(this.balanceUpdateInterval);
+                }
+                
+                document.getElementById('loginPage').classList.remove('hidden');
+                document.getElementById('mainPage').classList.add('hidden');
+                document.getElementById('loginCodeInput').value = '';
+            },
+
+            showMain() {
+                document.getElementById('loginPage').classList.add('hidden');
+                document.getElementById('mainPage').classList.remove('hidden');
+                
+                document.getElementById('userName').textContent = this.currentUser.name;
+                document.getElementById('accountType').textContent = this.currentUser.type;
+                document.getElementById('userAvatar').src = this.currentUser.avatar;
+                
+                // 显示Media切换按钮
+                if (this.currentUser.isMediaGroup) {
+                    document.getElementById('mediaSwitchBtn').classList.remove('hidden');
+                } else {
+                    document.getElementById('mediaSwitchBtn').classList.add('hidden');
+                }
+                
+                if (this.currentUser.isAdmin) {
+                    document.getElementById('adminBtn').classList.remove('hidden');
+                } else {
+                    document.getElementById('adminBtn').classList.add('hidden');
+                }
+                
+                this.updateBalance();
+                this.loadPositions();
+                this.loadLogs();
+                this.renderIndices();
+                this.renderFictionalIndices();
+                this.renderHeroList(); // 渲染英雄榜
+            },
+
+            // 使用 Frankfurter API 获取实时汇率（免费，无需API Key）
+            async fetchIndices() {
+                try {
+                    // 获取所有基础货币的汇率
+                    const bases = ['USD', 'EUR', 'GBP', 'AUD'];
+                    const results = {};
+                    
+                    for (const base of bases) {
+                        try {
+                            const response = await fetch(`https://api.frankfurter.dev/v1/latest?base=${base}&symbols=USD,EUR,GBP,JPY,CNY,CAD,CHF,AUD`);
+                            if (!response.ok) continue;
+                            
+                            const data = await response.json();
+                            if (data && data.rates) {
+                                results[base] = data.rates;
+                            }
+                        } catch (e) {
+                            console.warn(`Failed to fetch ${base} rates:`, e);
+                        }
+                    }
+                    
+                    // 计算各货币对的汇率
+                    Object.keys(CURRENCY_PAIRS).forEach(key => {
+                        const pair = CURRENCY_PAIRS[key];
+                        let value = null;
+                        let prevValue = null;
+                        
+                        if (results[pair.base] && results[pair.base][pair.quote]) {
+                            value = results[pair.base][pair.quote];
+                            // 模拟前一天的值（实际应用中应该获取历史数据）
+                            prevValue = value * (1 + (Math.random() - 0.5) * 0.02); 
+                        }
+                        
+                        if (value !== null) {
+                            this.currentIndices[key] = {
+                                name: pair.name,
+                                value: value,
+                                prevValue: prevValue || value,
+                                unit: pair.unit,
+                                change: (((value - (prevValue || value)) / (prevValue || value)) * 100).toFixed(2)
+                            };
+                        }
+                    });
+                    
+                    // 如果API失败，使用模拟数据作为后备
+                    if (Object.keys(this.currentIndices).length === 0) {
+                        this.useMockData();
+                    }
+                    
+                    this.renderIndices();
+                    
+                    const now = new Date();
+                    document.getElementById('updateTime').textContent = 
+                        `更新: ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+                        
+                } catch (e) {
+                    console.error('Fetch indices error:', e);
+                    this.useMockData();
+                    this.renderIndices();
+                }
+            },
+
+            // 后备模拟数据
+            useMockData() {
+                const mockRates = {
+                    'EURUSD': 1.0845,
+                    'GBPUSD': 1.2630,
+                    'USDJPY': 149.50,
+                    'USDCNY': 7.24,
+                    'AUDUSD': 0.6520,
+                    'USDCAD': 1.3520,
+                    'USDCHF': 0.8830,
+                    'EURCNY': 7.85
+                };
+                
+                Object.keys(CURRENCY_PAIRS).forEach(key => {
+                    if (!this.currentIndices[key]) {
+                        const baseValue = mockRates[key] || 1.0;
+                        const variation = (Math.random() - 0.5) * 0.01;
+                        const value = baseValue * (1 + variation);
+                        
+                        this.currentIndices[key] = {
+                            name: CURRENCY_PAIRS[key].name,
+                            value: value,
+                            prevValue: baseValue,
+                            unit: '汇率',
+                            change: (variation * 100).toFixed(2)
+                        };
+                    }
+                });
+            },
+
+            renderIndices() {
+                const list = document.getElementById('indexList');
+                if (!list) return;
+                
+                const keys = Object.keys(this.currentIndices);
+                if (keys.length === 0) return;
+                
+                list.innerHTML = keys.map(key => {
+                    const idx = this.currentIndices[key];
+                    const isUp = parseFloat(idx.change) >= 0;
+                    
+                    return `<div onclick="app.openPositionModal('${key}')" class="index-card glass rounded-xl p-4 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="font-bold text-sm truncate pr-2">${idx.name}</h4>
+                            <span class="text-xs ${isUp ? 'text-success' : 'text-danger'}">${isUp ? '+' : ''}${idx.change}%</span>
+                        </div>
+                        <p class="text-xl font-bold font-mono ${isUp ? 'pulse-up' : 'pulse-down'}">${parseFloat(idx.value).toFixed(4)}</p>
+                        <p class="text-xs opacity-60 mt-1">${idx.unit}</p>
+                    </div>`;
+                }).join('');
+            },
+
+            // 计算持仓的浮动盈亏
+            calculatePositionProfit(pos) {
+                let currentValue;
+                if (pos.is_fictional) {
+                    const fic = this.fictionalIndices.find(f => f.id === pos.fictional_id);
+                    currentValue = fic ? fic.current_index : pos.entry_index;
+                } else {
+                    const idx = this.currentIndices[pos.index_name];
+                    currentValue = idx ? idx.value : pos.entry_index;
+                }
+                
+                const change = currentValue - pos.entry_index;
+                const profit = pos.amount * (change / pos.entry_index);
+                return { profit, currentValue, changePct: (change / pos.entry_index * 100) };
+            },
+
+            // 计算用户的总资产（余额+持仓市值）
+            calculateUserTotalAsset(userCode, userBalance) {
+                // 从localStorage获取该用户的持仓
+                const savedPositions = localStorage.getItem('positions_' + userCode);
+                const positions = savedPositions ? JSON.parse(savedPositions) : [];
+                
+                let totalPositionValue = 0;
+                positions.filter(p => p.status === 'open').forEach(pos => {
+                    const { profit } = this.calculatePositionProfit(pos);
+                    totalPositionValue += (pos.amount + profit);
+                });
+                
+                return (userBalance || 5000000) + totalPositionValue;
+            },
+
+            // 渲染英雄榜
+            renderHeroList() {
+                const list = document.getElementById('heroList');
+                if (!list) return;
+                
+                // 获取所有预定义用户
+                const allUsers = Object.entries(LOGIN_CODES).map(([code, info]) => {
+                    // 获取用户的余额（从localStorage或默认500万）
+                    const savedUser = localStorage.getItem('stockGameUser');
+                    let balance = 5000000;
+                    if (savedUser) {
+                        const userData = JSON.parse(savedUser);
+                        if (userData.code === code) {
+                            balance = userData.balance || 5000000;
+                        }
+                    }
+                    
+                    // 从数据库获取该用户的余额
+                    const userPositions = localStorage.getItem('positions_' + code);
+                    let userBalance = balance;
+                    
+                    // 计算总资产
+                    const totalAsset = this.calculateUserTotalAsset(code, userBalance);
+                    const profit = totalAsset - 5000000;
+                    const profitPct = ((profit / 5000000) * 100).toFixed(2);
+                    
+                    return {
+                        code: code,
+                        name: info.isMediaGroup ? info.subAccounts[0].name : info.name,
+                        avatar: info.isMediaGroup ? info.subAccounts[0].avatar : info.avatar,
+                        type: info.type,
+                        totalAsset: totalAsset,
+                        profit: profit,
+                        profitPct: parseFloat(profitPct)
+                    };
+                });
+                
+                // 按盈亏排序（赚最多的在前）
+                allUsers.sort((a, b) => b.profit - a.profit);
+                
+                // 只显示前5名和最后2名（如果用户多）
+                const topUsers = allUsers.slice(0, 5);
+                
+                list.innerHTML = topUsers.map((user, index) => {
+                    const isProfit = user.profit >= 0;
+                    const rank = index + 1;
+                    const rankClass = rank === 1 ? 'hero-rank-1' : (rank === 2 ? 'hero-rank-2' : (rank === 3 ? 'hero-rank-3' : 'hero-card'));
+                    const medal = rank === 1 ? '👑' : (rank === 2 ? '🥈' : (rank === 3 ? '🥉' : `<span class="text-xs opacity-60">#${rank}</span>`));
+                    
+                    return `<div class="${rankClass} rounded-xl p-3 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="text-lg">${medal}</div>
+                            <div class="w-8 h-8 rounded-full bg-gray-700 overflow-hidden">
+                                <img src="${user.avatar}" class="w-full h-full object-cover">
+                            </div>
+                            <div>
+                                <p class="font-bold text-sm">${user.name}</p>
+                                <p class="text-[10px] opacity-60">${user.code}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold text-sm ${isProfit ? 'text-success' : 'text-danger'}">${isProfit ? '+' : ''}${this.formatNumber(user.profit)}</p>
+                            <p class="text-[10px] ${isProfit ? 'text-success' : 'text-danger'}">${isProfit ? '+' : ''}${user.profitPct}%</p>
+                        </div>
+                    </div>`;
+                }).join('');
+            },
+
+            // 游戏股指管理
+            async loadFictionalIndices() {
+                try {
+                    if (supabaseClient) {
+                        const { data, error } = await supabaseClient
+                            .from('fictional_indices')
+                            .select('*')
+                            .order('created_at', { ascending: false });
+                        
+                        if (error) {
+                            console.error('Load fictional error:', error);
+                            throw error;
+                        }
+                        this.fictionalIndices = data || [];
+                    } else {
+                        const saved = localStorage.getItem('fictional_indices');
+                        this.fictionalIndices = saved ? JSON.parse(saved) : [];
+                    }
+                    
+                    this.startFictionalUpdates();
+                    this.renderFictionalIndices();
+                } catch (e) {
+                    console.error('Load fictional error:', e);
+                    const saved = localStorage.getItem('fictional_indices');
+                    this.fictionalIndices = saved ? JSON.parse(saved) : [];
+                    this.renderFictionalIndices();
+                }
+            },
+
+            startFictionalUpdates() {
+                // 清除旧定时器
+                Object.values(this.fictionalIntervals).forEach(interval => clearInterval(interval));
+                this.fictionalIntervals = {};
+                
+                this.fictionalIndices.forEach(fic => {
+                    if (fic.status === 'active') {
+                        this.updateSingleFictional(fic);
+                        const interval = this.getRefreshInterval(fic.duration_minutes);
+                        this.fictionalIntervals[fic.id] = setInterval(() => {
+                            this.updateSingleFictional(fic);
+                        }, interval);
+                    }
+                });
+            },
+
+            updateSingleFictional(fic) {
+                try {
+                    const now = new Date();
+                    const startTime = new Date(fic.start_time);
+                    const elapsedMinutes = (now - startTime) / (1000 * 60);
+                    
+                    if (elapsedMinutes >= fic.duration_minutes) {
+                        fic.status = 'ended';
+                        fic.current_index = fic.end_index;
+                        this.saveFictionalIndices();
+                        this.renderFictionalIndices();
+                        
+                        if (this.fictionalIntervals[fic.id]) {
+                            clearInterval(this.fictionalIntervals[fic.id]);
+                            delete this.fictionalIntervals[fic.id];
+                        }
+                    } else {
+                        const progress = elapsedMinutes / fic.duration_minutes;
+                        const drift = fic.end_index - fic.start_index;
+                        
+                        // 基于震荡幅度计算价格波动
+                        const volatility = fic.volatility || 0.01; // 默认中等震荡1%
+                        const baseVolatility = Math.abs(drift) * volatility * (1 - progress * 0.5);
+                        const randomWalk = (Math.random() - 0.5) * baseVolatility;
+                        
+                        // 添加趋势回归因子，确保最终接近目标收盘点
+                        const trendFactor = 0.3; // 30%的趋势牵引力
+                        const expectedValue = fic.start_index + drift * progress;
+                        fic.current_index = expectedValue * (1 - trendFactor) + (expectedValue + randomWalk) * trendFactor;
+                        
+                        // 确保不会偏离目标太远
+                        const maxDeviation = Math.abs(drift) * 0.15; // 最大偏离15%
+                        const deviation = fic.current_index - expectedValue;
+                        if (Math.abs(deviation) > maxDeviation) {
+                            fic.current_index = expectedValue + (deviation > 0 ? maxDeviation : -maxDeviation);
+                        }
+                        
+                        if (!fic.price_history) fic.price_history = [];
+                        fic.price_history.push(fic.current_index);
+                        if (fic.price_history.length > 50) fic.price_history.shift();
+                        
+                        this.updateFictionalDisplay(fic);
+                    }
+                } catch (e) {
+                    console.error('Update fictional error:', e);
+                }
+            },
+
+            updateFictionalDisplay(fic) {
+                if (this.currentFictionalIndex && this.currentFictionalIndex.id === fic.id) {
+                    this.updateFictionalDetail();
+                }
+                this.renderFictionalMiniChart(fic);
+            },
+
+            renderFictionalMiniChart(fic) {
+                const canvas = document.getElementById(`fic-mini-${fic.id}`);
+                if (!canvas || !fic.price_history || fic.price_history.length < 2) return;
+                
+                try {
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) return;
+                    
+                    if (canvas.chart) {
+                        canvas.chart.destroy();
+                    }
+                    
+                    canvas.chart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: fic.price_history.map((_, i) => i),
+                            datasets: [{
+                                data: fic.price_history,
+                                borderColor: '#a78bfa',
+                                borderWidth: 2,
+                                pointRadius: 0,
+                                tension: 0.4,
+                                fill: false
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: { x: { display: false }, y: { display: false } },
+                            animation: { duration: 0 }
+                        }
+                    });
+                } catch (e) {
+                    console.error('Mini chart error:', e);
+                }
+            },
+
+            renderFictionalIndices() {
+                const list = document.getElementById('fictionalList');
+                if (!list) return;
+                
+                const activeFictions = this.fictionalIndices.filter(f => f.status === 'active');
+                
+                if (activeFictions.length === 0) {
+                    list.innerHTML = '<p class="text-center text-sm opacity-40 py-4">暂无进行中的游戏股指</p>';
+                    return;
+                }
+                
+                list.innerHTML = activeFictions.map(fic => {
+                    const startTime = new Date(fic.start_time);
+                    const elapsed = (new Date() - startTime) / (1000 * 60);
+                    const remaining = Math.max(0, fic.duration_minutes - elapsed);
+                    const hours = Math.floor(remaining / 60);
+                    const minutes = Math.floor(remaining % 60);
+                    const seconds = Math.floor((remaining * 60) % 60);
+                    const change = ((fic.current_index - fic.start_index) / fic.start_index * 100).toFixed(2);
+                    const isUp = parseFloat(change) >= 0;
+                    
+                    return `<div onclick="app.showFictionalDetail('${fic.id}')" class="fictional-card rounded-xl p-4 cursor-pointer hover:opacity-90 transition-opacity">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h4 class="font-bold text-sm text-purple-300">${fic.name}</h4>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300">游戏</span>
+                            </div>
+                            <span class="text-xs countdown text-purple-400">${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}</span>
+                        </div>
+                        <div class="flex justify-between items-end">
+                            <p class="text-2xl font-bold font-mono ${isUp ? 'text-success' : 'text-danger'}">${fic.current_index.toFixed(2)}</p>
+                            <span class="text-xs ${isUp ? 'text-success' : 'text-danger'}">${isUp ? '+' : ''}${change}%</span>
+                        </div>
+                        <div class="h-12 mt-2">
+                            <canvas id="fic-mini-${fic.id}"></canvas>
+                        </div>
+                    </div>`;
+                }).join('');
+                
+                setTimeout(() => {
+                    activeFictions.forEach(fic => this.renderFictionalMiniChart(fic));
+                }, 100);
+            },
+
+            async saveFictionalIndices() {
+                try {
+                    if (supabaseClient) {
+                        for (let fic of this.fictionalIndices) {
+                            if (fic.id && fic.status === 'ended') {
+                                await supabaseClient
+                                    .from('fictional_indices')
+                                    .update({ status: 'ended', current_index: fic.current_index })
+                                    .eq('id', fic.id);
+                            }
+                        }
+                    }
+                    localStorage.setItem('fictional_indices', JSON.stringify(this.fictionalIndices));
+                } catch (e) {
+                    console.error('Save fictional error:', e);
+                }
+            },
+
+            showFictionalDetail(id) {
+                const fic = this.fictionalIndices.find(f => f.id === id);
+                if (!fic) return;
+                this.currentFictionalIndex = fic;
+                document.getElementById('fictionalDetailModal').classList.remove('hidden');
+                this.updateFictionalDetail();
+            },
+
+            updateFictionalDetail() {
+                if (!this.currentFictionalIndex) return;
+                const fic = this.currentFictionalIndex;
+                const isEnded = fic.status === 'ended';
+                
+                document.getElementById('ficDetailName').textContent = fic.name;
+                document.getElementById('ficDetailCurrent').textContent = fic.current_index.toFixed(2);
+                document.getElementById('ficDetailStart').textContent = fic.start_index.toFixed(0);
+                
+                // 根据状态显示/隐藏收盘数据
+                const endEl = document.getElementById('ficDetailEnd');
+                const endRealEl = document.getElementById('ficDetailEndReal');
+                const volEl = document.getElementById('ficDetailVol');
+                const volRealEl = document.getElementById('ficDetailVolReal');
+                const tradeBtn = document.getElementById('ficTradeBtn');
+                const endedNotice = document.getElementById('ficEndedNotice');
+                
+                if (isEnded) {
+                    // 已收盘：显示真实数据
+                    endEl.classList.add('hidden');
+                    endRealEl.classList.remove('hidden');
+                    endRealEl.textContent = fic.end_index.toFixed(0);
+                    
+                    volEl.classList.add('hidden');
+                    volRealEl.classList.remove('hidden');
+                    const vol = Math.abs((fic.end_index - fic.start_index) / fic.start_index * 100).toFixed(2);
+                    volRealEl.textContent = vol + '%';
+                    
+                    tradeBtn.classList.add('hidden');
+                    endedNotice.classList.remove('hidden');
+                } else {
+                    // 交易中：隐藏收盘数据
+                    endEl.classList.remove('hidden');
+                    endRealEl.classList.add('hidden');
+                    
+                    volEl.classList.remove('hidden');
+                    volRealEl.classList.add('hidden');
+                    
+                    tradeBtn.classList.remove('hidden');
+                    endedNotice.classList.add('hidden');
+                }
+                
+                const startTime = new Date(fic.start_time);
+                const elapsed = (new Date() - startTime) / (1000 * 60);
+                const remaining = Math.max(0, fic.duration_minutes - elapsed);
+                const hours = Math.floor(remaining / 60);
+                const minutes = Math.floor(remaining % 60);
+                const seconds = Math.floor((remaining * 60) % 60);
+                
+                document.getElementById('ficDetailCountdown').textContent = 
+                    `${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+                
+                this.renderFictionalDetailChart(fic);
+            },
+
+            renderFictionalDetailChart(fic) {
+                const canvas = document.getElementById('ficDetailChart');
+                if (!canvas || !fic.price_history) return;
+                
+                try {
+                    const ctx = canvas.getContext('2d');
+                    if (this.detailChart) this.detailChart.destroy();
+                    
+                    const isUp = fic.current_index >= fic.start_index;
+                    const color = isUp ? '#10b981' : '#ef4444';
+                    
+                    this.detailChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: fic.price_history.map((_, i) => i),
+                            datasets: [{
+                                data: fic.price_history,
+                                borderColor: color,
+                                backgroundColor: color + '20',
+                                borderWidth: 2,
+                                fill: true,
+                                pointRadius: 0,
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: { display: false },
+                                y: { 
+                                    display: true, 
+                                    grid: { color: 'rgba(128,128,128,0.2)' },
+                                    ticks: { color: 'inherit' }
+                                }
+                            },
+                            animation: { duration: 0 }
+                        }
+                    });
+                } catch (e) {
+                    console.error('Detail chart error:', e);
+                }
+            },
+
+            closeFictionalDetail() {
+                document.getElementById('fictionalDetailModal').classList.add('hidden');
+                this.currentFictionalIndex = null;
+            },
+
+            openPositionModalFromDetail() {
+                if (!this.currentFictionalIndex || this.currentFictionalIndex.status === 'ended') return;
+                const fic = this.currentFictionalIndex;
+                this.closeFictionalDetail();
+                setTimeout(() => {
+                    this.openFictionalPositionModal(fic);
+                }, 200);
+            },
+
+            showAdminPanel() {
+                if (!this.currentUser || !this.currentUser.isAdmin) { 
+                    this.showToast('无权访问'); 
+                    return; 
+                }
+                document.getElementById('adminPanel').classList.remove('hidden');
+                this.loadAllUsers();
+                this.renderAdminFictionalList();
+            },
+
+            closeAdminPanel() {
+                document.getElementById('adminPanel').classList.add('hidden');
+            },
+
+            async loadAllUsers() {
+                try {
+                    // 首先加载所有预定义登录码用户
+                    const predefinedUsers = Object.entries(LOGIN_CODES).map(([code, info]) => ({
+                        login_code: code,
+                        username: info.isMediaGroup ? '媒体账号' : info.name,
+                        account_type: info.type,
+                        avatar: info.isMediaGroup ? info.subAccounts[0].avatar : info.avatar,
+                        balance: 5000000,
+                        is_predefined: true
+                    }));
+
+                    if (supabaseClient) {
+                        // 获取数据库中的用户数据（可能包含更新的余额）
+                        const { data: dbUsers, error } = await supabaseClient
+                            .from('users')
+                            .select('*')
+                            .order('created_at', { ascending: false });
+                        
+                        if (error) throw error;
+                        
+                        // 合并数据：预定义用户为基础，用数据库数据覆盖余额
+                        const userMap = new Map();
+                        
+                        // 先添加所有预定义用户
+                        predefinedUsers.forEach(u => userMap.set(u.login_code, u));
+                        
+                        // 用数据库数据更新或补充
+                        if (dbUsers) {
+                            dbUsers.forEach(dbUser => {
+                                if (userMap.has(dbUser.login_code)) {
+                                    // 更新预定义用户的余额
+                                    userMap.get(dbUser.login_code).balance = dbUser.balance || 5000000;
+                                    userMap.get(dbUser.login_code).id = dbUser.id;
+                                } else {
+                                    // 添加数据库中特有的用户
+                                    userMap.set(dbUser.login_code, {
+                                        ...dbUser,
+                                        is_predefined: false
+                                    });
+                                }
+                            });
+                        }
+                        
+                        this.allUsers = Array.from(userMap.values());
+                    } else {
+                        this.allUsers = predefinedUsers;
+                    }
+                    
+                    this.renderAdminUserList();
+                } catch (e) {
+                    console.error('Load users error:', e);
+                    // 失败时至少显示预定义用户
+                    this.allUsers = Object.entries(LOGIN_CODES).map(([code, info]) => ({
+                        login_code: code,
+                        username: info.isMediaGroup ? '媒体账号' : info.name,
+                        account_type: info.type,
+                        balance: 5000000
+                    }));
+                    this.renderAdminUserList();
+                }
+            },
+
+            renderAdminUserList() {
+                const list = document.getElementById('adminUserList');
+                if (!list) return;
+                
+                if (this.allUsers.length === 0) {
+                    list.innerHTML = '<p class="text-center opacity-40 text-sm">暂无用户数据</p>';
+                    return;
+                }
+                
+                list.innerHTML = this.allUsers.map(user => {
+                    // 计算用户的真实总资产（余额+持仓市值）
+                    const totalAsset = this.calculateUserTotalAsset(user.login_code, user.balance || 5000000);
+                    const profit = totalAsset - 5000000;
+                    const isProfit = profit >= 0;
+                    
+                    return `<div class="flex items-center justify-between p-3 rounded-lg bg-black/5 dark:bg-white/5">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold">
+                                ${user.login_code.substring(0, 2)}
+                            </div>
+                            <div>
+                                <p class="font-medium text-sm">${user.username}</p>
+                                <p class="text-xs opacity-60">${user.login_code} | ${user.account_type}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="text-right">
+                                <span class="font-bold text-sm">¥${this.formatNumber(totalAsset)}</span>
+                                <p class="text-[10px] ${isProfit ? 'text-success' : 'text-danger'}">${isProfit ? '+' : ''}¥${this.formatNumber(profit)}</p>
+                            </div>
+                            <button onclick="app.openEditBalance('${user.login_code}', '${user.username}', ${user.balance || 5000000})" class="p-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>`;
+                }).join('');
+            },
+
+            renderAdminFictionalList() {
+                const list = document.getElementById('adminFictionalList');
+                if (!list) return;
+                
+                if (this.fictionalIndices.length === 0) {
+                    list.innerHTML = '<p class="text-center opacity-40 text-sm">暂无游戏股指</p>';
+                    return;
+                }
+                
+                list.innerHTML = this.fictionalIndices.map(fic => {
+                    const statusText = fic.status === 'active' ? '进行中' : '已结束';
+                    const statusColor = fic.status === 'active' ? 'text-success' : 'text-gray-400';
+                    const volText = (fic.volatility === 0.003) ? '小幅' : (fic.volatility === 0.03 ? '大幅' : '中等');
+                    return `<div class="p-3 rounded-lg bg-black/5 dark:bg-white/5 border border-purple-500/20">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-bold text-purple-300">${fic.name}</span>
+                            <span class="text-xs ${statusColor}">${statusText}</span>
+                        </div>
+                        <div class="text-xs opacity-60 mb-2">
+                            开盘: ${fic.start_index} → 收盘: ${fic.status === 'ended' ? fic.end_index : '***'} | 
+                            时长: ${fic.duration_minutes}分钟 | 
+                            刷新: ${this.getRefreshText(fic.duration_minutes)} |
+                            模式: ${volText}震荡
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="app.deleteFictionalIndex('${fic.id}')" class="flex-1 py-2 rounded-lg bg-danger/20 text-danger text-xs font-medium">删除</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            },
+
+            getRefreshText(minutes) {
+                if (minutes === 5) return '30秒';
+                if (minutes === 15 || minutes === 30) return '1分钟';
+                return '5分钟';
+            },
+
+            showCreateFictionalModal() {
+                this.selectedFicDuration = 5;
+                this.selectedVolatility = 0.01; // 默认中等
+                document.getElementById('createFictionalModal').classList.remove('hidden');
+                document.querySelectorAll('.dur-btn').forEach(btn => {
+                    btn.classList.remove('border-purple-500', 'bg-purple-500', 'text-white');
+                    btn.classList.add('bg-purple-500/20');
+                });
+                const defaultBtn = document.querySelector('[data-dur="5"]');
+                if (defaultBtn) {
+                    defaultBtn.classList.remove('bg-purple-500/20');
+                    defaultBtn.classList.add('border-purple-500', 'bg-purple-500', 'text-white');
+                }
+                // 重置震荡模式选择
+                document.querySelectorAll('.vol-btn').forEach(btn => {
+                    btn.classList.remove('border-purple-500');
+                    btn.classList.add('border-transparent');
+                });
+                const defaultVolBtn = document.querySelector('[data-vol="0.01"]');
+                if (defaultVolBtn) {
+                    defaultVolBtn.classList.remove('border-transparent');
+                    defaultVolBtn.classList.add('border-purple-500');
+                }
+                this.updatePreviewChart();
+            },
+
+            closeCreateFictionalModal() {
+                document.getElementById('createFictionalModal').classList.add('hidden');
+            },
+
+            selectFicDuration(minutes) {
+                this.selectedFicDuration = minutes;
+                document.querySelectorAll('.dur-btn').forEach(btn => {
+                    btn.classList.remove('border-purple-500', 'bg-purple-500', 'text-white');
+                    btn.classList.add('bg-purple-500/20');
+                });
+                const active = document.querySelector(`[data-dur="${minutes}"]`);
+                if (active) {
+                    active.classList.remove('bg-purple-500/20');
+                    active.classList.add('border-purple-500', 'bg-purple-500', 'text-white');
+                }
+                this.updatePreviewChart();
+            },
+
+            selectVolatility(vol) {
+                this.selectedVolatility = vol;
+                document.querySelectorAll('.vol-btn').forEach(btn => {
+                    btn.classList.remove('border-purple-500');
+                    btn.classList.add('border-transparent');
+                });
+                const active = document.querySelector(`[data-vol="${vol}"]`);
+                if (active) {
+                    active.classList.remove('border-transparent');
+                    active.classList.add('border-purple-500');
+                }
+                this.updatePreviewChart();
+            },
+
+            updatePreviewChart() {
+                try {
+                    const start = parseFloat(document.getElementById('ficStartIndex').value) || 3000;
+                    const end = parseFloat(document.getElementById('ficEndIndex').value) || 3500;
+                    const canvas = document.getElementById('ficPreviewChart');
+                    if (!canvas) return;
+                    
+                    const ctx = canvas.getContext('2d');
+                    
+                    // 模拟价格波动
+                    const points = [];
+                    const steps = 20;
+                    const volatility = this.selectedVolatility;
+                    for (let i = 0; i <= steps; i++) {
+                        const t = i / steps;
+                        const linearValue = start + (end - start) * t;
+                        const noise = (Math.random() - 0.5) * Math.abs(end - start) * volatility;
+                        points.push(linearValue + noise);
+                    }
+                    
+                    if (this.previewChart) this.previewChart.destroy();
+                    
+                    this.previewChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: points.map((_, i) => i),
+                            datasets: [{
+                                data: points,
+                                borderColor: '#a78bfa',
+                                backgroundColor: 'rgba(167, 139, 250, 0.1)',
+                                borderWidth: 2,
+                                fill: true,
+                                pointRadius: 0,
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: { x: { display: false }, y: { display: false } }
+                        }
+                    });
+                } catch (e) {
+                    console.error('Preview chart error:', e);
+                }
+            },
+
+            async createFictionalIndex() {
+                try {
+                    const name = document.getElementById('ficName').value.trim();
+                    const start = parseFloat(document.getElementById('ficStartIndex').value);
+                    const end = parseFloat(document.getElementById('ficEndIndex').value);
+                    
+                    if (!name || isNaN(start) || isNaN(end)) { 
+                        this.showToast('❌ 请填写完整信息'); 
+                        return; 
+                    }
+                    
+                    const fic = {
+                        name: name,
+                        start_index: start,
+                        end_index: end,
+                        current_index: start,
+                        duration_minutes: this.selectedFicDuration,
+                        volatility: this.selectedVolatility, // 震荡幅度
+                        start_time: new Date().toISOString(),
+                        status: 'active',
+                        created_by: this.currentUser.code,
+                        price_history: [start],
+                        created_at: new Date().toISOString()
+                    };
+                    
+                    if (supabaseClient) {
+                        const { data, error } = await supabaseClient
+                            .from('fictional_indices')
+                            .insert(fic)
+                            .select()
+                            .single();
+                        
+                        if (error) {
+                            console.error('Insert error:', error);
+                            throw error;
+                        }
+                        fic.id = data.id;
+                        console.log('Created fictional index:', data);
+                    } else {
+                        fic.id = Date.now().toString();
+                    }
+                    
+                    this.fictionalIndices.push(fic);
+                    await this.saveFictionalIndices();
+                    
+                    const interval = this.getRefreshInterval(fic.duration_minutes);
+                    this.fictionalIntervals[fic.id] = setInterval(() => {
+                        this.updateSingleFictional(fic);
+                    }, interval);
+                    
+                    this.showToast('✅ 游戏股指创建成功');
+                    this.closeCreateFictionalModal();
+                    this.renderFictionalIndices();
+                    this.renderAdminFictionalList();
+                    
+                    // 清空输入
+                    document.getElementById('ficName').value = '';
+                } catch (e) {
+                    console.error('Create fictional error:', e);
+                    this.showToast('❌ 创建失败: ' + (e.message || '未知错误'));
+                }
+            },
+
+            async deleteFictionalIndex(id) {
+                if (!confirm('确定要删除这个游戏股指吗？')) return;
+                
+                if (this.fictionalIntervals[id]) {
+                    clearInterval(this.fictionalIntervals[id]);
+                    delete this.fictionalIntervals[id];
+                }
+                
+                try {
+                    if (supabaseClient) {
+                        await supabaseClient.from('fictional_indices').delete().eq('id', id);
+                    }
+                } catch (e) {
+                    console.error('Delete error:', e);
+                }
+                
+                this.fictionalIndices = this.fictionalIndices.filter(f => f.id !== id);
+                localStorage.setItem('fictional_indices', JSON.stringify(this.fictionalIndices));
+                this.showToast('✅ 已删除');
+                this.renderFictionalIndices();
+                this.renderAdminFictionalList();
+            },
+
+            openFictionalPositionModal(fic) {
+                if (fic.status === 'ended') {
+                    this.showToast('该股指已收盘，无法建仓');
+                    return;
+                }
+                this.isFictionalPosition = true;
+                this.selectedIndex = 'fictional_' + fic.id;
+                this.currentFictionalIndex = fic;
+                
+                document.getElementById('modalTitle').textContent = '建仓 (游戏股指)';
+                document.getElementById('positionModal').classList.remove('hidden');
+                document.getElementById('positionTypeContainer').classList.add('hidden');
+                document.getElementById('fictionalTypeContainer').classList.remove('hidden');
+                document.getElementById('selectedIndexName').textContent = fic.name;
+                document.getElementById('selectedIndexValue').textContent = fic.current_index.toFixed(2) + ' 点';
+                this.selectFictionalType(5);
+            },
+
+            openPositionModal(indexKey) {
+                this.isFictionalPosition = false;
+                if (indexKey) this.selectedIndex = indexKey;
+                if (!this.selectedIndex) { 
+                    this.showToast('请先选择一个汇率'); 
+                    return; 
+                }
+                
+                document.getElementById('modalTitle').textContent = '建仓 (实时汇率)';
+                document.getElementById('positionModal').classList.remove('hidden');
+                document.getElementById('positionTypeContainer').classList.remove('hidden');
+                document.getElementById('fictionalTypeContainer').classList.add('hidden');
+                
+                const idx = this.currentIndices[this.selectedIndex];
+                document.getElementById('selectedIndexName').textContent = idx.name;
+                document.getElementById('selectedIndexValue').textContent = parseFloat(idx.value).toFixed(4) + ' ' + idx.unit;
+                this.selectType('half');
+            },
+
+            closePositionModal() { 
+                document.getElementById('positionModal').classList.add('hidden'); 
+                this.isFictionalPosition = false;
+            },
+
+            selectType(type) {
+                this.selectedType = type;
+                document.querySelectorAll('.type-btn').forEach(btn => {
+                    btn.classList.remove('border-primary', 'bg-primary/20');
+                    btn.classList.add('border-transparent', 'bg-black/5', 'dark:bg-white/10');
+                });
+                const active = document.querySelector(`[data-type="${type}"]`);
+                if (active) {
+                    active.classList.remove('border-transparent', 'bg-black/5', 'dark:bg-white/10');
+                    active.classList.add('border-primary', 'bg-primary/20');
+                }
+                this.calculateSettlementTime();
+            },
+
+            selectFictionalType(minutes) {
+                this.selectedFicType = minutes;
+                document.querySelectorAll('.fic-type-btn').forEach(btn => {
+                    btn.classList.remove('border-purple-500', 'bg-purple-500', 'text-white');
+                    btn.classList.add('bg-purple-500/20');
+                });
+                const active = document.querySelector(`[data-fic-type="${minutes}"]`);
+                if (active) {
+                    active.classList.remove('bg-purple-500/20');
+                    active.classList.add('border-purple-500', 'bg-purple-500', 'text-white');
+                }
+                const now = new Date();
+                const settleTime = new Date(now.getTime() + minutes * 60000);
+                document.getElementById('settlementDesc').textContent = 
+                    `${minutes}分钟后结算 (${settleTime.getHours().toString().padStart(2,'0')}:${settleTime.getMinutes().toString().padStart(2,'0')})`;
+            },
+
+            calculateSettlementTime() {
+                const now = new Date();
+                const hour = now.getHours();
+                const type = this.selectedType;
+                let settlementTime = new Date(now);
+                let desc = '';
+                
+                if (type === 'half') {
+                    if (hour >= 22 || hour < 6) {
+                        settlementTime.setDate(settlementTime.getDate() + 1);
+                        settlementTime.setHours(6, 0, 0, 0);
+                        desc = '次日 06:00 结算（跨夜半日仓）';
+                    } else { 
+                        settlementTime.setHours(22, 0, 0, 0); 
+                        desc = '今日 22:00 结算'; 
+                    }
+                } else if (type === 'one') { 
+                    settlementTime.setHours(22, 0, 0, 0); 
+                    desc = '今日 22:00 结算'; 
+                } else if (type === 'one_half') { 
+                    settlementTime.setDate(settlementTime.getDate() + 1); 
+                    settlementTime.setHours(6, 0, 0, 0); 
+                    desc = '明日 06:00 结算'; 
+                } else if (type === 'two') { 
+                    settlementTime.setDate(settlementTime.getDate() + 1); 
+                    settlementTime.setHours(22, 0, 0, 0); 
+                    desc = '明日 22:00 结算'; 
+                } else if (type === 'three') { 
+                    settlementTime.setDate(settlementTime.getDate() + 2); 
+                    settlementTime.setHours(22, 0, 0, 0); 
+                    desc = `${settlementTime.getMonth()+1}/${settlementTime.getDate()} 22:00 结算`; 
+                }
+                
+                document.getElementById('settlementDesc').textContent = desc;
+                return settlementTime;
+            },
+
+            setAmount(val) { 
+                document.getElementById('positionAmount').value = val; 
+            },
+
+            async createPosition() {
+                try {
+                    const amount = parseInt(document.getElementById('positionAmount').value);
+                    
+                    if (!amount || amount < 50000) { 
+                        this.showToast('❌ 最低建仓金额为5万'); 
+                        return; 
+                    }
+                    if (amount > this.currentUser.balance) { 
+                        this.showToast('❌ 可用资金不足'); 
+                        return; 
+                    }
+                    
+                    let position = {
+                        user_id: this.currentUser.code,
+                        amount: amount,
+                        entry_time: new Date().toISOString(),
+                        status: 'open',
+                        created_at: new Date().toISOString(),
+                        is_fictional: this.isFictionalPosition
+                    };
+
+                    if (this.isFictionalPosition) {
+                        const fic = this.currentFictionalIndex;
+                        if (!fic || fic.status === 'ended') {
+                            this.showToast('❌ 该游戏股指已结束交易');
+                            return;
+                        }
+                        const settlementTime = new Date(new Date().getTime() + this.selectedFicType * 60000);
+                        position = { 
+                            ...position, 
+                            index_name: this.selectedIndex,
+                            index_display: fic.name,
+                            position_type: 'fictional_' + this.selectedFicType,
+                            entry_index: fic.current_index,
+                            settlement_time: settlementTime.toISOString(),
+                            fictional_id: fic.id
+                        };
+                        
+                        // 记录操作日志
+                        this.addLog('buy', fic.name, amount, fic.current_index, '游戏股指');
+                    } else {
+                        const settlementTime = this.calculateSettlementTime();
+                        const idx = this.currentIndices[this.selectedIndex];
+                        position = {
+                            ...position,
+                            index_name: this.selectedIndex,
+                            index_display: idx.name,
+                            position_type: this.selectedType,
+                            entry_index: idx.value,
+                            settlement_time: settlementTime.toISOString()
+                        };
+                        
+                        // 记录操作日志
+                        this.addLog('buy', idx.name, amount, idx.value, '实时汇率');
+                    }
+
+                    // 先更新本地，再尝试同步数据库
+                    position.id = Date.now().toString();
+                    this.positions.push(position);
+                    this.savePositions();
+                    
+                    // 尝试写入Supabase（如果失败不影响本地交易）
+                    if (supabaseClient) {
+                        try {
+                            const { error } = await supabaseClient.from('positions').insert(position);
+                            if (error) {
+                                console.warn('Supabase insert failed (using local only):', error);
+                            }
+                        } catch (dbError) {
+                            console.warn('Database error (using local only):', dbError);
+                        }
+                    }
+                    
+                    this.currentUser.balance -= amount;
+                    this.saveUserData();
+                    
+                    this.showToast('✅ 建仓成功');
+                    this.closePositionModal();
+                    this.loadPositions();
+                    this.renderHeroList(); // 更新英雄榜
+                } catch (e) {
+                    console.error('Create position error:', e);
+                    this.showToast('❌ 建仓失败: ' + e.message);
+                }
+            },
+
+            // 卖出功能 - 打开卖出确认框
+            openSellModal(positionId) {
+                const pos = this.positions.find(p => p.id === positionId && p.status === 'open');
+                if (!pos) return;
+                
+                this.sellingPosition = pos;
+                
+                const { profit, currentValue } = this.calculatePositionProfit(pos);
+                const isProfit = profit >= 0;
+                
+                document.getElementById('sellTargetName').textContent = pos.index_display;
+                const profitEl = document.getElementById('sellTargetProfit');
+                profitEl.textContent = (isProfit ? '+' : '') + '¥' + this.formatNumber(profit);
+                profitEl.className = isProfit ? 'font-bold text-success' : 'font-bold text-danger';
+                
+                document.getElementById('sellModal').classList.remove('hidden');
+            },
+
+            closeSellModal() {
+                document.getElementById('sellModal').classList.add('hidden');
+                this.sellingPosition = null;
+            },
+
+            // 确认卖出
+            async confirmSell() {
+                if (!this.sellingPosition) return;
+                
+                const pos = this.sellingPosition;
+                const { profit, currentValue } = this.calculatePositionProfit(pos);
+                
+                // 更新仓位状态
+                pos.status = 'closed';
+                pos.exit_index = currentValue;
+                pos.profit_loss = profit;
+                pos.settled_at = new Date().toISOString();
+                pos.sold_early = true; // 标记为提前卖出
+                
+                // 更新余额（本金+盈亏）
+                this.currentUser.balance += pos.amount + profit;
+                
+                // 记录日志
+                this.addLog('sell', pos.index_display, pos.amount, currentValue, 
+                    pos.is_fictional ? '游戏股指' : '实时汇率', profit);
+                
+                this.savePositions();
+                this.saveUserData();
+                
+                this.closeSellModal();
+                this.loadPositions();
+                this.renderHeroList(); // 更新英雄榜
+                this.showToast(`✅ 卖出成功，${profit >= 0 ? '盈利' : '亏损'} ¥${this.formatNumber(Math.abs(profit))}`);
+            },
+
+            // 操作日志功能
+            addLog(type, target, amount, price, category, profit = null) {
+                const log = {
+                    id: Date.now(),
+                    type: type, // 'buy', 'sell', 'settle'
+                    target: target,
+                    amount: amount,
+                    price: price,
+                    category: category,
+                    profit: profit,
+                    time: new Date().toISOString()
+                };
+                
+                this.operationLogs.unshift(log);
+                if (this.operationLogs.length > 50) {
+                    this.operationLogs = this.operationLogs.slice(0, 50);
+                }
+                
+                this.saveLogs();
+                this.renderLogs();
+            },
+
+            saveLogs() {
+                try {
+                    localStorage.setItem('logs_' + this.currentUser.code, JSON.stringify(this.operationLogs));
+                } catch (e) {
+                    console.error('Save logs error:', e);
+                }
+            },
+
+            loadLogs() {
+                try {
+                    const saved = localStorage.getItem('logs_' + this.currentUser.code);
+                    this.operationLogs = saved ? JSON.parse(saved) : [];
+                    this.renderLogs();
+                } catch (e) {
+                    console.error('Load logs error:', e);
+                    this.operationLogs = [];
+                }
+            },
+
+            renderLogs() {
+                const list = document.getElementById('logsList');
+                const countEl = document.getElementById('logCount');
+                if (!list) return;
+                
+                countEl.textContent = `${this.operationLogs.length}条记录`;
+                
+                if (this.operationLogs.length === 0) {
+                    list.innerHTML = '<p class="text-center opacity-40 text-sm py-4">暂无操作记录</p>';
+                    return;
+                }
+                
+                list.innerHTML = this.operationLogs.map(log => {
+                    const time = new Date(log.time);
+                    const timeStr = `${time.getHours().toString().padStart(2,'0')}:${time.getMinutes().toString().padStart(2,'0')}`;
+                    const isBuy = log.type === 'buy';
+                    const typeText = isBuy ? '买入' : (log.type === 'sell' ? '卖出' : '结算');
+                    const typeClass = isBuy ? 'log-buy' : (log.type === 'sell' ? 'log-sell' : 'log-settle');
+                    const profitText = log.profit !== null ? 
+                        ` | ${log.profit >= 0 ? '+' : ''}¥${this.formatNumber(log.profit)}` : '';
+                    
+                    return `<div class="log-entry ${typeClass} glass rounded-lg p-3 flex justify-between items-center">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-xs px-2 py-0.5 rounded ${isBuy ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger'}">${typeText}</span>
+                                <span class="text-xs opacity-60">${log.category}</span>
+                            </div>
+                            <p class="font-bold text-sm">${log.target}</p>
+                            <p class="text-xs opacity-60">¥${this.formatNumber(log.amount)} @ ${typeof log.price === 'number' ? log.price.toFixed(4) : log.price}${profitText}</p>
+                        </div>
+                        <span class="text-xs opacity-40">${timeStr}</span>
+                    </div>`;
+                }).join('');
+            },
+
+            clearLogs() {
+                if (!confirm('确定要清空所有操作日志吗？')) return;
+                this.operationLogs = [];
+                this.saveLogs();
+                this.renderLogs();
+                this.showToast('✅ 日志已清空');
+            },
+
+            savePositions() {
+                try {
+                    localStorage.setItem('positions_' + this.currentUser.code, JSON.stringify(this.positions));
+                } catch (e) {
+                    console.error('Save positions error:', e);
+                }
+            },
+
+            loadPositions() {
+                try {
+                    const saved = localStorage.getItem('positions_' + this.currentUser.code);
+                    this.positions = saved ? JSON.parse(saved) : [];
+                    this.checkSettlements();
+                    this.renderPositions();
+                    this.renderHistory();
+                    this.updateBalance();
+                } catch (e) {
+                    console.error('Load positions error:', e);
+                    this.positions = [];
+                }
+            },
+
+            checkSettlements() {
+                const now = new Date();
+                let settled = false;
+                
+                this.positions.forEach(pos => {
+                    if (pos.status !== 'open') return;
+                    const settleTime = new Date(pos.settlement_time);
+                    if (now >= settleTime) {
+                        const { profit, currentValue } = this.calculatePositionProfit(pos);
+                        
+                        pos.status = 'closed';
+                        pos.exit_index = currentValue;
+                        pos.profit_loss = profit;
+                        pos.settled_at = now.toISOString();
+                        
+                        this.currentUser.balance += pos.amount + profit;
+                        settled = true;
+                        
+                        // 记录结算日志
+                        this.addLog('settle', pos.index_display, pos.amount, currentValue, 
+                            pos.is_fictional ? '游戏股指' : '实时汇率', profit);
+                    }
+                });
+                
+                if (settled) {
+                    this.saveUserData();
+                    this.savePositions();
+                    this.showToast('💰 有仓位已自动结算');
+                }
+            },
+
+            renderPositions() {
+                const list = document.getElementById('positionsList');
+                if (!list) return;
+                
+                const openPositions = this.positions.filter(p => p.status === 'open');
+                document.getElementById('positionCount').textContent = `${openPositions.length}个仓位`;
+                
+                if (openPositions.length === 0) {
+                    list.innerHTML = `<div class="glass rounded-xl p-8 text-center opacity-50">
+                        <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        <p>暂无持仓</p>
+                    </div>`;
+                    return;
+                }
+                
+                list.innerHTML = openPositions.map(pos => {
+                    const { profit, currentValue, changePct } = this.calculatePositionProfit(pos);
+                    const isProfit = profit >= 0;
+                    const typeNames = { 
+                        'half': '半日仓', 'one': '一日仓', 'one_half': '1.5日仓', 
+                        'two': '二日仓', 'three': '三日仓',
+                        'fictional_5': '5分仓', 'fictional_15': '15分仓', 'fictional_30': '30分仓',
+                        'fictional_60': '1小时仓', 'fictional_180': '3小时仓',
+                        'fictional_480': '8小时仓', 'fictional_720': '12小时仓', 'fictional_1440': '24小时仓'
+                    };
+                    
+                    const settleTime = new Date(pos.settlement_time);
+                    const timeLeft = Math.max(0, settleTime - new Date());
+                    const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
+                    const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                    const isFic = pos.is_fictional;
+                    
+                    // 计算当前市值（本金+浮动盈亏）
+                    const currentMarketValue = pos.amount + profit;
+                    
+                    return `<div class="${isFic ? 'fictional-card' : 'glass'} rounded-xl p-4">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs px-2 py-1 rounded-full ${isFic ? 'bg-purple-500/20 text-purple-300' : 'bg-primary/20 text-primary'} font-medium">${typeNames[pos.position_type] || pos.position_type}</span>
+                                    ${isFic ? '<span class="text-[10px] text-purple-300">游戏</span>' : ''}
+                                </div>
+                                <p class="text-xs opacity-60 mt-1">建仓: ${typeof pos.entry_index === 'number' ? pos.entry_index.toFixed(4) : pos.entry_index} | 当前: ${typeof currentValue === 'number' ? currentValue.toFixed(4) : currentValue}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold">¥${this.formatNumber(currentMarketValue)}</p>
+                                <p class="text-xs ${isProfit ? 'text-success' : 'text-danger'}">${isProfit ? '+' : ''}¥${this.formatNumber(profit)} (${changePct.toFixed(2)}%)</p>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center pt-2 border-t border-black/5 dark:border-white/10">
+                            <span class="text-xs opacity-60">${new Date(pos.entry_time).toLocaleDateString()}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-medium ${hoursLeft < 1 ? 'text-warning' : ''}">${hoursLeft > 0 ? hoursLeft + '时' : ''}${minutesLeft}分后结算</span>
+                                <button onclick="app.openSellModal('${pos.id}')" class="px-3 py-1 rounded-lg bg-danger/20 text-danger text-xs font-medium hover:bg-danger/30 transition-colors">卖出</button>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+            },
+
+            renderHistory() {
+                const list = document.getElementById('historyList');
+                if (!list) return;
+                
+                const history = this.positions.filter(p => p.status === 'closed').slice(0, 10);
+                if (history.length === 0) { 
+                    list.innerHTML = '<p class="text-center opacity-40 text-sm py-4">暂无结算记录</p>'; 
+                    return; 
+                }
+                
+                list.innerHTML = history.map(pos => {
+                    const isProfit = pos.profit_loss >= 0;
+                    const typeNames = { 
+                        'half': '半日仓', 'one': '一日仓', 'one_half': '1.5日仓', 
+                        'two': '二日仓', 'three': '三日仓',
+                        'fictional_5': '5分仓', 'fictional_15': '15分仓', 'fictional_30': '30分仓',
+                        'fictional_60': '1小时仓', 'fictional_180': '3小时仓',
+                        'fictional_480': '8小时仓', 'fictional_720': '12小时仓', 'fictional_1440': '24小时仓'
+                    };
+                    const isFic = pos.is_fictional;
+                    const soldEarly = pos.sold_early ? '(提前卖出)' : '';
+                    
+                    return `<div class="${isFic ? 'fictional-card' : 'glass'} rounded-lg p-3 flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div>
+                                <span class="text-xs px-2 py-0.5 rounded ${isFic ? 'bg-purple-500/20 text-purple-300' : 'bg-black/5 dark:bg-white/10'}">${typeNames[pos.position_type] || pos.position_type}${soldEarly}</span>
+                                <span class="text-xs opacity-60 ml-2">${pos.index_display}</span>
+                                <p class="text-sm font-medium mt-1">${typeof pos.entry_index === 'number' ? pos.entry_index.toFixed(4) : pos.entry_index} → ${typeof pos.exit_index === 'number' ? pos.exit_index.toFixed(4) : pos.exit_index}</p>
+                            </div>
+                        </div>
+                        <span class="font-bold ${isProfit ? 'text-success' : 'text-danger'}">${isProfit ? '+' : ''}${this.formatNumber(pos.profit_loss)}</span>
+                    </div>`;
+                }).join('');
+            },
+
+            updateBalance() {
+                if (!this.currentUser) return;
+                
+                // 计算所有持仓的浮动盈亏
+                let totalFloatingProfit = 0;
+                let totalPositionValue = 0;
+                
+                this.positions.filter(p => p.status === 'open').forEach(pos => {
+                    const { profit } = this.calculatePositionProfit(pos);
+                    totalFloatingProfit += profit;
+                    totalPositionValue += (pos.amount + profit); // 市值 = 本金 + 浮动盈亏
+                });
+                
+                const totalAsset = this.currentUser.balance + totalPositionValue;
+                const initialAsset = 5000000;
+                const totalProfit = totalAsset - initialAsset;
+                const profitPct = ((totalProfit / initialAsset) * 100).toFixed(2);
+                
+                document.getElementById('availableBalance').textContent = '¥' + this.formatNumber(this.currentUser.balance);
+                document.getElementById('positionValue').textContent = '¥' + this.formatNumber(totalPositionValue);
+                document.getElementById('totalAsset').textContent = '¥' + this.formatNumber(totalAsset);
+                
+                const badge = document.getElementById('profitBadge');
+                if (totalProfit >= 0) { 
+                    badge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-success/20 text-success'; 
+                    badge.textContent = `+${this.formatNumber(totalProfit)} (${profitPct}%)`; 
+                } else { 
+                    badge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-danger/20 text-danger'; 
+                    badge.textContent = `${this.formatNumber(totalProfit)} (${profitPct}%)`; 
+                }
+            },
+
+            formatNumber(num) {
+                if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
+                if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+                return num.toFixed(0);
+            },
+
+            openEditBalance(code, name, balance) { 
+                this.editingUser = code; 
+                document.getElementById('editTargetUser').textContent = `修改用户: ${name} (${code})`; 
+                document.getElementById('newBalanceInput').value = balance; 
+                document.getElementById('editBalanceModal').classList.remove('hidden'); 
+            },
+            
+            closeEditBalanceModal() { 
+                document.getElementById('editBalanceModal').classList.add('hidden'); 
+            },
+            
+            async saveUserBalance() { 
+                const newBalance = parseFloat(document.getElementById('newBalanceInput').value); 
+                if (isNaN(newBalance)) { 
+                    this.showToast('请输入有效金额'); 
+                    return; 
+                } 
+                
+                const user = this.allUsers.find(u => u.login_code === this.editingUser);
+                if (user) user.balance = newBalance;
+                
+                if (this.currentUser.code === this.editingUser) {
+                    this.currentUser.balance = newBalance;
+                    this.saveUserData();
+                    this.updateBalance();
+                }
+                
+                try {
+                    if (supabaseClient) {
+                        // 检查用户是否存在于数据库
+                        const { data: existing } = await supabaseClient
+                            .from('users')
+                            .select('id')
+                            .eq('login_code', this.editingUser)
+                            .single();
+                        
+                        if (existing) {
+                            // 更新
+                            await supabaseClient
+                                .from('users')
+                                .update({ balance: newBalance })
+                                .eq('login_code', this.editingUser);
+                        } else {
+                            // 插入新用户（预定义用户首次修改余额时）
+                            const userInfo = LOGIN_CODES[this.editingUser];
+                            if (userInfo) {
+                                await supabaseClient.from('users').insert({
+                                    login_code: this.editingUser,
+                                    username: userInfo.isMediaGroup ? '媒体账号' : userInfo.name,
+                                    account_type: userInfo.type,
+                                    avatar: userInfo.isMediaGroup ? userInfo.subAccounts[0].avatar : userInfo.avatar,
+                                    balance: newBalance,
+                                    created_at: new Date().toISOString()
+                                });
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error('Update balance error:', e);
+                }
+                
+                this.showToast('✅ 修改成功'); 
+                this.closeEditBalanceModal(); 
+                this.renderAdminUserList(); 
+            },
+
+            saveUserData() {
+                try {
+                    localStorage.setItem('stockGameUser', JSON.stringify(this.currentUser));
+                } catch (e) {
+                    console.error('Save user error:', e);
+                }
+            },
+
+            showToast(msg) { 
+                const toast = document.getElementById('toast'); 
+                document.getElementById('toastMessage').textContent = msg; 
+                toast.classList.remove('hidden'); 
+                setTimeout(() => toast.classList.add('hidden'), 3000); 
+            }
+        };
+
+        // 启动应用
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => app.init());
+        } else {
+            app.init();
+        }
+    </script>
+</body>
+</html>

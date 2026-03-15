@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>加西亚足球 - Garcia Football</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'dq-green': '#00b561',
+                        'dq-green-dark': '#00914d',
+                        'dq-bg': '#f5f5f5',
+                        'dq-dark': '#121212',
+                        'dq-surface': '#1e1e1e'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        ::-webkit-scrollbar { display: none; width: 0; height: 0; }
+        * { scrollbar-width: none; -ms-overflow-style: none; }
+        body { 
+            -webkit-tap-highlight-color: transparent; 
+            overscroll-behavior: none;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .player-card:active, .team-card:active { transform: scale(0.98); transition: transform 0.1s; }
+        .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 80px); }
+        .tab-active { position: relative; color: #00b561; }
+        .tab-active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 3px;
+            background: #00b561;
+            border-radius: 3px;
+        }
+        .dark body { background-color: #121212; color: #e5e5e5; }
+    </style>
+</head>
+<body class="bg-dq-bg dark:bg-dq-dark text-gray-900 dark:text-gray-100 transition-colors duration-300">
+
+    <!-- 顶部栏 -->
+    <header class="sticky top-0 z-40 bg-white dark:bg-dq-surface border-b border-gray-200 dark:border-gray-800">
+        <div class="flex items-center justify-between px-4 py-3">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-dq-green rounded-lg flex items-center justify-center text-white font-bold cursor-pointer" onclick="switchTab('players')">
+                    <i class="fas fa-futbol text-sm"></i>
+                </div>
+                <span class="font-bold text-lg tracking-tight cursor-pointer" onclick="switchTab('players')">加西亚足球</span>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <button onclick="toggleSearch()" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    <i class="fas fa-search text-gray-600 dark:text-gray-400"></i>
+                </button>
+                
+                <button onclick="toggleTheme()" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    <i class="fas fa-moon dark:hidden text-gray-600"></i>
+                    <i class="fas fa-sun hidden dark:block text-yellow-400"></i>
+                </button>
+                
+                <button onclick="handleUserClick()" class="relative">
+                    <img id="headerAvatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" 
+                        class="w-9 h-9 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700">
+                    <div id="loginBadge" class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-dq-dark"></div>
+                </button>
+            </div>
+        </div>
+        
+        <div id="searchBar" class="hidden px-4 pb-3 border-t border-gray-100 dark:border-gray-800 pt-3 bg-white dark:bg-dq-surface">
+            <div class="relative">
+                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                <input type="text" id="searchInput" placeholder="搜索球员、球队..." 
+                    class="w-full bg-gray-100 dark:bg-gray-800 rounded-full py-2 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-dq-green focus:border-transparent transition-all"
+                    oninput="handleSearch(this.value)">
+            </div>
+        </div>
+        
+        <div id="subNav" class="flex border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-dq-surface">
+            <button onclick="switchFilter('all')" id="filter-all" class="flex-1 py-3 text-sm font-medium text-dq-green tab-active transition-colors">全部</button>
+            <button onclick="switchFilter('listed')" id="filter-listed" class="flex-1 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 transition-colors">转会</button>
+            <button onclick="switchFilter('loan')" id="filter-loan" class="flex-1 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 transition-colors">租借</button>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="safe-bottom pb-20">
+        <div id="loadingState" class="flex flex-col items-center justify-center py-20">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-dq-green mb-3"></div>
+            <p class="text-gray-400 text-sm">加载数据中...</p>
+        </div>
+        
+        <div id="playersView" class="hidden p-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+        <div id="teamsView" class="hidden p-3 space-y-3"></div>
+        <div id="marketView" class="hidden p-3 space-y-4">
+            <div id="marketContent"></div>
+        </div>
+        <div id="profileView" class="hidden p-4">
+            <div id="guestProfile" class="text-center py-10">
+                <div class="w-20 h-20 bg-gray-200 dark:bg-gray-800 rounded-full mx-auto mb-4 flex items-center justify-center">
+                    <i class="fas fa-user text-3xl text-gray-400"></i>
+                </div>
+                <h3 class="font-bold text-lg mb-2">游客模式</h3>
+                <p class="text-gray-500 text-sm mb-6">登录后可管理球员、发起转会等操作</p>
+                <button onclick="showLoginModal()" class="bg-dq-green text-white px-8 py-3 rounded-full font-medium shadow-lg shadow-green-500/30 active:scale-95 transition-transform">
+                    立即登录
+                </button>
+            </div>
+            
+            <div id="userProfile" class="hidden">
+                <div class="bg-white dark:bg-dq-surface rounded-2xl p-6 mb-4 shadow-sm">
+                    <div class="flex items-center space-x-4 mb-6">
+                        <img id="profileAvatar" src="" class="w-16 h-16 rounded-full object-cover border-2 border-dq-green">
+                        <div>
+                            <h3 id="profileName" class="font-bold text-xl"></h3>
+                            <span id="profileType" class="text-xs bg-dq-green/10 text-dq-green px-2 py-1 rounded-full"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
+                            <div class="text-lg font-bold text-dq-green" id="statOperations">0</div>
+                            <div class="text-xs text-gray-500">操作记录</div>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
+                            <div class="text-lg font-bold text-blue-500" id="statListed">0</div>
+                            <div class="text-xs text-gray-500">挂牌球员</div>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
+                            <div class="text-lg font-bold text-purple-500" id="statLoan">0</div>
+                            <div class="text-xs text-gray-500">租借中</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="mediaSection" class="hidden bg-white dark:bg-dq-surface rounded-2xl overflow-hidden shadow-sm mb-4">
+                    <div class="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                        <h4 class="font-bold">续约审批</h4>
+                        <span id="pendingBadge" class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full hidden">0</span>
+                    </div>
+                    <button onclick="showApprovalModal()" class="w-full p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center text-red-500">
+                                <i class="fas fa-gavel"></i>
+                            </div>
+                            <div class="text-left">
+                                <div class="font-medium">待审批申请</div>
+                                <div class="text-xs text-gray-500">查看和处理续约申请</div>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400"></i>
+                    </button>
+                </div>
+                
+                <button onclick="logout()" class="w-full bg-red-50 dark:bg-red-900/20 text-red-500 py-3 rounded-xl font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
+                    退出登录
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- 底部导航 -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-dq-surface border-t border-gray-200 dark:border-gray-800 z-40 pb-safe">
+        <div class="flex items-center justify-around h-16">
+            <button onclick="switchTab('players')" id="nav-players" class="flex-1 flex flex-col items-center justify-center space-y-1 text-dq-green">
+                <i class="fas fa-running text-xl"></i>
+                <span class="text-xs font-medium">球员</span>
+            </button>
+            <button onclick="switchTab('teams')" id="nav-teams" class="flex-1 flex flex-col items-center justify-center space-y-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                <i class="fas fa-shield-alt text-xl"></i>
+                <span class="text-xs font-medium">球队</span>
+            </button>
+            <button onclick="switchTab('market')" id="nav-market" class="flex-1 flex flex-col items-center justify-center space-y-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors relative">
+                <i class="fas fa-exchange-alt text-xl"></i>
+                <span class="text-xs font-medium">市场</span>
+                <span id="marketBadge" class="absolute top-1 right-6 w-2 h-2 bg-red-500 rounded-full hidden"></span>
+            </button>
+            <button onclick="switchTab('profile')" id="nav-profile" class="flex-1 flex flex-col items-center justify-center space-y-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                <i class="fas fa-user text-xl"></i>
+                <span class="text-xs font-medium">我的</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- 登录弹窗 -->
+    <div id="loginModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center">
+        <div class="bg-white dark:bg-dq-surface w-full max-w-md sm:rounded-2xl rounded-t-2xl p-6 slide-up shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold">账号登录</h3>
+                <button onclick="closeLoginModal()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    <i class="fas fa-times text-gray-500"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">登录码</label>
+                    <input type="text" id="loginCodeInput" placeholder="请输入登录码（如 SAVGFC）" 
+                        class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-lg font-medium uppercase tracking-wider text-center focus:ring-2 focus:ring-dq-green focus:border-transparent outline-none transition-all">
+                </div>
+                <button onclick="handleLogin()" class="w-full bg-dq-green hover:bg-dq-green-dark text-white font-bold py-3.5 rounded-xl shadow-lg shadow-green-500/30 active:scale-95 transition-all">
+                    登录系统
+                </button>
+                <button onclick="closeLoginModal()" class="w-full text-gray-500 py-2 text-sm hover:text-gray-700 transition-colors">
+                    暂不登录，继续浏览
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 球队详情弹窗 -->
+    <div id="teamModal" class="hidden fixed inset-0 z-50 bg-dq-bg dark:bg-dq-dark flex flex-col">
+        <div class="bg-dq-green text-white pt-12 pb-6 px-4 relative">
+            <button onclick="closeTeamModal()" class="absolute top-4 right-4 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                <i class="fas fa-times text-white"></i>
+            </button>
+            <button onclick="closeTeamModal()" class="absolute top-4 left-4 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                <i class="fas fa-arrow-left text-white"></i>
+            </button>
+            
+            <div class="flex items-center space-x-4 mt-4">
+                <div class="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center text-4xl backdrop-blur-sm border-2 border-white/30">
+                    ⚽
+                </div>
+                <div class="flex-1">
+                    <h2 class="text-2xl font-bold mb-1" id="teamDetailName">球队名称</h2>
+                    <p class="text-white/80 text-sm" id="teamDetailManager">管理者：-</p>
+                    <div class="flex items-center gap-2 mt-2 text-xs text-white/70">
+                        <span class="bg-white/20 px-2 py-1 rounded" id="teamDetailStadium">🏟️ -</span>
+                        <span class="bg-white/20 px-2 py-1 rounded" id="teamDetailSeats">👥 -</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto p-3 bg-dq-bg dark:bg-dq-dark">
+            <div class="flex items-center justify-between mb-3 px-1">
+                <h3 class="font-bold text-lg">球队阵容</h3>
+                <span class="text-sm text-gray-500" id="teamPlayerCount">0人</span>
+            </div>
+            <div id="teamPlayersGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 pb-20"></div>
+        </div>
+    </div>
+
+    <!-- 球员详情弹窗 -->
+    <div id="playerModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm">
+        <div class="absolute bottom-0 left-0 right-0 bg-white dark:bg-dq-surface rounded-t-3xl max-h-[90vh] overflow-hidden flex flex-col slide-up">
+            <div class="flex justify-center pt-3 pb-1 cursor-pointer" onclick="closePlayerModal()">
+                <div class="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+            </div>
+            
+            <div class="relative h-48 bg-gradient-to-b from-dq-green/20 to-transparent flex-shrink-0">
+                <button onclick="closePlayerModal()" class="absolute top-4 right-4 w-8 h-8 bg-black/10 dark:bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
+                    <i class="fas fa-times text-gray-700 dark:text-white"></i>
+                </button>
+                
+                <div class="absolute bottom-0 left-0 right-0 px-6 pb-4 flex items-end space-x-4">
+                    <div class="w-24 h-24 bg-white dark:bg-gray-800 rounded-2xl shadow-lg flex items-center justify-center text-3xl font-bold text-dq-green border-4 border-white dark:border-gray-700" id="modalPlayerAvatar">
+                    </div>
+                    <div class="flex-1 mb-1">
+                        <h2 class="text-2xl font-bold mb-1" id="modalPlayerName"></h2>
+                        <div class="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                            <span id="modalPlayerTeam" class="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" onclick="viewTeamFromPlayer()"></span>
+                            <span id="modalPlayerPos"></span>
+                        </div>
+                        <!-- 状态标签容器 -->
+                        <div id="playerStatusTags" class="flex gap-2 mt-2"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                <div class="grid grid-cols-4 gap-3">
+                    <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 text-center">
+                        <div class="text-xs text-gray-500 mb-1">年龄</div>
+                        <div class="text-lg font-bold" id="modalAge">-</div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 text-center">
+                        <div class="text-xs text-gray-500 mb-1">身高</div>
+                        <div class="text-lg font-bold" id="modalHeight">-</div>
+                    </div>
+                    <div class="bg-dq-green/10 rounded-xl p-3 text-center">
+                        <div class="text-xs text-dq-green mb-1">CA</div>
+                        <div class="text-lg font-bold text-dq-green" id="modalCA">-</div>
+                    </div>
+                    <div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-3 text-center">
+                        <div class="text-xs text-yellow-600 dark:text-yellow-400 mb-1">PA</div>
+                        <div class="text-lg font-bold text-yellow-600 dark:text-yellow-400" id="modalPA">-</div>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 space-y-3">
+                    <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700 last:border-0">
+                        <span class="text-gray-500">国籍</span>
+                        <span class="font-medium" id="modalNation">-</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700 last:border-0">
+                        <span class="text-gray-500">合同到期</span>
+                        <span class="font-medium" id="modalContract">-</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700 last:border-0">
+                        <span class="text-gray-500">年薪</span>
+                        <span class="font-medium text-dq-green" id="modalSalary">-</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700 last:border-0">
+                        <span class="text-gray-500">体重</span>
+                        <span class="font-medium" id="modalWeight">-</span>
+                    </div>
+                </div>
+                
+                <!-- 操作按钮：支持同时显示多种状态 -->
+                <div id="actionButtons" class="grid grid-cols-3 gap-3">
+                    <button onclick="showRenewalForm()" class="bg-dq-green text-white py-3 rounded-xl font-medium shadow-lg shadow-green-500/30 active:scale-95 transition-transform flex flex-col items-center gap-1">
+                        <i class="fas fa-file-signature text-lg"></i>
+                        <span class="text-xs">申请续约</span>
+                    </button>
+                    <button onclick="toggleListStatus()" id="btnList" class="bg-orange-500 text-white py-3 rounded-xl font-medium shadow-lg shadow-orange-500/30 active:scale-95 transition-transform flex flex-col items-center gap-1">
+                        <i class="fas fa-tag text-lg"></i>
+                        <span class="text-xs" id="btnListText">挂牌出售</span>
+                    </button>
+                    <button onclick="toggleLoanStatus()" id="btnLoan" class="bg-blue-500 text-white py-3 rounded-xl font-medium shadow-lg shadow-blue-500/30 active:scale-95 transition-transform flex flex-col items-center gap-1">
+                        <i class="fas fa-handshake text-lg"></i>
+                        <span class="text-xs" id="btnLoanText">放入租借</span>
+                    </button>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold mb-3 flex items-center gap-2 text-sm uppercase tracking-wider text-gray-500">
+                        <i class="fas fa-history"></i>
+                        操作记录
+                    </h4>
+                    <div id="operationLogs" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 续约申请表单弹窗 -->
+    <div id="renewalFormModal" class="hidden fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center">
+        <div class="bg-white dark:bg-dq-surface w-full max-w-md sm:rounded-2xl rounded-t-2xl p-6 slide-up shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold">申请续约</h3>
+                <button onclick="closeRenewalForm()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    <i class="fas fa-times text-gray-500"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 mb-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 bg-dq-green/10 rounded-full flex items-center justify-center text-dq-green font-bold text-lg" id="formPlayerAvatar">K</div>
+                        <div>
+                            <div class="font-bold" id="formPlayerName">Kirill Glebov</div>
+                            <div class="text-sm text-gray-500" id="formPlayerTeam">当前球队</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">期望合同年限（年）</label>
+                    <div class="flex items-center gap-2">
+                        <button onclick="adjustDuration(-1)" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <input type="number" id="expectedDuration" value="3" min="1" max="10" 
+                            class="flex-1 text-center py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-lg font-bold focus:ring-2 focus:ring-dq-green outline-none">
+                        <button onclick="adjustDuration(1)" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">期望年薪（万元）</label>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">¥</span>
+                        <input type="number" id="expectedSalary" placeholder="请输入期望年薪" 
+                            class="w-full pl-8 pr-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-lg font-medium focus:ring-2 focus:ring-dq-green outline-none">
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">当前年薪参考：¥<span id="currentSalaryRef">300</span></p>
+                </div>
+                
+                <button onclick="submitRenewal()" class="w-full bg-dq-green hover:bg-dq-green-dark text-white font-bold py-3.5 rounded-xl shadow-lg shadow-green-500/30 active:scale-95 transition-all mt-6">
+                    提交申请
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 审批弹窗 -->
+    <div id="approvalModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-dq-surface w-full max-w-lg max-h-[80vh] rounded-2xl overflow-hidden flex flex-col scale-in">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between bg-gray-50 dark:bg-gray-800">
+                <h3 class="font-bold text-lg">续约审批</h3>
+                <button onclick="closeApprovalModal()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="approvalList" class="overflow-y-auto p-4 space-y-3 flex-1"></div>
+        </div>
+    </div>
+
+    <!-- 驳回原因弹窗 -->
+    <div id="rejectModal" class="hidden fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center">
+        <div class="bg-white dark:bg-dq-surface w-full max-w-md sm:rounded-2xl rounded-t-2xl p-6 slide-up shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold">驳回申请</h3>
+                <button onclick="closeRejectModal()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    <i class="fas fa-times text-gray-500"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="bg-red-50 dark:bg-red-900/20 rounded-xl p-4 border border-red-100 dark:border-red-900/30">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center text-red-500">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold" id="rejectPlayerName">球员名称</div>
+                            <div class="text-sm text-gray-500">申请人：<span id="rejectApplicant">-</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">驳回原因</label>
+                    <textarea id="rejectReason" rows="3" placeholder="请输入驳回原因（如：薪资要求过高、合同年限过长等）" 
+                        class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-red-500 outline-none resize-none"></textarea>
+                </div>
+                
+                <div class="flex gap-3 mt-6">
+                    <button onclick="closeRejectModal()" class="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-medium py-3 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                        取消
+                    </button>
+                    <button onclick="submitReject()" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-red-500/30 active:scale-95 transition-all">
+                        确认驳回
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl z-50 hidden fade-in text-sm font-medium">
+        <span id="toastText"></span>
+    </div>
+
+    <script>
+        // ==================== 配置 ====================
+        const CONFIG = {
+            SUPABASE_URL: 'https://cckztigendaqgjzqvfdy.supabase.co',
+            SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNja3p0aWdlbmRhcWdqenF2ZmR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODc4MzAsImV4cCI6MjA4NzU2MzgzMH0.SoAo2pqS5SRFA5wEYHyp2valJzEPxCvB-MWOBqtNmTc',
+            EXCEL_URL: 'https://angreoli-fagioli-garciatest-html.static.hf.space/GarciaDatabase26.xlsx',
+            
+            LOGIN_CODES: {
+                'SAVGFC': { name: '首都守护者足球俱乐部', type: 'team', avatar: 'https://suttergov.github.io/%E5%93%88%E5%8D%A1%E6%8B%89%E6%89%98%E7%89%B9%E5%8D%A111.png' },
+                'SEMARANG': { name: '三宝敦队官方', type: 'team', avatar: 'https://suttergov.github.io/%E4%B8%89%E5%AE%9D%E6%95%A6.png' },
+                'DPEAGLES': { name: '东平雄鹰足球俱乐部', type: 'team', avatar: 'https://suttergov.github.io/%E4%B8%9C%E5%B9%B3%E9%9B%84%E9%B9%B0.png' },
+                'QUEENS': { name: '女王镇联合足球俱乐部官方', type: 'team', avatar: 'https://suttergov.github.io/%E4%BC%8A%E4%B8%BD%E8%8E%8E%E7%99%BD%E8%81%94%E5%90%88.png' },
+                'TEKMAUFC': { name: '泰克马联合官方', type: 'team', avatar: 'https://suttergov.github.io/%E4%BC%8A%E6%96%AF%E7%89%B9%E4%BC%8D%E5%BE%B7%E8%81%94%E5%90%88%E6%96%B02.png' },
+                'HAJADEEN': { name: '哈贾丹太平洋人俱乐部', type: 'team', avatar: 'https://suttergov.github.io/%E5%93%88%E8%B4%BE%E4%B8%B9%E5%A4%AA%E5%B9%B3%E6%B4%8B%E4%BA%BA.png' },
+                'CNLFC': { name: '坎布尔新吕伐登足球俱乐部', type: 'team', avatar: 'https://suttergov.github.io/%E5%9D%8E%E5%B8%83%E5%B0%94%E6%96%B0%E5%90%95%E4%BC%90%E7%99%BB.png' },
+                'SEAGULL': { name: '奥顿兰海鸥男足', type: 'team', avatar: 'https://suttergov.github.io/%E5%A5%A5%E9%A1%BF%E5%85%B0%E6%B5%B7%E6%B8%AF.png' },
+                'EASTWOOD': { name: '东木市职业足球俱乐部', type: 'team', avatar: 'https://suttergov.github.io/%E5%AD%94%E6%81%A9%E5%BA%A6%E5%8D%A2FC.png' },
+                'LAANA': { name: 'LA\'ANAFC79-拉阿纳队', type: 'team', avatar: 'https://suttergov.github.io/%E6%8B%89%E9%98%BF%E7%BA%B3%E5%9F%8E%E5%B8%82%E7%AB%9E%E6%8A%80.png' },
+                'SBOTOP': { name: '斯波托普城市足球俱乐部', type: 'team', avatar: 'https://suttergov.github.io/%E6%96%AF%E6%B3%A2%E6%89%98%E6%99%AE%E5%9F%8E%E5%B8%82.png' },
+                'XINNANCHENG': { name: '新南城足球俱乐部', type: 'team', avatar: 'https://suttergov.github.io/%E6%96%B0%E6%B3%B0%E6%96%B03.png' },
+                'DAHWAHA': { name: '新达华哈海岸官方', type: 'team', avatar: 'https://suttergov.github.io/%E6%96%B0%E8%BE%BE%E5%8D%8E%E5%93%88%E6%B5%B7%E5%B2%B8.png' },
+                'CAGOUS': { name: '瓦巴萨朱树鸦CAGOUSFC', type: 'team', avatar: 'https://suttergov.github.io/%E7%93%A6%E5%B7%B4%E8%90%A8%E6%9C%B1%E6%A0%91%E9%B8%A6.png' },
+                'ROYALS': { name: '皇家萨乌萨乌足球俱乐部', type: 'team', avatar: 'https://suttergov.github.io/%E7%9A%87%E5%AE%B6%E8%90%A8%E4%B9%8C%E8%90%A8%E4%B9%8C.png' },
+                'MURAJA': { name: '穆拉哈西部队', type: 'team', avatar: 'https://suttergov.github.io/%E7%A9%86%E6%8B%89%E5%93%88%E8%A5%BF%E9%83%A8.png' },
+                'LBJ': { name: '三宝敦乐邦战士足球俱乐部', type: 'team', avatar: 'https://suttergov.github.io/%E7%BB%B4%E5%B0%94%E5%9B%BE%E9%92%A2%E7%AE%A1.png' },
+                'DAIZHOU': { name: '色温岱州东岳俱乐部', type: 'team', avatar: 'https://suttergov.github.io/%E8%89%B2%E6%B8%A9%E5%B2%B1%E5%B7%9E%E4%B8%9C%E5%B2%B3.png' },
+                'BFFC': { name: '巴峰足球俱乐部', type: 'team', avatar: 'https://suttergov.github.io/%E8%90%A8%E4%B9%8C%E8%90%A8%E4%B9%8C%E6%96%B0.png' },
+                'NORWICH': { name: '诺维奇港NorwichPortFC', type: 'team', avatar: 'https://suttergov.github.io/%E8%AF%BA%E7%BB%B4%E5%A5%87%E6%B8%AF%E6%96%B0.png' },
+                'ROVERS': { name: 'RoversOfficial流浪者队官方', type: 'team', avatar: 'https://suttergov.github.io/%E9%98%BF%E5%B0%94%E7%89%B9%E5%BC%97%E9%9B%B7%E5%A5%87%E6%B5%81%E6%B5%AA%E8%80%85.png' },
+                'USP': { name: '南太平洋大学色温校区', type: 'team', avatar: 'https://suttergov.github.io/%E5%8D%97%E5%A4%AA%E5%A4%A7%E6%96%B0%E6%B3%B0.png' },
+                'MAREK': { name: '马雷克青春之城足球俱乐部', type: 'team', avatar: 'https://suttergov.github.io/%E9%A9%AC%E9%9B%B7%E5%85%8B%E6%96%B0.png' },
+                'LAXI': { name: '拉西弗谢', type: 'personal', avatar: 'https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52870242240935_.png' },
+                'MAHAOYU': { name: '马浩宇', type: 'personal', avatar: 'https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52887690550188_.png' },
+                'CARLO': { name: '卡罗', type: 'personal', avatar: 'https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52875610863799_.png' },
+                'JUDE': { name: '裘德·乔克雷斯', type: 'personal', avatar: 'https://www.pesmaster.com/efootball-2022/graphics/players/Variation2022/52892253943504_.png' },
+                'MEDIA': { 
+                    name: 'Media Admin', 
+                    type: 'media', 
+                    avatar: 'https://cdn.brandfetch.io/footmercato.net/fallback/lettermark/theme/dark/h/256/w/256/icon?c=1bfwsmEH20zzEfSNTed',
+                    subAccounts: [
+                        { name: '足球市场网', avatar: 'https://cdn.brandfetch.io/footmercato.net/fallback/lettermark/theme/dark/h/256/w/256/icon?c=1bfwsmEH20zzEfSNTed' },
+                        { name: '队报', avatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTOiDuzVeBrpk8XzlT--IPXX67Vj6MRxBzTYw&s' },
+                        { name: 'DavidOrnstein', avatar: 'https://i.namu.wiki/i/XC4wy5GaIVBbUDyH6RzFvd_Brfj8K3V0CfShFPTlhEO4IpwVuqKBv5SIK8FUjqGXyMCQ9DB1UjMGituufctDaA.webp' },
+                        { name: 'FabrizioRomano', avatar: 'https://cachedimages.podchaser.com/256x256/aHR0cHM6Ly9jb250ZW50LnByb2R1Y3Rpb24uY2RuLmFydDE5LmNvbS9pbWFnZXMvZTUvNTQvMTYvMTgvZTU1NDE2MTgtNzc1Ni00ZmY1LWE5MTgtZDhiOGIwZTlhZTU2L2MwN2Q5OWFiNmVmZGEwY2Y1ZWViOWQwZmNmMTQ1NDY5YjcxNTljYjUwMmM4Yzg0NjMyNWZmNzJiMjhlZDczYmNiM2Y3ZmJiYTJlMzQyZjNkMjE1YmJmNzg1OGU0YWZkNmMxNmQyNDYxYjhhYTdiZTViY2IyMDc5YmRmMDE2NmIzLmpwZWc%3D/aHR0cHM6Ly93d3cucG9kY2hhc2VyLmNvbS9pbWFnZXMvbWlzc2luZy1pbWFnZS5wbmc%3D' },
+                        { name: '加西亚邮报', avatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT7A2UlVPRErxcM3xCJNLkCyAfPUUAGI1sKuw&s' },
+                        { name: 'ESPN', avatar: 'https://cdn.iconscout.com/icon/free/png-256/free-espn-logo-icon-svg-download-png-461787.png' },
+                        { name: '大巴姆岛先驱者早报', avatar: 'https://d3g9pb5nvr3u7.cloudfront.net/sites/529657a5bc4626126841af46/2078558977/256.png' },
+                        { name: '泰克马广播网', avatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTnFfUS6rne2qcqcXn7LoXCnjZUFMwAnJs1ZQ&s' },
+                        { name: '马雷克晚旗报', avatar: 'https://weshipyou.com/_next/static/media/we-ship-you-logo.e8e4ea74.png' },
+                        { name: '比列趋势电讯报', avatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgiLqXK1a6T4yNxtVZ8ftWJR8tSWo3TJWt-A&s' },
+                        { name: '穆拉哈体育图片报', avatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRR5z_UIup_BW25Km2jiDRVeX8GGtMu-h6DBg&s' },
+                        { name: '群岛标准早报', avatar: 'https://cdn.brandfetch.io/efe.com/fallback/lettermark/theme/dark/h/256/w/256/icon?c=1bfwsmEH20zzEfSNTed' }
+                    ]
+                }
+            }
+        };
+
+        // ==================== 全局状态 ====================
+        let supabaseClient = null;
+        let currentUser = null;
+        let currentTab = 'players';
+        let currentFilter = 'all';
+        let playersData = [];
+        let teamsData = [];
+        let playerStatuses = {};
+        let currentPlayer = null;
+        let currentTeam = null;
+        let currentRejectId = null;
+        let isDataLoaded = false;
+
+        // ==================== 初始化 ====================
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                if (window.supabase) {
+                    supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+                }
+                
+                checkSavedLogin();
+                loadTheme();
+                await loadData();
+                switchTab('players');
+                
+            } catch (e) {
+                console.error('Init error:', e);
+                showToast('初始化失败');
+            }
+        });
+
+        function checkSavedLogin() {
+            const saved = localStorage.getItem('currentUser');
+            if (saved) {
+                try {
+                    currentUser = JSON.parse(saved);
+                    updateHeaderUI();
+                } catch(e) {}
+            }
+        }
+
+        function loadTheme() {
+            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        }
+
+        function toggleTheme() {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.theme = 'light';
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.theme = 'dark';
+            }
+        }
+
+        async function loadData() {
+            try {
+                const response = await fetch(CONFIG.EXCEL_URL);
+                const arrayBuffer = await response.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                
+                if (workbook.SheetNames[0]) {
+                    playersData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                }
+                if (workbook.SheetNames[1]) {
+                    teamsData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[1]]);
+                }
+                
+                await loadPlayerStatuses();
+                
+                isDataLoaded = true;
+                document.getElementById('loadingState').classList.add('hidden');
+            } catch (e) {
+                console.error(e);
+                document.getElementById('loadingState').innerHTML = '<p class="text-red-500">加载失败</p>';
+            }
+        }
+
+        async function loadPlayerStatuses() {
+            if (!supabaseClient) return;
+            try {
+                const { data } = await supabaseClient.from('player_status').select('*');
+                if (data) {
+                    playerStatuses = {};
+                    data.forEach(s => playerStatuses[s.player_name] = s);
+                }
+            } catch (e) {}
+        }
+
+        // ==================== UI 切换 ====================
+        function switchTab(tab) {
+            currentTab = tab;
+            
+            ['players', 'teams', 'market', 'profile'].forEach(t => {
+                const btn = document.getElementById(`nav-${t}`);
+                if (t === tab) {
+                    btn.classList.remove('text-gray-400');
+                    btn.classList.add('text-dq-green');
+                } else {
+                    btn.classList.add('text-gray-400');
+                    btn.classList.remove('text-dq-green');
+                }
+            });
+            
+            document.getElementById('playersView').classList.add('hidden');
+            document.getElementById('teamsView').classList.add('hidden');
+            document.getElementById('marketView').classList.add('hidden');
+            document.getElementById('profileView').classList.add('hidden');
+            document.getElementById('subNav').classList.add('hidden');
+            
+            if (tab === 'players') {
+                document.getElementById('playersView').classList.remove('hidden');
+                document.getElementById('subNav').classList.remove('hidden');
+                if (isDataLoaded) renderPlayers();
+            } else if (tab === 'teams') {
+                document.getElementById('teamsView').classList.remove('hidden');
+                if (isDataLoaded) renderTeams();
+            } else if (tab === 'market') {
+                document.getElementById('marketView').classList.remove('hidden');
+                if (isDataLoaded) renderMarket();
+            } else if (tab === 'profile') {
+                document.getElementById('profileView').classList.remove('hidden');
+                renderProfile();
+            }
+        }
+
+        function switchFilter(filter) {
+            currentFilter = filter;
+            
+            ['all', 'listed', 'loan'].forEach(f => {
+                const btn = document.getElementById(`filter-${f}`);
+                if (f === filter) {
+                    btn.classList.remove('text-gray-500', 'dark:text-gray-400');
+                    btn.classList.add('text-dq-green', 'tab-active');
+                } else {
+                    btn.classList.add('text-gray-500', 'dark:text-gray-400');
+                    btn.classList.remove('text-dq-green', 'tab-active');
+                }
+            });
+            
+            renderPlayers();
+        }
+
+        function toggleSearch() {
+            const bar = document.getElementById('searchBar');
+            bar.classList.toggle('hidden');
+            if (!bar.classList.contains('hidden')) {
+                setTimeout(() => document.getElementById('searchInput').focus(), 100);
+            }
+        }
+
+        function handleSearch(keyword) {
+            if (currentTab === 'players') renderPlayers(keyword);
+            else if (currentTab === 'teams') renderTeams(keyword);
+        }
+
+        // ==================== 渲染 ====================
+        function renderPlayers(search = '', teamFilter = null) {
+            const container = document.getElementById('playersView');
+            container.innerHTML = '';
+            
+            let filtered = playersData;
+            
+            if (teamFilter) {
+                filtered = filtered.filter(p => p['所在球队'] === teamFilter);
+            } else if (search) {
+                const lower = search.toLowerCase();
+                filtered = filtered.filter(p => 
+                    (p['球员名称'] && p['球员名称'].toLowerCase().includes(lower)) ||
+                    (p['所在球队'] && p['所在球队'].toLowerCase().includes(lower))
+                );
+            }
+            
+            if (currentFilter === 'listed' && !teamFilter) {
+                filtered = filtered.filter(p => {
+                    const s = playerStatuses[p['球员名称']];
+                    return s && s.is_listed;
+                });
+            } else if (currentFilter === 'loan' && !teamFilter) {
+                filtered = filtered.filter(p => {
+                    const s = playerStatuses[p['球员名称']];
+                    return s && s.is_loan;
+                });
+            }
+            
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center py-10 text-gray-400">暂无球员数据</div>';
+                return;
+            }
+            
+            filtered.forEach((player, idx) => {
+                const status = playerStatuses[player['球员名称']];
+                const isListed = status && status.is_listed;
+                const isLoan = status && status.is_loan;
+                
+                const card = document.createElement('div');
+                card.className = 'player-card bg-white dark:bg-dq-surface rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-800 fade-in cursor-pointer';
+                card.style.animationDelay = `${idx * 0.03}s`;
+                card.onclick = () => showPlayerDetail(player);
+                
+                // 同时显示两个标签（如果都存在）
+                let badges = '';
+                if (isListed) badges += '<div class="absolute top-2 right-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold z-10">售</div>';
+                if (isLoan) badges += `<div class="absolute ${isListed ? 'top-8' : 'top-2'} right-2 bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold z-10">租</div>`;
+                
+                card.innerHTML = `
+                    <div class="relative">
+                        ${badges}
+                        <div class="flex flex-col items-center">
+                            <div class="w-16 h-16 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center text-2xl font-bold text-dq-green mb-2 border-2 border-white dark:border-gray-700 shadow-sm">
+                                ${player['球员名称'] ? player['球员名称'].charAt(0) : '?'}
+                            </div>
+                            <h4 class="font-bold text-sm text-center mb-0.5 truncate w-full">${player['球员名称'] || '未知'}</h4>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2 text-center truncate w-full">${player['所在球队'] || '自由球员'}</p>
+                            
+                            <div class="flex items-center justify-center gap-3 text-xs w-full">
+                                <div class="flex flex-col items-center">
+                                    <span class="text-gray-400 text-[10px]">CA</span>
+                                    <span class="font-bold text-dq-green">${player['CA'] || '-'}</span>
+                                </div>
+                                <div class="w-px h-6 bg-gray-200 dark:bg-gray-700"></div>
+                                <div class="flex flex-col items-center">
+                                    <span class="text-gray-400 text-[10px]">年龄</span>
+                                    <span class="font-bold">${player['年龄'] || '-'}</span>
+                                </div>
+                                <div class="w-px h-6 bg-gray-200 dark:bg-gray-700"></div>
+                                <div class="flex flex-col items-center">
+                                    <span class="text-gray-400 text-[10px]">位置</span>
+                                    <span class="font-bold text-gray-600 dark:text-gray-300 truncate max-w-[50px]">${player['位置'] || '-'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderTeams(search = '') {
+            const container = document.getElementById('teamsView');
+            container.innerHTML = '';
+            
+            let filtered = teamsData;
+            if (search) {
+                const lower = search.toLowerCase();
+                filtered = filtered.filter(t => t['球队名'] && t['球队名'].toLowerCase().includes(lower));
+            }
+            
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="text-center py-10 text-gray-400">暂无球队数据</div>';
+                return;
+            }
+            
+            filtered.forEach((team, idx) => {
+                const div = document.createElement('div');
+                div.className = 'team-card bg-white dark:bg-dq-surface rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center space-x-4 fade-in cursor-pointer';
+                div.style.animationDelay = `${idx * 0.03}s`;
+                div.onclick = () => showTeamDetail(team);
+                
+                div.innerHTML = `
+                    <div class="w-14 h-14 rounded-full bg-gradient-to-br from-dq-green/20 to-dq-green/5 flex items-center justify-center text-2xl border border-dq-green/20">
+                        ⚽
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-bold text-lg truncate">${team['球队名'] || '未知球队'}</h4>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 truncate">玩家：${team['玩家'] || '暂无'}</p>
+                        <div class="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                            <span class="flex items-center gap-1"><i class="fas fa-map-marker-alt text-dq-green"></i>${team['主场'] || '-'}</span>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-300 dark:text-gray-600"></i>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function renderMarket() {
+            const container = document.getElementById('marketContent');
+            const listed = playersData.filter(p => {
+                const s = playerStatuses[p['球员名称']];
+                return s && s.is_listed;
+            });
+            const loan = playersData.filter(p => {
+                const s = playerStatuses[p['球员名称']];
+                return s && s.is_loan;
+            });
+            
+            let html = '';
+            
+            if (listed.length > 0) {
+                html += `<div class="mb-6"><h3 class="font-bold text-lg mb-3 flex items-center gap-2"><span class="w-1 h-5 bg-red-500 rounded-full"></span>转会市场 <span class="text-sm text-gray-400 font-normal">${listed.length}人</span></h3><div class="space-y-2">`;
+                listed.forEach(p => html += createMarketItem(p, 'listed'));
+                html += '</div></div>';
+            }
+            
+            if (loan.length > 0) {
+                html += `<div class="mb-6"><h3 class="font-bold text-lg mb-3 flex items-center gap-2"><span class="w-1 h-5 bg-blue-500 rounded-full"></span>租借市场 <span class="text-sm text-gray-400 font-normal">${loan.length}人</span></h3><div class="space-y-2">`;
+                loan.forEach(p => html += createMarketItem(p, 'loan'));
+                html += '</div></div>';
+            }
+            
+            if (listed.length === 0 && loan.length === 0) {
+                html = '<div class="text-center py-20 text-gray-400"><i class="fas fa-inbox text-4xl mb-3"></i><p>暂无挂牌或租借球员</p></div>';
+            }
+            
+            container.innerHTML = html;
+        }
+
+        function createMarketItem(player, type) {
+            const status = playerStatuses[player['球员名称']];
+            const by = type === 'listed' ? status?.listed_by : status?.loan_by;
+            
+            // 如果同时有两个状态，显示双标签
+            const hasListed = status && status.is_listed;
+            const hasLoan = status && status.is_loan;
+            let extraTag = '';
+            if (type === 'listed' && hasLoan) extraTag = '<span class="bg-blue-100 text-blue-600 text-[10px] px-1 py-0.5 rounded ml-1">租</span>';
+            if (type === 'loan' && hasListed) extraTag = '<span class="bg-red-100 text-red-600 text-[10px] px-1 py-0.5 rounded ml-1">售</span>';
+            
+            return `
+                <div class="bg-white dark:bg-dq-surface rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center space-x-3 cursor-pointer" onclick="showPlayerDetailByName('${player['球员名称']}')">
+                    <div class="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-bold text-dq-green">
+                        ${(player['球员名称'] || '?').charAt(0)}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-1">
+                            <span class="font-bold truncate">${player['球员名称'] || '未知'}</span>
+                            <span class="text-xs ${type === 'listed' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'} px-1.5 py-0.5 rounded">${type === 'listed' ? '挂牌' : '租借'}</span>
+                            ${extraTag}
+                        </div>
+                        <p class="text-xs text-gray-500 truncate">${player['所在球队'] || '-'} · CA${player['CA'] || '-'}</p>
+                    </div>
+                    <div class="text-right text-xs text-gray-400">
+                        <div>${by || '官方'}发布</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showPlayerDetailByName(name) {
+            const player = playersData.find(p => p['球员名称'] === name);
+            if (player) showPlayerDetail(player);
+        }
+
+        // ==================== 球队详情 ====================
+        function showTeamDetail(team) {
+            currentTeam = team;
+            
+            document.getElementById('teamDetailName').textContent = team['球队名'] || '未知球队';
+            document.getElementById('teamDetailManager').textContent = '管理者：' + (team['玩家'] || '暂无');
+            document.getElementById('teamDetailStadium').textContent = '🏟️ ' + (team['主场'] || '-');
+            document.getElementById('teamDetailSeats').textContent = '👥 ' + (team['座席数'] || '-') + '人';
+            
+            const teamPlayers = playersData.filter(p => p['所在球队'] === team['球队名']);
+            document.getElementById('teamPlayerCount').textContent = teamPlayers.length + '人';
+            
+            const grid = document.getElementById('teamPlayersGrid');
+            grid.innerHTML = '';
+            
+            if (teamPlayers.length === 0) {
+                grid.innerHTML = '<div class="col-span-2 text-center py-10 text-gray-400">该球队暂无球员数据</div>';
+            } else {
+                teamPlayers.forEach((player, idx) => {
+                    const status = playerStatuses[player['球员名称']];
+                    const isListed = status && status.is_listed;
+                    const isLoan = status && status.is_loan;
+                    
+                    const card = document.createElement('div');
+                    card.className = 'player-card bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-700 cursor-pointer fade-in';
+                    card.style.animationDelay = `${idx * 0.03}s`;
+                    card.onclick = () => {
+                        closeTeamModal();
+                        setTimeout(() => showPlayerDetail(player), 300);
+                    };
+                    
+                    // 同时显示两个标签
+                    let badges = '';
+                    if (isListed) badges += '<div class="absolute top-2 right-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold z-10">售</div>';
+                    if (isLoan) badges += `<div class="absolute ${isListed ? 'top-8' : 'top-2'} right-2 bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold z-10">租</div>`;
+                    
+                    card.innerHTML = `
+                        <div class="relative">
+                            ${badges}
+                            <div class="flex flex-col items-center">
+                                <div class="w-14 h-14 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center text-xl font-bold text-dq-green mb-2 border-2 border-white dark:border-gray-600">
+                                    ${player['球员名称'] ? player['球员名称'].charAt(0) : '?'}
+                                </div>
+                                <h4 class="font-bold text-sm text-center mb-0.5 truncate w-full">${player['球员名称'] || '未知'}</h4>
+                                <div class="flex items-center justify-center gap-2 text-xs w-full mt-1">
+                                    <span class="text-dq-green font-bold">CA${player['CA'] || '-'}</span>
+                                    <span class="text-gray-400">|</span>
+                                    <span class="text-gray-600 dark:text-gray-300">${player['位置'] || '-'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+            
+            document.getElementById('teamModal').classList.remove('hidden');
+        }
+
+        function closeTeamModal() {
+            document.getElementById('teamModal').classList.add('hidden');
+            currentTeam = null;
+        }
+
+        function viewTeamFromPlayer() {
+            const teamName = currentPlayer?.['所在球队'];
+            if (!teamName || teamName === '自由球员') return;
+            
+            const team = teamsData.find(t => t['球队名'] === teamName);
+            if (team) {
+                closePlayerModal();
+                setTimeout(() => showTeamDetail(team), 300);
+            }
+        }
+
+        // ==================== 球员详情（支持双状态）====================
+        async function showPlayerDetail(player) {
+            currentPlayer = player;
+            const status = playerStatuses[player['球员名称']];
+            const isListed = status && status.is_listed;
+            const isLoan = status && status.is_loan;
+            
+            document.getElementById('modalPlayerName').textContent = player['球员名称'] || '未知';
+            document.getElementById('modalPlayerAvatar').textContent = player['球员名称'] ? player['球员名称'].charAt(0) : '?';
+            document.getElementById('modalPlayerTeam').textContent = player['所在球队'] || '自由球员';
+            document.getElementById('modalPlayerPos').textContent = player['位置'] || '-';
+            document.getElementById('modalAge').textContent = player['年龄'] || '-';
+            document.getElementById('modalHeight').textContent = player['身高'] ? player['身高'] + 'cm' : '-';
+            document.getElementById('modalCA').textContent = player['CA'] || '-';
+            document.getElementById('modalPA').textContent = player['PA'] || '-';
+            document.getElementById('modalNation').textContent = player['国家/地区籍'] || '-';
+            document.getElementById('modalContract').textContent = player['合约到期'] || '-';
+            document.getElementById('modalSalary').textContent = player['年薪'] ? '¥' + player['年薪'] : '-';
+            document.getElementById('modalWeight').textContent = player['体重'] ? player['体重'] + 'kg' : '-';
+            
+            // 状态标签（同时显示）
+            const tagsContainer = document.getElementById('playerStatusTags');
+            tagsContainer.innerHTML = '';
+            if (isListed) {
+                tagsContainer.innerHTML += '<span class="bg-red-500 text-white text-xs px-2 py-1 rounded-full">挂牌中</span>';
+            }
+            if (isLoan) {
+                tagsContainer.innerHTML += '<span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">租借中</span>';
+            }
+            
+            // 按钮状态（独立显示）
+            const btnList = document.getElementById('btnList');
+            const btnLoan = document.getElementById('btnLoan');
+            
+            if (isListed) {
+                btnList.className = 'bg-gray-500 text-white py-3 rounded-xl font-medium flex flex-col items-center gap-1 active:scale-95 transition-transform';
+                document.getElementById('btnListText').textContent = '取消挂牌';
+            } else {
+                btnList.className = 'bg-orange-500 text-white py-3 rounded-xl font-medium shadow-lg shadow-orange-500/30 active:scale-95 transition-transform flex flex-col items-center gap-1';
+                document.getElementById('btnListText').textContent = '挂牌出售';
+            }
+            
+            if (isLoan) {
+                btnLoan.className = 'bg-gray-500 text-white py-3 rounded-xl font-medium flex flex-col items-center gap-1 active:scale-95 transition-transform';
+                document.getElementById('btnLoanText').textContent = '取消租借';
+            } else {
+                btnLoan.className = 'bg-blue-500 text-white py-3 rounded-xl font-medium shadow-lg shadow-blue-500/30 active:scale-95 transition-transform flex flex-col items-center gap-1';
+                document.getElementById('btnLoanText').textContent = '放入租借';
+            }
+            
+            // 加载操作记录
+            if (supabaseClient) {
+                try {
+                    const { data: logs } = await supabaseClient
+                        .from('operation_logs')
+                        .select('*')
+                        .eq('player_name', player['球员名称'])
+                        .order('created_at', { ascending: false })
+                        .limit(10);
+                    
+                    const logsContainer = document.getElementById('operationLogs');
+                    if (logs && logs.length > 0) {
+                        logsContainer.innerHTML = logs.map(log => `
+                            <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-sm">
+                                <div class="flex justify-between items-start mb-1">
+                                    <span class="font-medium text-dq-green">${log.operator_name}</span>
+                                    <span class="text-xs text-gray-400">${new Date(log.created_at).toLocaleDateString()}</span>
+                                </div>
+                                <p class="text-gray-600 dark:text-gray-300">${getOperationText(log.operation_type)}</p>
+                                ${log.details ? `<p class="text-xs text-gray-500 mt-1">${log.details}</p>` : ''}
+                            </div>
+                        `).join('');
+                    } else {
+                        logsContainer.innerHTML = '<p class="text-gray-400 text-center text-sm py-4">暂无操作记录</p>';
+                    }
+                } catch (e) {}
+            }
+            
+            document.getElementById('playerModal').classList.remove('hidden');
+        }
+
+        function closePlayerModal() {
+            document.getElementById('playerModal').classList.add('hidden');
+            currentPlayer = null;
+        }
+
+        function getOperationText(type) {
+            const map = {
+                'renewal_apply': '申请续约', 'renewal_approve': '批准续约', 'renewal_reject': '驳回续约',
+                'list': '挂牌出售', 'unlist': '取消挂牌', 'loan': '放入租借', 'unloan': '取消租借'
+            };
+            return map[type] || type;
+        }
+
+        // ==================== 续约申请表单 ====================
+        function showRenewalForm() {
+            if (!currentUser) {
+                showLoginModal();
+                return;
+            }
+            
+            if (!currentPlayer) return;
+            
+            document.getElementById('formPlayerName').textContent = currentPlayer['球员名称'];
+            document.getElementById('formPlayerTeam').textContent = '当前球队：' + (currentPlayer['所在球队'] || '-');
+            document.getElementById('formPlayerAvatar').textContent = currentPlayer['球员名称'] ? currentPlayer['球员名称'].charAt(0) : '?';
+            document.getElementById('currentSalaryRef').textContent = currentPlayer['年薪'] || '0';
+            
+            document.getElementById('expectedDuration').value = '3';
+            document.getElementById('expectedSalary').value = '';
+            
+            document.getElementById('renewalFormModal').classList.remove('hidden');
+        }
+
+        function closeRenewalForm() {
+            document.getElementById('renewalFormModal').classList.add('hidden');
+        }
+
+        function adjustDuration(delta) {
+            const input = document.getElementById('expectedDuration');
+            let val = parseInt(input.value) || 0;
+            val += delta;
+            if (val < 1) val = 1;
+            if (val > 10) val = 10;
+            input.value = val;
+        }
+
+        async function submitRenewal() {
+            const duration = parseInt(document.getElementById('expectedDuration').value);
+            const salary = parseInt(document.getElementById('expectedSalary').value);
+            
+            if (!salary || salary <= 0) {
+                showToast('请输入有效的期望年薪');
+                return;
+            }
+            
+            try {
+                const { error } = await supabaseClient.from('renewal_applications').insert({
+                    player_name: currentPlayer['球员名称'],
+                    team_name: currentPlayer['所在球队'],
+                    applicant_code: currentUser.code,
+                    applicant_name: currentUser.displayName || currentUser.name,
+                    status: 'pending',
+                    expected_duration: duration,
+                    expected_salary: salary
+                });
+                
+                if (error) throw error;
+                
+                await logOperation(currentPlayer['球员名称'], 'renewal_apply', `申请续约：${duration}年，¥${salary}万/年`);
+                
+                showToast('续约申请已提交');
+                closeRenewalForm();
+                closePlayerModal();
+            } catch (e) {
+                showToast('提交失败：' + e.message);
+            }
+        }
+
+        // ==================== 登录系统 ====================
+        function handleUserClick() {
+            if (currentUser) {
+                switchTab('profile');
+            } else {
+                showLoginModal();
+            }
+        }
+
+        function showLoginModal() {
+            document.getElementById('loginModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('loginCodeInput').focus(), 100);
+        }
+
+        function closeLoginModal() {
+            document.getElementById('loginModal').classList.add('hidden');
+        }
+
+        function handleLogin() {
+            const code = document.getElementById('loginCodeInput').value.toUpperCase().trim();
+            const config = CONFIG.LOGIN_CODES[code];
+            
+            if (!config) {
+                showToast('登录码无效');
+                return;
+            }
+            
+            currentUser = { code: code, ...config };
+            if (config.type === 'media' && config.subAccounts) {
+                currentUser.displayName = config.subAccounts[0].name;
+                currentUser.currentAvatar = config.subAccounts[0].avatar;
+            } else {
+                currentUser.displayName = config.name;
+                currentUser.currentAvatar = config.avatar;
+            }
+            
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            updateHeaderUI();
+            closeLoginModal();
+            showToast(`欢迎，${currentUser.displayName}`);
+            
+            if (currentUser.type === 'media') {
+                loadPendingCount();
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            updateHeaderUI();
+            switchTab('players');
+            showToast('已退出登录');
+        }
+
+        function updateHeaderUI() {
+            const avatar = document.getElementById('headerAvatar');
+            const badge = document.getElementById('loginBadge');
+            
+            if (currentUser) {
+                avatar.src = currentUser.currentAvatar || currentUser.avatar;
+                badge.classList.add('hidden');
+            } else {
+                avatar.src = 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+                badge.classList.remove('hidden');
+            }
+        }
+
+        function renderProfile() {
+            const guest = document.getElementById('guestProfile');
+            const user = document.getElementById('userProfile');
+            
+            if (!currentUser) {
+                guest.classList.remove('hidden');
+                user.classList.add('hidden');
+                return;
+            }
+            
+            guest.classList.add('hidden');
+            user.classList.remove('hidden');
+            
+            document.getElementById('profileAvatar').src = currentUser.currentAvatar || currentUser.avatar;
+            document.getElementById('profileName').textContent = currentUser.displayName || currentUser.name;
+            document.getElementById('profileType').textContent = 
+                currentUser.type === 'team' ? '球队账号' : 
+                currentUser.type === 'media' ? '媒体管理员' : '个人账号';
+            
+            if (currentUser.type === 'media') {
+                document.getElementById('mediaSection').classList.remove('hidden');
+                loadPendingCount();
+            } else {
+                document.getElementById('mediaSection').classList.add('hidden');
+            }
+            
+            document.getElementById('statListed').textContent = Object.values(playerStatuses).filter(s => s.is_listed).length;
+            document.getElementById('statLoan').textContent = Object.values(playerStatuses).filter(s => s.is_loan).length;
+        }
+
+        // ==================== 挂牌/租借操作（独立控制）====================
+        async function toggleListStatus() {
+            if (!currentUser) {
+                showLoginModal();
+                return;
+            }
+            
+            if (!currentPlayer) return;
+            
+            const playerName = currentPlayer['球员名称'];
+            const status = playerStatuses[playerName];
+            const isListed = status && status.is_listed;
+            const action = isListed ? '取消挂牌' : '挂牌出售';
+            
+            if (!confirm(`确定${action} ${playerName}？`)) return;
+            
+            try {
+                if (isListed) {
+                    // 取消挂牌：只更新 is_listed 字段，保留 is_loan 状态
+                    await supabaseClient.from('player_status').update({ 
+                        is_listed: false,
+                        listed_by: null 
+                    }).eq('player_name', playerName);
+                } else {
+                    // 添加挂牌：upsert 保留现有租借状态
+                    const existingStatus = playerStatuses[playerName] || {};
+                    await supabaseClient.from('player_status').upsert({
+                        player_name: playerName,
+                        team_name: currentPlayer['所在球队'],
+                        is_listed: true,
+                        is_loan: existingStatus.is_loan || false, // 保留租借状态
+                        listed_by: currentUser.displayName || currentUser.name,
+                        listed_at: new Date().toISOString()
+                    });
+                }
+                
+                await logOperation(playerName, isListed ? 'unlist' : 'list', action);
+                await loadPlayerStatuses();
+                renderPlayers();
+                renderMarket();
+                
+                // 刷新当前详情页
+                showPlayerDetail(currentPlayer);
+                showToast(`${action}成功`);
+            } catch (e) {
+                showToast('操作失败：' + e.message);
+            }
+        }
+
+        async function toggleLoanStatus() {
+            if (!currentUser) {
+                showLoginModal();
+                return;
+            }
+            
+            if (!currentPlayer) return;
+            
+            const playerName = currentPlayer['球员名称'];
+            const status = playerStatuses[playerName];
+            const isLoan = status && status.is_loan;
+            const action = isLoan ? '取消租借' : '放入租借市场';
+            
+            if (!confirm(`确定${action} ${playerName}？`)) return;
+            
+            try {
+                if (isLoan) {
+                    // 取消租借：只更新 is_loan 字段，保留 is_listed 状态
+                    await supabaseClient.from('player_status').update({ 
+                        is_loan: false,
+                        loan_by: null 
+                    }).eq('player_name', playerName);
+                } else {
+                    // 添加租借：upsert 保留现有挂牌状态
+                    const existingStatus = playerStatuses[playerName] || {};
+                    await supabaseClient.from('player_status').upsert({
+                        player_name: playerName,
+                        team_name: currentPlayer['所在球队'],
+                        is_listed: existingStatus.is_listed || false, // 保留挂牌状态
+                        is_loan: true,
+                        loan_by: currentUser.displayName || currentUser.name,
+                        loan_at: new Date().toISOString()
+                    });
+                }
+                
+                await logOperation(playerName, isLoan ? 'unloan' : 'loan', action);
+                await loadPlayerStatuses();
+                renderPlayers();
+                renderMarket();
+                
+                // 刷新当前详情页
+                showPlayerDetail(currentPlayer);
+                showToast(`${action}成功`);
+            } catch (e) {
+                showToast('操作失败：' + e.message);
+            }
+        }
+
+        async function logOperation(playerName, type, details) {
+            try {
+                await supabaseClient.from('operation_logs').insert({
+                    player_name: playerName,
+                    operation_type: type,
+                    operator_code: currentUser.code,
+                    operator_name: currentUser.displayName || currentUser.name,
+                    operator_type: currentUser.type,
+                    details: details
+                });
+            } catch (e) {}
+        }
+
+        // ==================== Media审批 ====================
+        async function loadPendingCount() {
+            if (!currentUser || currentUser.type !== 'media' || !supabaseClient) return;
+            try {
+                const { data } = await supabaseClient.from('renewal_applications').select('*').eq('status', 'pending');
+                if (data && data.length > 0) {
+                    const badge = document.getElementById('pendingBadge');
+                    badge.textContent = data.length;
+                    badge.classList.remove('hidden');
+                }
+            } catch (e) {}
+        }
+
+        async function showApprovalModal() {
+            if (!supabaseClient) return;
+            try {
+                const { data } = await supabaseClient.from('renewal_applications').select('*').eq('status', 'pending').order('created_at', { ascending: false });
+                const list = document.getElementById('approvalList');
+                
+                if (!data || data.length === 0) {
+                    list.innerHTML = '<div class="text-center text-gray-500 py-8">暂无待审批申请</div>';
+                } else {
+                    list.innerHTML = data.map(app => `
+                        <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 class="font-bold text-lg">${app.player_name}</h4>
+                                    <p class="text-sm text-gray-500">${app.team_name || '未知球队'}</p>
+                                    <p class="text-xs text-gray-400 mt-1">申请人：${app.applicant_name}</p>
+                                    ${app.expected_duration ? `<p class="text-xs text-dq-green mt-1">期望：${app.expected_duration}年 · ¥${app.expected_salary}万/年</p>` : ''}
+                                    <p class="text-xs text-gray-400 mt-1">${new Date(app.created_at).toLocaleString()}</p>
+                                </div>
+                                <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium">待审批</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="handleApproval(${app.id}, 'approved')" class="flex-1 bg-dq-green text-white py-2 rounded-lg text-sm font-medium hover:bg-dq-green-dark transition-colors">批准</button>
+                                <button onclick="showRejectModal(${app.id}, '${app.player_name}', '${app.applicant_name}')" class="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 transition-colors">驳回</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                
+                document.getElementById('approvalModal').classList.remove('hidden');
+            } catch (e) {
+                showToast('加载审批列表失败');
+            }
+        }
+
+        function closeApprovalModal() {
+            document.getElementById('approvalModal').classList.add('hidden');
+        }
+
+        async function handleApproval(appId, status) {
+            try {
+                const { data: app } = await supabaseClient.from('renewal_applications').select('*').eq('id', appId).single();
+                if (app) {
+                    await supabaseClient.from('renewal_applications').update({ 
+                        status, 
+                        approved_by: currentUser.displayName || currentUser.name,
+                        approved_at: new Date().toISOString()
+                    }).eq('id', appId);
+                    
+                    const detail = app.expected_duration ? `(${app.expected_duration}年·¥${app.expected_salary}万)` : '';
+                    await logOperation(app.player_name, status === 'approved' ? 'renewal_approve' : 'renewal_reject', 
+                        status === 'approved' ? `续约已批准 ${detail}` : '续约被驳回');
+                    
+                    showToast(status === 'approved' ? '已批准' : '已驳回');
+                    loadPendingCount();
+                    showApprovalModal();
+                }
+            } catch (e) {
+                showToast('操作失败');
+            }
+        }
+
+        function showRejectModal(appId, playerName, applicantName) {
+            currentRejectId = appId;
+            document.getElementById('rejectPlayerName').textContent = playerName;
+            document.getElementById('rejectApplicant').textContent = applicantName;
+            document.getElementById('rejectReason').value = '';
+            document.getElementById('rejectModal').classList.remove('hidden');
+        }
+
+        function closeRejectModal() {
+            document.getElementById('rejectModal').classList.add('hidden');
+            currentRejectId = null;
+        }
+
+        async function submitReject() {
+            const reason = document.getElementById('rejectReason').value.trim();
+            if (!reason) {
+                showToast('请输入驳回原因');
+                return;
+            }
+            
+            try {
+                await supabaseClient.from('renewal_applications').update({ 
+                    status: 'rejected', 
+                    reject_reason: reason,
+                    approved_by: currentUser.displayName || currentUser.name,
+                    approved_at: new Date().toISOString()
+                }).eq('id', currentRejectId);
+                
+                const { data: app } = await supabaseClient.from('renewal_applications').select('*').eq('id', currentRejectId).single();
+                if (app) {
+                    await logOperation(app.player_name, 'renewal_reject', `驳回原因：${reason}`);
+                }
+                
+                showToast('已驳回');
+                closeRejectModal();
+                loadPendingCount();
+                showApprovalModal();
+            } catch (e) {
+                showToast('操作失败');
+            }
+        }
+
+        // ==================== 工具 ====================
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastText').textContent = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2500);
+        }
+
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'loginModal') closeLoginModal();
+            if (e.target.id === 'approvalModal') closeApprovalModal();
+            if (e.target.id === 'renewalFormModal') closeRenewalForm();
+            if (e.target.id === 'rejectModal') closeRejectModal();
+        });
+    </script>
+</body>
+</html>

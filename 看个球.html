@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="antialiased">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>哪里有球看 - 身边的足球地图</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        pitch: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        
+        /* 地图容器 */
+        #map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background: #e5e7eb;
+        }
+        
+        .dark #map {
+            background: #111827;
+        }
+        
+        /* Leaflet 深色模式适配 */
+        .dark .leaflet-container {
+            background: #111827;
+        }
+        
+        /* 隐藏滚动条 */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* 自定义标记 */
+        .custom-marker {
+            background: none;
+            border: none;
+        }
+        
+        .marker-icon {
+            width: 44px;
+            height: 44px;
+            background: white;
+            border-radius: 50%;
+            border: 3px solid #16a34a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            font-size: 22px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .dark .marker-icon {
+            background: #1f2937;
+            border-color: #22c55e;
+        }
+        
+        .marker-icon.active {
+            transform: scale(1.2);
+            border-color: #ea580c;
+            z-index: 1000 !important;
+        }
+        
+        .marker-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #ef4444;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        /* 底部面板 */
+        .bottom-sheet {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 24px 24px 0 0;
+            box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
+            z-index: 1000;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
+        }
+        
+        .dark .bottom-sheet {
+            background: #1f2937;
+            box-shadow: 0 -4px 24px rgba(0,0,0,0.4);
+        }
+        
+        .sheet-handle {
+            width: 40px;
+            height: 4px;
+            background: #cbd5e1;
+            border-radius: 2px;
+            margin: 12px auto;
+        }
+        
+        .dark .sheet-handle {
+            background: #475569;
+        }
+        
+        /* 拖拽区域 */
+        .drag-indicator {
+            touch-action: pan-y;
+            cursor: grab;
+            padding: 8px 0;
+            width: 100%;
+        }
+        .drag-indicator:active {
+            cursor: grabbing;
+        }
+        
+        /* 遮罩层 */
+        .backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        .backdrop.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* 模态框 */
+        .modal-content {
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .modal-content.show {
+            transform: translateY(0);
+        }
+        
+        /* 表单样式 */
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.2s;
+            background: white;
+            -webkit-appearance: none;
+        }
+        .form-input:focus {
+            border-color: #16a34a;
+            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+        }
+        .dark .form-input {
+            background: #374151;
+            border-color: #4b5563;
+            color: white;
+        }
+        
+        /* 按钮 */
+        .btn-primary {
+            background: #16a34a;
+            color: white;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+        .btn-primary:active {
+            transform: scale(0.98);
+            background: #15803d;
+        }
+        
+        /* 浮动按钮 */
+        .fab {
+            position: fixed;
+            bottom: 140px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            background: #16a34a;
+            color: white;
+            border-radius: 50%;
+            border: none;
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 500;
+            transition: transform 0.2s;
+        }
+        .fab:active {
+            transform: scale(0.9);
+        }
+        
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(0,0,0,0.85);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 14px;
+            z-index: 3000;
+            opacity: 0;
+            transition: all 0.3s;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        /* 级别标签 */
+        .level-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .level-pro { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
+        .level-semi { background: #dbeafe; color: #1e40af; border: 1px solid #3b82f6; }
+        .level-amateur { background: #d1fae5; color: #065f46; border: 1px solid #10b981; }
+        .level-casual { background: #f3f4f6; color: #374151; border: 1px solid #9ca3af; }
+        
+        .dark .level-pro { background: rgba(146, 64, 14, 0.3); color: #fbbf24; }
+        .dark .level-semi { background: rgba(30, 64, 175, 0.3); color: #60a5fa; }
+        .dark .level-amateur { background: rgba(6, 95, 70, 0.3); color: #34d399; }
+        .dark .level-casual { background: rgba(55, 65, 81, 0.5); color: #9ca3af; }
+        
+        /* 动画 */
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fade-in 0.3s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+
+    <!-- 地图容器 -->
+    <div id="map"></div>
+
+    <!-- 顶部搜索栏 -->
+    <div class="absolute top-0 left-0 right-0 z-[400] p-4 pointer-events-none">
+        <div class="max-w-md mx-auto pointer-events-auto">
+            <div class="bg-white/95 dark:bg-gray-800/95 backdrop-blur rounded-2xl shadow-lg flex items-center p-3 gap-3 border border-gray-200 dark:border-gray-700">
+                <i data-lucide="search" class="w-5 h-5 text-gray-400"></i>
+                <input type="text" id="searchInput" placeholder="搜索城市、球队或场馆..." 
+                       class="flex-1 bg-transparent outline-none text-sm placeholder-gray-400"
+                       onkeypress="handleSearchKey(event)">
+                <button onclick="locateMe()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                    <i data-lucide="locate-fixed" class="w-5 h-5 text-pitch-600"></i>
+                </button>
+                <button onclick="toggleTheme()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                    <i data-lucide="moon" class="w-5 h-5 hidden dark:block text-yellow-400"></i>
+                    <i data-lucide="sun" class="w-5 h-5 block dark:hidden text-orange-500"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 浮动添加按钮 -->
+    <button onclick="showAddOptions()" class="fab">
+        <i data-lucide="plus" class="w-7 h-7"></i>
+    </button>
+
+    <!-- 底部面板 -->
+    <div id="bottomSheet" class="bottom-sheet" style="transform: translateY(70%); height: 75vh;">
+        <div class="drag-indicator" id="dragHandle">
+            <div class="sheet-handle"></div>
+        </div>
+        <div class="px-4 pb-24 h-full overflow-y-auto no-scrollbar" id="sheetContent">
+            <!-- 默认视图 -->
+            <div id="defaultView">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold">附近球队</h2>
+                    <span class="text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full" id="nearbyCount">加载中...</span>
+                </div>
+                <div id="nearbyList" class="space-y-3">
+                    <div class="flex items-center justify-center py-12 text-gray-400">
+                        <div class="w-8 h-8 border-2 border-gray-300 border-t-pitch-600 rounded-full animate-spin mr-3"></div>
+                        <span>加载中...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 地点详情 -->
+            <div id="locationDetailView" class="hidden"></div>
+            
+            <!-- 球队详情 -->
+            <div id="teamDetailView" class="hidden"></div>
+        </div>
+    </div>
+
+    <!-- 添加选项模态框 -->
+    <div id="addModal" class="fixed inset-0 z-[2000] hidden">
+        <div class="backdrop" onclick="closeAddModal()"></div>
+        <div class="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl p-6 modal-content" id="addModalContent" style="max-height: 80vh; overflow-y: auto;">
+            <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                <i data-lucide="map-pin" class="text-pitch-600"></i>
+                添加新内容
+            </h3>
+            <div class="space-y-3">
+                <button onclick="openAddLocation()" class="w-full p-4 bg-gray-50 dark:bg-gray-700 rounded-xl flex items-center gap-4 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-left">
+                    <div class="w-12 h-12 bg-pitch-100 dark:bg-pitch-900 rounded-full flex items-center justify-center text-pitch-600">
+                        <i data-lucide="map-pin" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-lg">添加地点</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">标注新的球场或体育场馆</div>
+                    </div>
+                </button>
+                
+                <button onclick="openAddTeam()" class="w-full p-4 bg-gray-50 dark:bg-gray-700 rounded-xl flex items-center gap-4 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-left">
+                    <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center text-blue-600">
+                        <i data-lucide="shield" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-lg">添加球队</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">在已有地点添加新球队</div>
+                    </div>
+                </button>
+                
+                <button onclick="openAddMatch()" class="w-full p-4 bg-gray-50 dark:bg-gray-700 rounded-xl flex items-center gap-4 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-left">
+                    <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center text-orange-600">
+                        <i data-lucide="calendar" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-lg">发布比赛</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">为球队添加 upcoming 比赛</div>
+                    </div>
+                </button>
+            </div>
+            <button onclick="closeAddModal()" class="w-full mt-6 py-4 bg-gray-200 dark:bg-gray-700 rounded-xl font-bold text-gray-700 dark:text-gray-200">取消</button>
+        </div>
+    </div>
+
+    <!-- 地点表单 -->
+    <div id="locationFormModal" class="fixed inset-0 z-[2001] hidden bg-white dark:bg-gray-900 overflow-y-auto no-scrollbar">
+        <div class="p-4 max-w-md mx-auto min-h-full">
+            <div class="flex items-center justify-between mb-6 sticky top-0 bg-white dark:bg-gray-900 pt-2 pb-4 border-b dark:border-gray-700 z-10">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i data-lucide="map-pin" class="text-pitch-600"></i>
+                    添加地点
+                </h2>
+                <button onclick="closeLocationForm()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <form onsubmit="saveLocation(event)" class="space-y-5 pb-8">
+                <div>
+                    <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">场馆名称 <span class="text-red-500">*</span></label>
+                    <input type="text" id="locName" required placeholder="如：贺龙体育场" class="form-input">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">城市 <span class="text-red-500">*</span></label>
+                    <input type="text" id="locCity" required placeholder="如：长沙" class="form-input">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">详细地址</label>
+                    <input type="text" id="locAddress" placeholder="如：天心区芙蓉中路二段188号" class="form-input">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">经度</label>
+                        <input type="number" step="any" id="locLng" required class="form-input bg-gray-50 dark:bg-gray-800" readonly>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">纬度</label>
+                        <input type="number" step="any" id="locLat" required class="form-input bg-gray-50 dark:bg-gray-800" readonly>
+                    </div>
+                </div>
+                
+                <div class="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-xl text-sm text-blue-700 dark:text-blue-300 flex items-start gap-3">
+                    <i data-lucide="info" class="w-5 h-5 flex-shrink-0 mt-0.5"></i>
+                    <div>
+                        <p class="font-medium mb-1">如何获取坐标？</p>
+                        <p>在地图上长按要添加的位置，即可自动填充坐标。</p>
+                    </div>
+                </div>
+                
+                <div class="pt-4">
+                    <button type="submit" class="btn-primary">保存地点</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 球队表单 -->
+    <div id="teamFormModal" class="fixed inset-0 z-[2001] hidden bg-white dark:bg-gray-900 overflow-y-auto no-scrollbar">
+        <div class="p-4 max-w-md mx-auto min-h-full">
+            <div class="flex items-center justify-between mb-6 sticky top-0 bg-white dark:bg-gray-900 pt-2 pb-4 border-b dark:border-gray-700 z-10">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i data-lucide="shield" class="text-blue-600"></i>
+                    添加球队
+                </h2>
+                <button onclick="closeTeamForm()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <form onsubmit="saveTeam(event)" class="space-y-5 pb-8">
+                <div>
+                    <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">所属地点 <span class="text-red-500">*</span></label>
+                    <select id="teamLocation" required class="form-input">
+                        <option value="">选择地点...</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">球队名称 <span class="text-red-500">*</span></label>
+                    <input type="text" id="teamName" required placeholder="如：长沙队" class="form-input">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">球队级别</label>
+                    <select id="teamLevel" class="form-input">
+                        <option value="职业">职业联赛</option>
+                        <option value="半职业">半职业/中冠</option>
+                        <option value="业余">业余联赛</option>
+                        <option value="校园">校园足球</option>
+                        <option value="友谊">友谊赛/野球</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">联系方式</label>
+                    <input type="text" id="teamContact" placeholder="公众号、电话或联系人" class="form-input">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">球队简介</label>
+                    <textarea id="teamDesc" rows="3" placeholder="球队历史、特色等..." class="form-input resize-none"></textarea>
+                </div>
+                
+                <div class="pt-4">
+                    <button type="submit" class="btn-primary bg-blue-600 hover:bg-blue-700">保存球队</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 比赛表单 -->
+    <div id="matchFormModal" class="fixed inset-0 z-[2001] hidden bg-white dark:bg-gray-900 overflow-y-auto no-scrollbar">
+        <div class="p-4 max-w-md mx-auto min-h-full">
+            <div class="flex items-center justify-between mb-6 sticky top-0 bg-white dark:bg-gray-900 pt-2 pb-4 border-b dark:border-gray-700 z-10">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i data-lucide="calendar" class="text-orange-600"></i>
+                    发布比赛
+                </h2>
+                <button onclick="closeMatchForm()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <form onsubmit="saveMatch(event)" class="space-y-5 pb-8">
+                <div>
+                    <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">主队/球队 <span class="text-red-500">*</span></label>
+                    <select id="matchTeam" required class="form-input">
+                        <option value="">选择球队...</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">比赛时间 <span class="text-red-500">*</span></label>
+                    <input type="datetime-local" id="matchTime" required class="form-input">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">对手 <span class="text-red-500">*</span></label>
+                    <input type="text" id="matchOpponent" required placeholder="如：株洲联队" class="form-input">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">比赛级别</label>
+                    <select id="matchLevel" class="form-input">
+                        <option value="中超联赛">中超联赛</option>
+                        <option value="中甲联赛">中甲联赛</option>
+                        <option value="中乙联赛">中乙联赛</option>
+                        <option value="足协杯">足协杯</option>
+                        <option value="省联赛">省级联赛</option>
+                        <option value="市联赛">市级联赛</option>
+                        <option value="友谊赛">友谊赛</option>
+                        <option value="训练赛">训练赛/热身</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">票价</label>
+                    <input type="text" id="matchPrice" placeholder="如：¥30/50/80 或 免费" class="form-input">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">场地备注</label>
+                    <input type="text" id="matchNote" placeholder="如：内场5号场地、需提前预约等" class="form-input">
+                </div>
+                
+                <div class="pt-4">
+                    <button type="submit" class="btn-primary bg-orange-600 hover:bg-orange-700">发布比赛</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // 全局变量
+        let map;
+        let markers = {};
+        let currentSheetState = 'peek';
+        let isDragging = false;
+        let startY = 0;
+        let currentY = 0;
+        let allLocations = [];
+        let allTeams = [];
+        let supabaseClient = null;
+        let isMapReady = false;
+
+        // 等待所有库加载完成
+        window.onload = function() {
+            console.log('Window loaded, initializing...');
+            initApp();
+        };
+
+        function initApp() {
+            lucide.createIcons();
+            initSupabase();
+            initMap();
+            setupDragHandlers();
+            checkSystemTheme();
+            
+            // 延迟加载数据，确保地图先显示
+            setTimeout(() => {
+                loadData();
+                setSheetState('peek');
+            }, 500);
+        }
+
+        // 初始化 Supabase
+        function initSupabase() {
+            try {
+                if (typeof supabase !== 'undefined' && supabase.createClient) {
+                    const supabaseUrl = 'https://ufzfjtupttqrqbmrzuen.supabase.co';
+                    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmemZqdHVwdHRxcnFibXJ6dWVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NTAxOTksImV4cCI6MjA4NzQyNjE5OX0.QEmHWxfNJgHNf6uIdmXydRmE2D2wE5AKgBGJU_6fEPc';
+                    supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+                    console.log('Supabase initialized successfully');
+                } else {
+                    console.warn('Supabase library not available');
+                    supabaseClient = null;
+                }
+            } catch (e) {
+                console.error('Supabase init error:', e);
+                supabaseClient = null;
+            }
+        }
+
+        // 初始化地图
+        function initMap() {
+            console.log('Initializing map...');
+            
+            if (typeof L === 'undefined') {
+                console.error('Leaflet not loaded');
+                showToast('地图库加载失败，请检查网络');
+                return;
+            }
+
+            try {
+                // 创建地图 - 默认长沙
+                map = L.map('map', {
+                    center: [28.2280, 112.9388],
+                    zoom: 11,
+                    zoomControl: false,
+                    attributionControl: false
+                });
+
+                // 添加瓦片图层 - 使用多个备选
+                const tileOptions = {
+                    maxZoom: 19,
+                    minZoom: 3
+                };
+
+                // 尝试高德瓦片
+                const amapLayer = L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+                    subdomains: ['1', '2', '3', '4'],
+                    ...tileOptions
+                });
+
+                // 如果高德失败，使用OSM作为备用
+                const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap',
+                    ...tileOptions
+                });
+
+                // 先尝试高德
+                amapLayer.on('tileerror', function() {
+                    console.warn('Amap tiles failed, switching to OSM');
+                    map.removeLayer(amapLayer);
+                    osmLayer.addTo(map);
+                });
+
+                amapLayer.addTo(map);
+                
+                // 确保地图渲染
+                setTimeout(() => {
+                    map.invalidateSize();
+                    isMapReady = true;
+                    console.log('Map initialized successfully');
+                }, 100);
+
+                // 长按事件
+                setupLongPress();
+
+            } catch (e) {
+                console.error('Map init error:', e);
+                showToast('地图初始化失败');
+            }
+        }
+
+        // 长按检测
+        function setupLongPress() {
+            let pressTimer;
+            let isPressing = false;
+            let startPos = null;
+
+            map.on('mousedown touchstart', function(e) {
+                isPressing = true;
+                startPos = e.latlng;
+                pressTimer = setTimeout(function() {
+                    if (isPressing && startPos) {
+                        console.log('Long press at:', startPos);
+                        openAddLocation(startPos.lat, startPos.lng);
+                        isPressing = false;
+                    }
+                }, 600);
+            });
+
+            map.on('mouseup touchend', function() {
+                isPressing = false;
+                clearTimeout(pressTimer);
+            });
+
+            map.on('movestart zoomstart', function() {
+                isPressing = false;
+                clearTimeout(pressTimer);
+            });
+        }
+
+        // 主题切换
+        function checkSystemTheme() {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+            }
+        }
+
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            lucide.createIcons();
+        }
+
+        // 加载数据
+        async function loadData() {
+            updateNearbyUI('loading');
+            
+            if (!supabaseClient) {
+                updateNearbyUI('offline');
+                return;
+            }
+
+            try {
+                // 加载地点
+                const {data: locations, error: locError} = await supabaseClient
+                    .from('locations')
+                    .select('*')
+                    .order('created_at', {ascending: false});
+
+                if (locError) throw locError;
+                allLocations = locations || [];
+
+                // 加载球队
+                const {data: teams, error: teamError} = await supabaseClient
+                    .from('teams')
+                    .select('*');
+
+                if (teamError) throw teamError;
+                allTeams = teams || [];
+
+                renderMarkers();
+                renderNearbyList();
+                updateFormOptions();
+                
+                document.getElementById('nearbyCount').textContent = `${allTeams.length}支球队`;
+                
+            } catch (error) {
+                console.error('Data load error:', error);
+                updateNearbyUI('error');
+            }
+        }
+
+        function updateNearbyUI(state) {
+            const list = document.getElementById('nearbyList');
+            const count = document.getElementById('nearbyCount');
+            
+            if (state === 'loading') {
+                list.innerHTML = `
+                    <div class="flex items-center justify-center py-12 text-gray-400">
+                        <div class="w-8 h-8 border-2 border-gray-300 border-t-pitch-600 rounded-full animate-spin mr-3"></div>
+                        <span>加载中...</span>
+                    </div>
+                `;
+                count.textContent = '加载中...';
+            } else if (state === 'offline') {
+                list.innerHTML = `
+                    <div class="text-center py-8 text-gray-400">
+                        <i data-lucide="wifi-off" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                        <p class="mb-2">数据库连接失败</p>
+                        <p class="text-xs mb-4">请检查网络连接后刷新</p>
+                        <button onclick="loadData()" class="px-4 py-2 bg-pitch-600 text-white rounded-lg text-sm">重试</button>
+                    </div>
+                `;
+                count.textContent = '离线模式';
+                lucide.createIcons();
+            } else if (state === 'error') {
+                list.innerHTML = `
+                    <div class="text-center py-8 text-gray-400">
+                        <i data-lucide="alert-circle" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                        <p class="mb-2">加载失败</p>
+                        <button onclick="loadData()" class="px-4 py-2 bg-pitch-600 text-white rounded-lg text-sm">重试</button>
+                    </div>
+                `;
+                count.textContent = '加载失败';
+                lucide.createIcons();
+            }
+        }
+
+        // 渲染标记
+        function renderMarkers() {
+            if (!map) return;
+            
+            // 清除旧标记
+            Object.values(markers).forEach(m => map.removeLayer(m));
+            markers = {};
+
+            allLocations.forEach(loc => {
+                const teamsAtLoc = allTeams.filter(t => t.location_id === loc.id);
+                
+                const iconHtml = `
+                    <div class="marker-icon" id="marker-${loc.id}">
+                        ⚽
+                        ${teamsAtLoc.length > 0 ? `<span class="marker-badge">${teamsAtLoc.length}</span>` : ''}
+                    </div>
+                `;
+                
+                const icon = L.divIcon({
+                    html: iconHtml,
+                    className: 'custom-marker',
+                    iconSize: [44, 44],
+                    iconAnchor: [22, 22]
+                });
+                
+                const marker = L.marker([loc.lat, loc.lng], {icon})
+                    .addTo(map)
+                    .on('click', () => showLocationDetail(loc.id));
+                
+                markers[loc.id] = marker;
+            });
+        }
+
+        // 显示地点详情
+        function showLocationDetail(locId) {
+            const location = allLocations.find(l => l.id === locId);
+            if (!location) return;
+            
+            const teams = allTeams.filter(t => t.location_id === locId);
+            
+            document.querySelectorAll('.marker-icon').forEach(el => el.classList.remove('active'));
+            const markerEl = document.getElementById(`marker-${locId}`);
+            if (markerEl) markerEl.classList.add('active');
+            
+            const html = `
+                <div class="animate-fade-in">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex-1 pr-4">
+                            <h2 class="text-xl font-bold flex items-center gap-2 mb-1">
+                                <i data-lucide="map-pin" class="text-pitch-600 w-5 h-5"></i>
+                                ${location.venue_name}
+                            </h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                <i data-lucide="navigation" class="w-3 h-3"></i>
+                                ${location.city} · ${location.address || '暂无详细地址'}
+                            </p>
+                        </div>
+                        <button onclick="backToDefault()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full flex-shrink-0">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    
+                    ${teams.length === 0 ? `
+                        <div class="text-center py-8 text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                            <i data-lucide="shield-off" class="w-12 h-12 mx-auto mb-2 opacity-50"></i>
+                            <p class="mb-3">暂无球队入驻</p>
+                            <button onclick="openAddTeamWithLoc('${locId}')" class="text-pitch-600 font-medium">添加球队 →</button>
+                        </div>
+                    ` : `
+                        <div class="space-y-3">
+                            ${teams.map(team => `
+                                <div onclick="showTeamDetail('${team.id}')" class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-12 h-12 bg-gradient-to-br from-pitch-500 to-pitch-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                                ${team.name.slice(0, 2)}
+                                            </div>
+                                            <div>
+                                                <h3 class="font-bold text-lg">${team.name}</h3>
+                                                <span class="level-tag ${getLevelClass(team.level)}">${team.level || '业余'}</span>
+                                            </div>
+                                        </div>
+                                        <i data-lucide="chevron-right" class="w-5 h-5 text-gray-400"></i>
+                                    </div>
+                                    ${team.description ? `<p class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 mt-2">${team.description}</p>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    `}
+                </div>
+            `;
+            
+            switchView('locationDetailView', html);
+            map.setView([location.lat, location.lng], 15);
+        }
+
+        // 显示球队详情
+        async function showTeamDetail(teamId) {
+            const team = allTeams.find(t => t.id === teamId);
+            if (!team) return;
+            
+            const location = allLocations.find(l => l.id === team.location_id);
+            
+            let matchesHtml = '';
+            if (supabaseClient) {
+                try {
+                    const {data: matches} = await supabaseClient
+                        .from('matches')
+                        .select('*')
+                        .eq('team_id', teamId)
+                        .gte('match_time', new Date().toISOString())
+                        .order('match_time', {ascending: true})
+                        .limit(10);
+                    
+                    if (!matches || matches.length === 0) {
+                        matchesHtml = `<div class="text-center py-6 text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-xl">暂无 upcoming 比赛</div>`;
+                    } else {
+                        matchesHtml = `<div class="space-y-3">${matches.map(match => {
+                            const matchDate = new Date(match.match_time);
+                            const isToday = new Date().toDateString() === matchDate.toDateString();
+                            const dateStr = isToday ? '今天' : `${matchDate.getMonth()+1}月${matchDate.getDate()}日`;
+                            const timeStr = matchDate.toTimeString().slice(0,5);
+                            
+                            return `
+                                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div class="flex items-center gap-2">
+                                            <span class="bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 text-xs px-2 py-1 rounded font-bold">${dateStr} ${timeStr}</span>
+                                            <span class="text-xs text-gray-500">${match.level || '友谊赛'}</span>
+                                        </div>
+                                        <span class="text-pitch-600 font-bold text-sm">${match.ticket_price || '免费'}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="font-bold text-lg">${team.name}</span>
+                                        <span class="text-gray-400 text-sm">vs</span>
+                                        <span class="font-bold text-lg">${match.opponent}</span>
+                                    </div>
+                                    ${match.venue_note ? `<p class="text-xs text-gray-500 flex items-center gap-1"><i data-lucide="map" class="w-3 h-3"></i> ${match.venue_note}</p>` : ''}
+                                </div>
+                            `;
+                        }).join('')}</div>`;
+                    }
+                } catch (e) {
+                    matchesHtml = `<div class="text-center py-6 text-gray-400">加载比赛失败</div>`;
+                }
+            } else {
+                matchesHtml = `<div class="text-center py-6 text-gray-400">离线模式，无法加载比赛</div>`;
+            }
+            
+            const html = `
+                <div class="animate-fade-in">
+                    <button onclick="backToDefault()" class="flex items-center gap-2 mb-4 text-sm text-gray-500 hover:text-gray-700">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        <span>返回</span>
+                    </button>
+                    
+                    <div class="bg-gradient-to-r from-pitch-600 to-pitch-700 text-white p-5 rounded-2xl mb-6 shadow-lg">
+                        <div class="flex items-center gap-4">
+                            <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl font-bold backdrop-blur">
+                                ${team.name.slice(0, 2)}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h2 class="text-2xl font-bold truncate">${team.name}</h2>
+                                <div class="flex items-center gap-2 mt-1 text-sm text-pitch-100">
+                                    <span class="bg-white/20 px-2 py-0.5 rounded">${team.level || '业余球队'}</span>
+                                    <span class="truncate">${location?.city || ''}</span>
+                                </div>
+                            </div>
+                        </div>
+                        ${team.contact ? `<div class="mt-3 text-sm flex items-center gap-2"><i data-lucide="phone" class="w-4 h-4"></i> ${team.contact}</div>` : ''}
+                        ${team.description ? `<p class="mt-3 text-sm text-pitch-50 line-clamp-3">${team.description}</p>` : ''}
+                    </div>
+                    
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-lg flex items-center gap-2">
+                            <i data-lucide="calendar-days" class="text-orange-500"></i>
+                            近期比赛
+                        </h3>
+                        <button onclick="openAddMatchWithTeam('${teamId}')" class="text-sm text-pitch-600 font-medium">+ 发布比赛</button>
+                    </div>
+                    
+                    ${matchesHtml}
+                </div>
+            `;
+            
+            switchView('teamDetailView', html);
+        }
+
+        function switchView(viewId, html) {
+            document.getElementById('defaultView').classList.add('hidden');
+            document.getElementById('locationDetailView').classList.add('hidden');
+            document.getElementById('teamDetailView').classList.add('hidden');
+            
+            const view = document.getElementById(viewId);
+            view.innerHTML = html;
+            view.classList.remove('hidden');
+            
+            lucide.createIcons();
+            setSheetState('half');
+        }
+
+        function backToDefault() {
+            document.getElementById('locationDetailView').classList.add('hidden');
+            document.getElementById('teamDetailView').classList.add('hidden');
+            document.getElementById('defaultView').classList.remove('hidden');
+            document.querySelectorAll('.marker-icon').forEach(el => el.classList.remove('active'));
+            lucide.createIcons();
+            setSheetState('peek');
+        }
+
+        function renderNearbyList() {
+            const list = document.getElementById('nearbyList');
+            
+            if (allTeams.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center py-8 text-gray-400">
+                        <div class="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">⚽</div>
+                        <p class="mb-2">还没有球队数据</p>
+                        <button onclick="showAddOptions()" class="text-pitch-600 font-medium text-sm">添加第一个球队</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            const recentTeams = allTeams.slice(0, 6);
+            
+            list.innerHTML = recentTeams.map(team => {
+                const loc = allLocations.find(l => l.id === team.location_id);
+                return `
+                    <div onclick="showLocationDetail('${loc?.id}')" class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700">
+                        <div class="w-12 h-12 bg-pitch-100 dark:bg-pitch-900 rounded-full flex items-center justify-center text-pitch-600 font-bold text-lg">
+                            ${team.name.slice(0, 2)}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-bold truncate">${team.name}</h3>
+                            <p class="text-xs text-gray-500 flex items-center gap-1 truncate">
+                                <i data-lucide="map-pin" class="w-3 h-3"></i>
+                                ${loc?.venue_name || '未知地点'} · ${loc?.city || ''}
+                            </p>
+                        </div>
+                        <span class="level-tag ${getLevelClass(team.level)}">${team.level || '业余'}</span>
+                    </div>
+                `;
+            }).join('');
+            
+            lucide.createIcons();
+        }
+
+        function getLevelClass(level) {
+            const map = {
+                '职业': 'level-pro',
+                '半职业': 'level-semi',
+                '业余': 'level-amateur',
+                '校园': 'level-casual',
+                '友谊': 'level-casual'
+            };
+            return map[level] || 'level-amateur';
+        }
+
+        // 拖拽控制
+        function setupDragHandlers() {
+            const handle = document.getElementById('dragHandle');
+            
+            handle.addEventListener('touchstart', function(e) {
+                isDragging = true;
+                startY = e.touches[0].clientY;
+                e.preventDefault();
+            }, {passive: false});
+            
+            handle.addEventListener('mousedown', function(e) {
+                isDragging = true;
+                startY = e.clientY;
+            });
+            
+            document.addEventListener('touchmove', function(e) {
+                if (!isDragging) return;
+                currentY = e.touches[0].clientY;
+            }, {passive: false});
+            
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+                currentY = e.clientY;
+            });
+            
+            document.addEventListener('touchend', endDrag);
+            document.addEventListener('mouseup', endDrag);
+        }
+
+        function endDrag() {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            const diff = startY - currentY;
+            const threshold = 50;
+            
+            if (Math.abs(diff) > threshold) {
+                if (diff > 0) {
+                    if (currentSheetState === 'peek') setSheetState('half');
+                    else if (currentSheetState === 'half') setSheetState('full');
+                } else {
+                    if (currentSheetState === 'full') setSheetState('half');
+                    else if (currentSheetState === 'half') setSheetState('peek');
+                }
+            }
+        }
+
+        function setSheetState(state) {
+            currentSheetState = state;
+            const sheet = document.getElementById('bottomSheet');
+            const translates = {
+                'peek': '70%',
+                'half': '40%',
+                'full': '0%'
+            };
+            sheet.style.transform = `translateY(${translates[state]})`;
+        }
+
+        // 添加功能
+        function showAddOptions() {
+            const modal = document.getElementById('addModal');
+            const backdrop = modal.querySelector('.backdrop');
+            const content = document.getElementById('addModalContent');
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                backdrop.classList.add('show');
+                content.classList.add('show');
+            }, 10);
+        }
+
+        function closeAddModal() {
+            const modal = document.getElementById('addModal');
+            const backdrop = modal.querySelector('.backdrop');
+            const content = document.getElementById('addModalContent');
+            
+            backdrop.classList.remove('show');
+            content.classList.remove('show');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        function openAddLocation(lat = null, lng = null) {
+            closeAddModal();
+            document.getElementById('locationFormModal').classList.remove('hidden');
+            
+            if (lat !== null && lng !== null) {
+                document.getElementById('locLat').value = lat.toFixed(6);
+                document.getElementById('locLng').value = lng.toFixed(6);
+            } else if (map) {
+                const center = map.getCenter();
+                document.getElementById('locLat').value = center.lat.toFixed(6);
+                document.getElementById('locLng').value = center.lng.toFixed(6);
+            }
+        }
+
+        function closeLocationForm() {
+            document.getElementById('locationFormModal').classList.add('hidden');
+        }
+
+        async function saveLocation(e) {
+            e.preventDefault();
+            if (!supabaseClient) {
+                showToast('数据库未连接');
+                return;
+            }
+            
+            const data = {
+                venue_name: document.getElementById('locName').value,
+                city: document.getElementById('locCity').value,
+                address: document.getElementById('locAddress').value,
+                lat: parseFloat(document.getElementById('locLat').value),
+                lng: parseFloat(document.getElementById('locLng').value)
+            };
+            
+            try {
+                const {error} = await supabaseClient.from('locations').insert([data]);
+                if (error) throw error;
+                
+                showToast('地点添加成功！');
+                closeLocationForm();
+                await loadData();
+                map.setView([data.lat, data.lng], 15);
+                
+            } catch (err) {
+                alert('保存失败：' + err.message);
+            }
+        }
+
+        function openAddTeam() {
+            closeAddModal();
+            document.getElementById('teamFormModal').classList.remove('hidden');
+        }
+
+        function openAddTeamWithLoc(locId) {
+            backToDefault();
+            setTimeout(() => {
+                openAddTeam();
+                document.getElementById('teamLocation').value = locId;
+            }, 300);
+        }
+
+        function closeTeamForm() {
+            document.getElementById('teamFormModal').classList.add('hidden');
+        }
+
+        async function saveTeam(e) {
+            e.preventDefault();
+            if (!supabaseClient) {
+                showToast('数据库未连接');
+                return;
+            }
+            
+            const data = {
+                location_id: document.getElementById('teamLocation').value,
+                name: document.getElementById('teamName').value,
+                level: document.getElementById('teamLevel').value,
+                contact: document.getElementById('teamContact').value,
+                description: document.getElementById('teamDesc').value
+            };
+            
+            try {
+                const {error} = await supabaseClient.from('teams').insert([data]);
+                if (error) throw error;
+                
+                showToast('球队添加成功！');
+                closeTeamForm();
+                await loadData();
+                
+            } catch (err) {
+                alert('保存失败：' + err.message);
+            }
+        }
+
+        function openAddMatch() {
+            closeAddModal();
+            document.getElementById('matchFormModal').classList.remove('hidden');
+            
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(15, 0, 0, 0);
+            document.getElementById('matchTime').value = tomorrow.toISOString().slice(0, 16);
+        }
+
+        function openAddMatchWithTeam(teamId) {
+            openAddMatch();
+            document.getElementById('matchTeam').value = teamId;
+        }
+
+        function closeMatchForm() {
+            document.getElementById('matchFormModal').classList.add('hidden');
+        }
+
+        async function saveMatch(e) {
+            e.preventDefault();
+            if (!supabaseClient) {
+                showToast('数据库未连接');
+                return;
+            }
+            
+            const data = {
+                team_id: document.getElementById('matchTeam').value,
+                match_time: document.getElementById('matchTime').value,
+                opponent: document.getElementById('matchOpponent').value,
+                level: document.getElementById('matchLevel').value,
+                ticket_price: document.getElementById('matchPrice').value,
+                venue_note: document.getElementById('matchNote').value
+            };
+            
+            try {
+                const {error} = await supabaseClient.from('matches').insert([data]);
+                if (error) throw error;
+                
+                showToast('比赛发布成功！');
+                closeMatchForm();
+                
+                const teamId = document.getElementById('matchTeam').value;
+                const teamDetail = document.getElementById('teamDetailView');
+                if (!teamDetail.classList.contains('hidden')) {
+                    showTeamDetail(teamId);
+                }
+                
+            } catch (err) {
+                alert('保存失败：' + err.message);
+            }
+        }
+
+        function updateFormOptions() {
+            const locSelect = document.getElementById('teamLocation');
+            const teamSelect = document.getElementById('matchTeam');
+            
+            if (locSelect) {
+                locSelect.innerHTML = '<option value="">选择地点...</option>' + 
+                    allLocations.map(l => `<option value="${l.id}">${l.city} · ${l.venue_name}</option>`).join('');
+            }
+            
+            if (teamSelect) {
+                teamSelect.innerHTML = '<option value="">选择球队...</option>' + 
+                    allTeams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+            }
+        }
+
+        // 搜索
+        function handleSearchKey(e) {
+            if (e.key !== 'Enter') return;
+            const query = e.target.value.trim();
+            if (!query || !map) return;
+            
+            const matchedLoc = allLocations.find(l => 
+                l.city.includes(query) || l.venue_name.includes(query)
+            );
+            const matchedTeam = allTeams.find(t => t.name.includes(query));
+            
+            if (matchedLoc) {
+                map.setView([matchedLoc.lat, matchedLoc.lng], 15);
+                showLocationDetail(matchedLoc.id);
+            } else if (matchedTeam) {
+                const loc = allLocations.find(l => l.id === matchedTeam.location_id);
+                if (loc) {
+                    map.setView([loc.lat, loc.lng], 15);
+                    showTeamDetail(matchedTeam.id);
+                }
+            } else {
+                showToast('未找到相关结果');
+            }
+        }
+
+        // 定位
+        function locateMe() {
+            if (!navigator.geolocation) {
+                showToast('浏览器不支持定位');
+                return;
+            }
+            
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    const {latitude, longitude} = pos.coords;
+                    if (map) {
+                        map.setView([latitude, longitude], 14);
+                        L.circle([latitude, longitude], {
+                            radius: 100,
+                            color: '#16a34a',
+                            fillColor: '#22c55e',
+                            fillOpacity: 0.3
+                        }).addTo(map);
+                    }
+                    showToast('已定位到您的位置');
+                },
+                err => {
+                    showToast('定位失败：' + err.message);
+                }
+            );
+        }
+
+        // Toast
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+    </script>
+</body>
+</html>

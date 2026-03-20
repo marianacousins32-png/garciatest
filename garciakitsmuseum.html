@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>加西亚球衣博物馆</title>
+    <style>
+        :root {
+            --bg-color: #f5f5f7;
+            --card-bg: #ffffff;
+            --text-primary: #1c1c1e;
+            --text-secondary: #666668;
+            --accent-color: #007aff;
+            --border-color: #e5e5e7;
+            --shadow: rgba(0, 0, 0, 0.08);
+            --tag-bg: rgba(0, 122, 255, 0.1);
+            --tag-text: #007aff;
+            --filter-bar-bg: rgba(255, 255, 255, 0.85);
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #000000;
+            --card-bg: #1c1c1e;
+            --text-primary: #ffffff;
+            --text-secondary: #8e8e93;
+            --accent-color: #0a84ff;
+            --border-color: #2c2c2e;
+            --shadow: rgba(0, 0, 0, 0.3);
+            --tag-bg: rgba(10, 132, 255, 0.15);
+            --tag-text: #0a84ff;
+            --filter-bar-bg: rgba(28, 28, 30, 0.85);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            overflow-x: hidden;
+        }
+
+        html::-webkit-scrollbar,
+        body::-webkit-scrollbar {
+            display: none;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.4;
+            padding-bottom: 30px;
+            transition: background-color 0.3s ease;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background-color: var(--filter-bar-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 14px;
+            border-radius: 20px;
+            border: none;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background-color: var(--card-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            justify-content: center;
+            min-width: 36px;
+            height: 36px;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-small {
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+
+        /* 视图切换按钮组 */
+        .view-toggle {
+            display: flex;
+            background-color: var(--bg-color);
+            border-radius: 18px;
+            padding: 2px;
+            border: 1px solid var(--border-color);
+        }
+
+        .view-toggle .btn {
+            border: none;
+            background: transparent;
+            min-width: 32px;
+            height: 32px;
+            padding: 0;
+        }
+
+        .view-toggle .btn.active {
+            background-color: var(--card-bg);
+            color: var(--text-primary);
+            box-shadow: 0 1px 3px var(--shadow);
+        }
+
+        .filter-bar {
+            padding: 12px 16px;
+            background-color: var(--filter-bar-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            display: none;
+            align-items: center;
+            gap: 8px;
+            overflow-x: auto;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .filter-bar.active {
+            display: flex;
+        }
+
+        .filter-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filter-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        .filter-tag {
+            background-color: var(--tag-bg);
+            color: var(--tag-text);
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .filter-tag .remove {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: var(--tag-text);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            cursor: pointer;
+        }
+
+        /* 瀑布流容器 - 双列默认 */
+        .waterfall {
+            padding: 16px;
+            column-count: 2;
+            column-gap: 12px;
+        }
+
+        /* 单列模式 */
+        .waterfall.single-column {
+            column-count: 1;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        @media (min-width: 768px) {
+            .waterfall {
+                column-count: 3;
+                column-gap: 16px;
+                padding: 20px;
+            }
+            .waterfall.single-column {
+                column-count: 1;
+                max-width: 700px;
+            }
+            /* 桌面端隐藏视图切换 */
+            .view-toggle {
+                display: none;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .waterfall {
+                column-count: 4;
+                column-gap: 20px;
+                padding: 24px;
+            }
+            .waterfall.single-column {
+                column-count: 1;
+                max-width: 800px;
+            }
+        }
+
+        .kit-card {
+            break-inside: avoid;
+            margin-bottom: 12px;
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px var(--shadow);
+            transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s;
+            cursor: pointer;
+        }
+
+        .kit-card:active {
+            transform: scale(0.98);
+        }
+
+        .kit-image-wrapper {
+            position: relative;
+            width: 100%;
+            background: linear-gradient(135deg, var(--bg-color) 0%, var(--border-color) 100%);
+            overflow: hidden;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .kit-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .kit-info {
+            padding: 12px;
+        }
+
+        .kit-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .tag:active {
+            transform: scale(0.9);
+            opacity: 0.8;
+        }
+
+        .tag.team {
+            background-color: rgba(255, 149, 0, 0.15);
+            color: #ff9500;
+        }
+
+        .tag.style {
+            background-color: rgba(175, 82, 222, 0.15);
+            color: #af52de;
+        }
+
+        .tag.season {
+            background-color: rgba(52, 199, 89, 0.15);
+            color: #34c759;
+        }
+
+        [data-theme="dark"] .tag.team {
+            background-color: rgba(255, 159, 10, 0.2);
+            color: #ff9f0a;
+        }
+
+        [data-theme="dark"] .tag.style {
+            background-color: rgba(191, 90, 242, 0.2);
+            color: #bf5af2;
+        }
+
+        [data-theme="dark"] .tag.season {
+            background-color: rgba(48, 209, 88, 0.2);
+            color: #30d158;
+        }
+
+        /* 灯箱/大图查看器 */
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .lightbox.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .lightbox-image {
+            max-width: 100%;
+            max-height: 80vh;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+        }
+
+        .lightbox-close:active {
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: scale(0.95);
+        }
+
+        .lightbox-info {
+            margin-top: 20px;
+            text-align: center;
+            color: white;
+            max-width: 100%;
+        }
+
+        .lightbox-info h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .lightbox-info p {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .lightbox-tags {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .lightbox-tags .tag {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* 点击背景关闭 */
+        .lightbox-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-tip {
+            background-color: rgba(255, 59, 48, 0.1);
+            color: #ff3b30;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin: 16px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        [data-theme="dark"] .error-tip {
+            background-color: rgba(255, 69, 58, 0.15);
+            color: #ff453a;
+        }
+
+        .hint {
+            text-align: center;
+            padding: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>⚽ 球衣博物馆</h1>
+        <div class="header-controls">
+            <!-- 单列/双列切换 -->
+            <div class="view-toggle" id="viewToggle">
+                <button class="btn" id="btnDouble" title="双列">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="2" y="2" width="9" height="20" rx="2"/>
+                        <rect x="13" y="2" width="9" height="20" rx="2"/>
+                    </svg>
+                </button>
+                <button class="btn" id="btnSingle" title="单列">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="4" y="2" width="16" height="20" rx="2"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <button class="btn btn-small" id="resetFilter" style="display:none;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+                重置
+            </button>
+            <button class="btn" id="themeToggle" title="切换主题">
+                <span id="themeIcon">🌙</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="filter-bar" id="filterBar">
+        <span class="filter-label">筛选:</span>
+        <span class="filter-tag" id="activeFilter">
+            <span id="filterText"></span>
+            <span class="remove" onclick="resetFilter()">×</span>
+        </span>
+    </div>
+
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div>正在加载球衣数据...</div>
+    </div>
+
+    <div class="error-tip" id="errorTip" style="display:none;">
+        <span id="errorText">加载失败</span>
+    </div>
+
+    <div class="waterfall" id="waterfall" style="display:none;"></div>
+
+    <div class="hint" id="hint" style="display:none;">点击图片查看大图</div>
+
+    <div class="empty-state" id="emptyState" style="display:none;">
+        <p>暂无相关球衣</p>
+    </div>
+
+    <!-- 灯箱 -->
+    <div class="lightbox" id="lightbox">
+        <div class="lightbox-backdrop" onclick="closeLightbox()"></div>
+        <button class="lightbox-close" onclick="closeLightbox()">×</button>
+        <img class="lightbox-image" id="lightboxImage" src="" alt="">
+        <div class="lightbox-info">
+            <h3 id="lightboxTitle"></h3>
+            <p id="lightboxSubtitle"></p>
+            <div class="lightbox-tags" id="lightboxTags"></div>
+        </div>
+    </div>
+
+    <script>
+        const DATA_URL = 'https://angreoli-fagioli-garciatest-html.static.hf.space/%E5%90%84%E9%98%9F%E7%90%83%E8%A1%A3.txt';
+        
+        let allKits = [];
+        let currentFilter = null;
+        let currentFilterType = null;
+
+        // 主题切换
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const html = document.documentElement;
+
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        html.setAttribute('data-theme', savedTheme);
+        themeIcon.textContent = savedTheme === 'light' ? '🌙' : '☀️';
+
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            themeIcon.textContent = next === 'light' ? '🌙' : '☀️';
+        });
+
+        // 视图切换（单列/双列）
+        const btnSingle = document.getElementById('btnSingle');
+        const btnDouble = document.getElementById('btnDouble');
+        const waterfall = document.getElementById('waterfall');
+
+        function setViewMode(mode) {
+            if (mode === 'single') {
+                waterfall.classList.add('single-column');
+                btnSingle.classList.add('active');
+                btnDouble.classList.remove('active');
+            } else {
+                waterfall.classList.remove('single-column');
+                btnDouble.classList.add('active');
+                btnSingle.classList.remove('active');
+            }
+            localStorage.setItem('viewMode', mode);
+        }
+
+        // 初始化视图模式
+        const savedViewMode = localStorage.getItem('viewMode') || 'double';
+        setViewMode(savedViewMode);
+
+        btnSingle.addEventListener('click', () => setViewMode('single'));
+        btnDouble.addEventListener('click', () => setViewMode('double'));
+
+        // 解析数据
+        function parseKits(text) {
+            const lines = text.trim().split('\n');
+            const kits = [];
+            
+            lines.forEach(line => {
+                line = line.trim();
+                if (!line) return;
+                
+                let colonIndex = line.indexOf('：');
+                if (colonIndex === -1) {
+                    colonIndex = line.indexOf(':');
+                }
+                
+                if (colonIndex === -1) return;
+                
+                const imageUrl = line.substring(colonIndex + 1).trim();
+                const leftPart = line.substring(0, colonIndex).trim();
+                const parts = leftPart.split(/\s+/);
+                
+                if (parts.length < 3) return;
+                
+                const season = parts.pop();
+                const style = parts.pop();
+                const team = parts.join(' ');
+                
+                if (team && style && season && imageUrl) {
+                    kits.push({
+                        team: team,
+                        style: style,
+                        season: season,
+                        image: imageUrl,
+                        id: Math.random().toString(36).substr(2, 9)
+                    });
+                }
+            });
+            
+            return kits;
+        }
+
+        // Fisher-Yates 乱序
+        function shuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // HTML转义
+        function escapeHtml(text) {
+            return text.replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+
+        // 灯箱功能
+        window.openLightbox = function(kit) {
+            const lightbox = document.getElementById('lightbox');
+            const img = document.getElementById('lightboxImage');
+            const title = document.getElementById('lightboxTitle');
+            const subtitle = document.getElementById('lightboxSubtitle');
+            const tags = document.getElementById('lightboxTags');
+            
+            img.src = kit.image;
+            title.textContent = kit.team;
+            subtitle.textContent = kit.season + ' · ' + kit.style;
+            
+            tags.innerHTML = `
+                <span class="tag" onclick="filterBy('team', '${escapeHtml(kit.team)}'); closeLightbox();">${kit.team}</span>
+                <span class="tag" onclick="filterBy('style', '${escapeHtml(kit.style)}'); closeLightbox();">${kit.style}</span>
+                <span class="tag" onclick="filterBy('season', '${escapeHtml(kit.season)}'); closeLightbox();">${kit.season}</span>
+            `;
+            
+            lightbox.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.closeLightbox = function() {
+            const lightbox = document.getElementById('lightbox');
+            lightbox.classList.remove('active');
+            document.body.style.overflow = '';
+            setTimeout(() => {
+                document.getElementById('lightboxImage').src = '';
+            }, 300);
+        };
+
+        // 渲染球衣卡片
+        function renderKit(kit) {
+            // 将kit对象序列化用于onclick
+            const kitStr = JSON.stringify(kit).replace(/"/g, '&quot;');
+            return `
+                <div class="kit-card" data-id="${kit.id}" onclick='openLightbox(${kitStr})'>
+                    <div class="kit-image-wrapper">
+                        <img class="kit-image" 
+                             src="${kit.image}" 
+                             alt="${kit.team} ${kit.style}" 
+                             loading="lazy" 
+                             referrerpolicy="no-referrer"
+                             onerror="this.style.display='none'">
+                    </div>
+                    <div class="kit-info">
+                        <div class="kit-tags" onclick="event.stopPropagation();">
+                            <span class="tag team" onclick="filterBy('team', '${escapeHtml(kit.team)}')">${kit.team}</span>
+                            <span class="tag style" onclick="filterBy('style', '${escapeHtml(kit.style)}')">${kit.style}</span>
+                            <span class="tag season" onclick="filterBy('season', '${escapeHtml(kit.season)}')">${kit.season}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 渲染瀑布流
+        function renderWaterfall(kits) {
+            const container = document.getElementById('waterfall');
+            
+            if (kits.length === 0) {
+                container.style.display = 'none';
+                document.getElementById('hint').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+                return;
+            }
+            
+            document.getElementById('emptyState').style.display = 'none';
+            container.style.display = 'block';
+            document.getElementById('hint').style.display = 'block';
+            
+            container.innerHTML = kits.map(renderKit).join('');
+        }
+
+        // 筛选功能
+        window.filterBy = function(type, value) {
+            currentFilter = value;
+            currentFilterType = type;
+            
+            const filtered = allKits.filter(kit => kit[type] === value);
+            renderWaterfall(filtered);
+            
+            const filterBar = document.getElementById('filterBar');
+            const filterText = document.getElementById('filterText');
+            const resetBtn = document.getElementById('resetFilter');
+            
+            const typeLabels = { team: '球队', style: '款式', season: '赛季' };
+            filterText.textContent = `${typeLabels[type]}: ${value}`;
+            filterBar.classList.add('active');
+            resetBtn.style.display = 'flex';
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        // 重置筛选
+        window.resetFilter = function() {
+            currentFilter = null;
+            currentFilterType = null;
+            
+            renderWaterfall(allKits);
+            
+            document.getElementById('filterBar').classList.remove('active');
+            document.getElementById('resetFilter').style.display = 'none';
+        };
+
+        document.getElementById('resetFilter').addEventListener('click', resetFilter);
+
+        // ESC键关闭灯箱
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeLightbox();
+            }
+        });
+
+        // 加载数据
+        async function loadData() {
+            try {
+                const response = await fetch(DATA_URL);
+                if (!response.ok) throw new Error('网络请求失败');
+                
+                const text = await response.text();
+                const kits = parseKits(text);
+                
+                if (kits.length === 0) throw new Error('未解析到数据');
+                
+                allKits = shuffle(kits);
+                
+                document.getElementById('loading').style.display = 'none';
+                renderWaterfall(allKits);
+                
+            } catch (error) {
+                console.error('加载失败:', error);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('errorTip').style.display = 'flex';
+                document.getElementById('errorText').textContent = '加载数据失败: ' + error.message;
+            }
+        }
+
+        loadData();
+    </script>
+</body>
+</html>

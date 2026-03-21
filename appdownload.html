@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>加西亚联赛玩家APP - 下载</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#16a34a',
+                        secondary: '#22c55e',
+                        accent: '#4ade80'
+                    },
+                    fontFamily: {
+                        sans: ['PingFang SC', 'Microsoft YaHei', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 隐藏滚动条 */
+        body::-webkit-scrollbar,
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        body {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+        
+        /* 渐变背景动画 */
+        .gradient-bg {
+            background: linear-gradient(135deg, #16a34a 0%, #22c55e 50%, #4ade80 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 8s ease infinite;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        /* 玻璃拟态效果 */
+        .glass {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .dark .glass {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* 按钮呼吸效果 */
+        .breathing {
+            animation: breathe 2s ease-in-out infinite;
+        }
+        
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); box-shadow: 0 4px 15px rgba(22, 163, 74, 0.4); }
+            50% { transform: scale(1.02); box-shadow: 0 6px 25px rgba(22, 163, 74, 0.6); }
+        }
+        
+        /* 截图轮播自定义样式 */
+        .swiper-slide {
+            transition: transform 0.3s;
+        }
+        .swiper-slide-active {
+            transform: scale(1.05);
+            z-index: 10;
+        }
+        
+        /* 浮动动画 */
+        .float {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        /* 淡入动画 */
+        .fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300 overflow-x-hidden">
+
+    <!-- 主题切换按钮 -->
+    <button onclick="toggleTheme()" class="fixed top-4 right-4 z-50 p-3 rounded-full glass shadow-lg transition-transform hover:scale-110 active:scale-95">
+        <svg id="sun-icon" class="w-6 h-6 text-yellow-400 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+        </svg>
+        <svg id="moon-icon" class="w-6 h-6 text-gray-700 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+        </svg>
+    </button>
+
+    <!-- 顶部英雄区 -->
+    <header class="relative min-h-screen flex flex-col items-center justify-center gradient-bg text-white overflow-hidden">
+        <!-- 背景装饰 -->
+        <div class="absolute inset-0 overflow-hidden">
+            <div class="absolute top-10 left-10 w-32 h-32 bg-white/10 rounded-full blur-3xl float"></div>
+            <div class="absolute bottom-20 right-10 w-48 h-48 bg-white/10 rounded-full blur-3xl float" style="animation-delay: 2s;"></div>
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
+        </div>
+
+        <div class="relative z-10 text-center px-6 max-w-md w-full fade-in">
+            <!-- App图标 -->
+            <div class="w-28 h-28 mx-auto mb-6 rounded-3xl glass flex items-center justify-center shadow-2xl float">
+                <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
+                </svg>
+            </div>
+
+            <h1 class="text-4xl font-bold mb-2 tracking-tight">加西亚联赛</h1>
+            <p class="text-xl text-white/90 mb-2 font-medium">玩家专属APP</p>
+            <p class="text-sm text-white/70 mb-8">Garcia League Player App</p>
+
+            <div class="glass rounded-2xl p-6 mb-8 text-left">
+                <p class="text-sm leading-relaxed opacity-90">
+                    专为加西亚足球联赛玩家打造的数据管理工具。实时查看球队数据、球员能力值、转会动态，参与联赛互动，掌握第一手战报资讯。
+                </p>
+            </div>
+
+            <!-- 下载按钮 -->
+            <a href="https://angreoli-fagioli-garciatest-html.static.hf.space/garciaapp.apk" 
+               download="garciaapp.apk"
+               class="block w-full bg-white text-primary font-bold py-4 px-8 rounded-2xl shadow-xl breathing hover:shadow-2xl transition-all active:scale-95 text-lg">
+                <div class="flex items-center justify-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    <span>立即下载 APK</span>
+                </div>
+                <span class="text-xs font-normal opacity-70 block mt-1">版本 v1.0 | Android 5.0+</span>
+            </a>
+
+            <!-- 滚动提示 -->
+            <div class="mt-12 animate-bounce">
+                <svg class="w-6 h-6 mx-auto text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                </svg>
+            </div>
+        </div>
+    </header>
+
+    <!-- 截图展示区 -->
+    <section class="py-16 px-4 bg-white dark:bg-gray-800 transition-colors">
+        <div class="max-w-md mx-auto">
+            <h2 class="text-2xl font-bold text-center mb-2 text-gray-800 dark:text-white">应用预览</h2>
+            <p class="text-center text-gray-500 dark:text-gray-400 mb-8 text-sm">滑动查看更多截图</p>
+            
+            <!-- Swiper轮播 -->
+            <div class="swiper mySwiper pb-12">
+                <div class="swiper-wrapper">
+                    <div class="swiper-slide">
+                        <div class="bg-gray-100 dark:bg-gray-700 rounded-3xl overflow-hidden shadow-lg mx-2">
+                            <img src="https://i.imgs.ovh/2026/03/21/OseEk6.jpeg" alt="截图1" class="w-full h-auto object-cover">
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="bg-gray-100 dark:bg-gray-700 rounded-3xl overflow-hidden shadow-lg mx-2">
+                            <img src="https://i.imgs.ovh/2026/03/21/Osed4O.jpeg" alt="截图2" class="w-full h-auto object-cover">
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="bg-gray-100 dark:bg-gray-700 rounded-3xl overflow-hidden shadow-lg mx-2">
+                            <img src="https://i.imgs.ovh/2026/03/21/OselNd.jpeg" alt="截图3" class="w-full h-auto object-cover">
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="bg-gray-100 dark:bg-gray-700 rounded-3xl overflow-hidden shadow-lg mx-2">
+                            <img src="https://i.imgs.ovh/2026/03/21/OseKVg.jpeg" alt="截图4" class="w-full h-auto object-cover">
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="bg-gray-100 dark:bg-gray-700 rounded-3xl overflow-hidden shadow-lg mx-2">
+                            <img src="https://i.imgs.ovh/2026/03/21/Osepn0.jpeg" alt="截图5" class="w-full h-auto object-cover">
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="bg-gray-100 dark:bg-gray-700 rounded-3xl overflow-hidden shadow-lg mx-2">
+                            <img src="https://i.imgs.ovh/2026/03/21/OseIxY.jpeg" alt="截图6" class="w-full h-auto object-cover">
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="bg-gray-100 dark:bg-gray-700 rounded-3xl overflow-hidden shadow-lg mx-2">
+                            <img src="https://i.imgs.ovh/2026/03/21/OseGvb.jpeg" alt="截图7" class="w-full h-auto object-cover">
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="bg-gray-100 dark:bg-gray-700 rounded-3xl overflow-hidden shadow-lg mx-2">
+                            <img src="https://i.imgs.ovh/2026/03/21/Osems1.jpeg" alt="截图8" class="w-full h-auto object-cover">
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="bg-gray-100 dark:bg-gray-700 rounded-3xl overflow-hidden shadow-lg mx-2">
+                            <img src="https://i.imgs.ovh/2026/03/21/Oseupn.jpeg" alt="截图9" class="w-full h-auto object-cover">
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="bg-gray-100 dark:bg-gray-700 rounded-3xl overflow-hidden shadow-lg mx-2">
+                            <img src="https://i.imgs.ovh/2026/03/21/OseBZL.jpeg" alt="截图10" class="w-full h-auto object-cover">
+                        </div>
+                    </div>
+                </div>
+                <div class="swiper-pagination mt-4"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 功能特性 -->
+    <section class="py-16 px-4 bg-gray-50 dark:bg-gray-900">
+        <div class="max-w-md mx-auto">
+            <h2 class="text-2xl font-bold text-center mb-8 text-gray-800 dark:text-white">核心功能</h2>
+            
+            <div class="space-y-4">
+                <div class="flex items-start gap-4 p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm">
+                    <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-800 dark:text-white mb-1">实时数据</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">球员CA/PA、球队阵容、联赛积分榜实时更新</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-4 p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm">
+                    <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-800 dark:text-white mb-1">转会系统</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">在线发起转会申请，实时跟踪转会状态</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-4 p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm">
+                    <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-800 dark:text-white mb-1">广场互动</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">联赛公告、战报讨论、玩家交流社区</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-4 p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm">
+                    <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-800 dark:text-white mb-1">即时通知</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">转会审批、比赛提醒、系统公告实时推送</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 底部下载区 -->
+    <section class="py-16 px-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
+        <div class="max-w-md mx-auto text-center">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800 dark:text-white">准备好开始了吗？</h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-8 text-sm">加入加西亚联赛，开启你的足球经理生涯</p>
+            
+            <a href="https://angreoli-fagioli-garciatest-html.static.hf.space/garciaapp.apk" 
+               download="garciaapp.apk"
+               class="inline-block w-full max-w-xs bg-primary hover:bg-primary/90 text-white font-bold py-4 px-8 rounded-2xl shadow-xl transition-all active:scale-95 text-lg">
+                <div class="flex items-center justify-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    <span>下载安装包</span>
+                </div>
+            </a>
+            
+            <p class="mt-6 text-xs text-gray-400 dark:text-gray-500">
+                下载即代表同意用户协议<br>
+                © 2026 Garcia League. All rights reserved.
+            </p>
+        </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script>
+        // 主题切换功能
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // 初始化主题
+        if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+
+        // 初始化Swiper轮播
+        var swiper = new Swiper(".mySwiper", {
+            slidesPerView: 1.2,
+            centeredSlides: true,
+            spaceBetween: 20,
+            loop: true,
+            autoplay: {
+                delay: 3000,
+                disableOnInteraction: false,
+            },
+            pagination: {
+                el: ".swiper-pagination",
+                clickable: true,
+            },
+            effect: 'coverflow',
+            coverflowEffect: {
+                rotate: 0,
+                stretch: 0,
+                depth: 100,
+                modifier: 1,
+                slideShadows: false,
+            },
+            breakpoints: {
+                640: {
+                    slidesPerView: 2.2,
+                }
+            }
+        });
+
+        // 下载按钮点击统计（可选）
+        document.querySelectorAll('a[download]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // 添加点击动画
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = '';
+                }, 200);
+            });
+        });
+    </script>
+</body>
+</html>

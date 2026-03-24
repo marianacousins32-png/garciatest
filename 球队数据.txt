@@ -459,6 +459,12 @@ S5：9
 加西亚甲级联赛 亚军 S4
 =收购球队=
 第六赛季前3200万收购挪威超级联赛球队奥斯陆基青会（KFUM-Kameratene Oslo）
+=租借在外球员=
+Naruto Igari 121CA
+Veton Berisha 120CA
+Astrit Selmani 116CA
+Ma Haoyu 100CA
+均租借在奥斯陆KFUM
 
 ==女王镇乐邦战士==
 =球队变迁=

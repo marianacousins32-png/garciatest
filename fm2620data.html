@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>球员数据库</title>
+<style>
+body { margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;background:#f5f6f7; }
+.header { position:sticky;top:0;background:#fff;padding:10px;border-bottom:1px solid #ddd;z-index:10; }
+.search, .select, .input { width:100%;padding:8px;border-radius:8px;border:1px solid #ccc;margin-bottom:6px; }
+.container { padding:10px; }
+.card { background:#fff;border-radius:12px;padding:12px;margin-bottom:10px;box-shadow:0 2px 6px rgba(0,0,0,0.05); }
+.name { font-size:16px;font-weight:bold; }
+.row { font-size:13px;color:#555;margin-top:4px; }
+.highlight { color:red; }
+.loading { text-align:center;padding:20px;color:#666; }
+</style>
+</head>
+<body>
+<div class="header">
+  <input id="search" class="search" placeholder="搜索球员 / 球队">
+  <select id="positionFilter" class="select"><option value="">全部位置</option></select>
+  <input id="caFilter" class="input" placeholder="最低CA">
+  <input id="paFilter" class="input" placeholder="最低PA">
+</div>
+<div class="container" id="list"><div class="loading">加载中...</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script>
+const url = "https://angreoli-fagioli-garciatest-html.static.hf.space/%E6%90%9CV%E8%A1%A8EXCEL21%E4%BB%A5%E4%B8%8A%E6%89%8D%E8%83%BD%E6%89%93%E5%BC%80%EF%BC%88%E4%BF%AE%E6%94%B9%E6%BC%8F%E6%B4%9E%EF%BC%89.xlsx";
+let data = [];
+let headers = [];
+
+fetch(url)
+.then(res => res.arrayBuffer())
+.then(buffer => {
+  const workbook = XLSX.read(buffer, { type: "array" });
+  const sheet = workbook.Sheets["数据"];
+
+  if (!sheet) {
+    document.getElementById("list").innerHTML = "<div class='loading'>未找到Sheet：数据</div>";
+    return;
+  }
+
+  const raw = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+  headers = raw[1];
+
+  data = raw.slice(2).map(row => {
+    let obj = {};
+    headers.forEach((h, i) => obj[h] = row[i]);
+    return obj;
+  }).filter(r => Object.values(r).some(v => v));
+
+  initFilters();
+  render(data);
+});
+
+function initFilters() {
+  const posSet = new Set();
+  data.forEach(d => {
+    const pos = d[headers[6]];
+    if (pos) posSet.add(pos);
+  });
+
+  const select = document.getElementById("positionFilter");
+  posSet.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p;
+    opt.textContent = p;
+    select.appendChild(opt);
+  });
+}
+
+function render(list) {
+  const container = document.getElementById("list");
+  container.innerHTML = "";
+
+  list.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "card";
+
+    const name = item[headers[0]] || "未知";
+    const team = item["球队"] || "";
+    const position = item[headers[6]] || "";
+    const ca = item["CA"] || "";
+    const pa = item["PA"] || "";
+
+    const isGarcia = String(name).includes("加西亚");
+
+    div.innerHTML = `
+      <div class="name ${isGarcia ? 'highlight' : ''}">${name}</div>
+      <div class="row">球队：${team}</div>
+      <div class="row">位置：${position}</div>
+      <div class="row">CA：${ca} | PA：${pa}</div>
+    `;
+
+    container.appendChild(div);
+  });
+}
+
+function applyFilters() {
+  const keyword = document.getElementById("search").value.toLowerCase();
+  const pos = document.getElementById("positionFilter").value;
+  const caVal = parseInt(document.getElementById("caFilter").value) || 0;
+  const paVal = parseInt(document.getElementById("paFilter").value) || 0;
+
+  const filtered = data.filter(item => {
+    const matchText = Object.values(item).some(v => String(v).toLowerCase().includes(keyword));
+    const matchPos = !pos || item[headers[6]] == pos;
+    const matchCA = !caVal || (parseInt(item["CA"]) >= caVal);
+    const matchPA = !paVal || (parseInt(item["PA"]) >= paVal);
+
+    return matchText && matchPos && matchCA && matchPA;
+  });
+
+  render(filtered);
+}
+
+["search","positionFilter","caFilter","paFilter"].forEach(id => {
+  document.getElementById(id).addEventListener("input", applyFilters);
+});
+</script>
+</body>
+</html>

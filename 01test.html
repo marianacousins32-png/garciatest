@@ -8,23 +8,14 @@
 :root {
   --bg:#f5f6f7; --card:#fff; --text:#000; --sub:#555; --accent:#ff4d4f;
 }
-.dark {
-  --bg:#121212; --card:#1e1e1e; --text:#fff; --sub:#aaa; --accent:#ff4d4f;
-}
-body {
-  margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto; background:var(--bg); color:var(--text);
-}
+.dark { --bg:#121212; --card:#1e1e1e; --text:#fff; --sub:#aaa; --accent:#ff4d4f; }
+body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto; background:var(--bg); color:var(--text);}
 .header-toggle {
   width:100%; padding:12px; cursor:pointer; font-weight:bold; border:none; background:var(--card); border-bottom:1px solid #ddd; font-size:16px;
 }
-.header-content {
-  overflow:hidden; transition:max-height 0.3s ease;
-  padding:10px;
-  box-shadow:0 2px 4px rgba(0,0,0,0.05);
-}
+.header-content { overflow:hidden; transition:max-height 0.3s ease; padding:10px; box-shadow:0 2px 4px rgba(0,0,0,0.05);}
 .search, .select, .input, .btn {
-  width:100%; padding:10px; border-radius:12px; border:1px solid #ccc; margin-bottom:8px; font-size:14px;
-  box-sizing:border-box;
+  width:100%; padding:10px; border-radius:12px; border:1px solid #ccc; margin-bottom:8px; font-size:14px; box-sizing:border-box;
 }
 .select { appearance:none; -webkit-appearance:none; -moz-appearance:none; }
 .container { padding:10px; }
@@ -32,7 +23,7 @@ body {
   background:var(--card); border-radius:12px; padding:14px; margin-bottom:12px;
   box-shadow:0 2px 6px rgba(0,0,0,0.1); cursor:pointer; transition:0.2s;
 }
-.card:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.15); }
+.card:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.15);}
 .name { font-size:16px; font-weight:bold; }
 .row { font-size:13px; color:var(--sub); margin-top:4px; line-height:1.4em; }
 .highlight { color:var(--accent); font-weight:bold; }
@@ -68,6 +59,8 @@ body {
 <script>
 const url = "https://angreoli-fagioli-garciatest-html.static.hf.space/%E6%90%9CV%E8%A1%A8EXCEL21%E4%BB%A5%E4%B8%8A%E6%89%8D%E8%83%BD%E6%89%93%E5%BC%80%EF%BC%88%E4%BF%AE%E6%94%B9%E6%BC%8F%E6%B4%9E%EF%BC%89.xlsx";
 let data = [], headers = [];
+let filteredData = [], page = 0;
+const PAGE_SIZE = 50;
 
 fetch(url).then(res => res.arrayBuffer()).then(buffer => {
   const workbook = XLSX.read(buffer, { type: "array" });
@@ -75,23 +68,20 @@ fetch(url).then(res => res.arrayBuffer()).then(buffer => {
   if(!sheet){ document.getElementById("list").innerHTML="<div class='loading'>未找到Sheet：数据</div>"; return; }
   const raw = XLSX.utils.sheet_to_json(sheet, { header: 1 });
   headers = raw[1];
-  data = raw.slice(2).map(row => {
-    let obj = {}; headers.forEach((h,i)=> obj[h]=row[i]); return obj;
-  }).filter(r=>Object.values(r).some(v=>v));
+  data = raw.slice(2).map(row => { let obj={}; headers.forEach((h,i)=> obj[h]=row[i]); return obj; })
+             .filter(r=>Object.values(r).some(v=>v));
   initFilters();
-  render(data);
+  applyFilters(); // 初始化显示第一页
 });
 
 function initFilters(){
-  const posSet = new Set();
-  const nationSet = new Set();
+  const posSet = new Set(), nationSet = new Set();
   data.forEach(d=>{
-    const pos = d[headers[6]]; if(pos) posSet.add(pos);
-    const nation = d[headers[70]]; if(nation) nationSet.add(nation);
+    const pos=d[headers[6]]; if(pos) posSet.add(pos);
+    const nation=d[headers[70]]; if(nation) nationSet.add(nation);
   });
   const posSelect = document.getElementById("positionFilter");
   posSet.forEach(p=>{ let opt=document.createElement("option"); opt.value=p; opt.textContent=p; posSelect.appendChild(opt); });
-
   const nationSelect = document.getElementById("nationFilter");
   nationSet.forEach(n=>{ let opt=document.createElement("option"); opt.value=n; opt.textContent=n; nationSelect.appendChild(opt); });
 }
@@ -102,21 +92,20 @@ document.getElementById("nationFilterInput").addEventListener("input", function(
   const nationSelect = document.getElementById("nationFilter");
   for(let i=0;i<nationSelect.options.length;i++){
     const opt=nationSelect.options[i];
-    opt.style.display = (opt.value === "" || opt.text.toLowerCase().includes(val)) ? "" : "none";
+    opt.style.display = (opt.value==="" || opt.text.toLowerCase().includes(val))?"":"none";
   }
 });
 
-function render(list){
-  const container = document.getElementById("list"); container.innerHTML="";
-  if(list.length === 0){ container.innerHTML="<div class='loading'>暂无数据</div>"; return; }
-  list.forEach(item=>{
-    const div=document.createElement("div"); div.className="card";
-    const name=item[headers[0]]||"未知";
-    const team=item["球队"]||"";
-    const position=item[headers[6]]||"";
-    const ca=item[headers[3]]||"";
-    const pa=item[headers[4]]||"";
-    const nation=item[headers[70]]||"";
+function renderNextPage(){
+  const container = document.getElementById("list");
+  const start = page * PAGE_SIZE, end = start + PAGE_SIZE;
+  const pageData = filteredData.slice(start, end);
+  if(pageData.length===0 && page===0) { container.innerHTML="<div class='loading'>暂无数据</div>"; return; }
+  pageData.forEach(item=>{
+    const div=document.createElement("div");
+    div.className="card";
+    const name=item[headers[0]]||"未知", team=item["球队"]||"", position=item[headers[6]]||"",
+          ca=item[headers[3]]||"", pa=item[headers[4]]||"", nation=item[headers[70]]||"";
     const isGarcia = String(name).includes("加西亚");
     div.innerHTML=`<div class="name ${isGarcia?'highlight':''}">${name}</div>
                    <div class="row">球队：${team}</div>
@@ -126,15 +115,15 @@ function render(list){
     div.onclick = ()=>openModal(item);
     container.appendChild(div);
   });
+  page++;
 }
 
-function openModal(item){
-  const modal=document.getElementById("modal");
-  const body=document.getElementById("modalBody");
-  body.innerHTML=headers.map(h=>`<div class="row"><b>${h}</b>：${item[h]||""}</div>`).join("");
-  modal.style.display="block";
-}
-function closeModal(){ document.getElementById("modal").style.display="none"; }
+// 滚动到底部加载下一页
+window.addEventListener("scroll", ()=>{
+  if(window.innerHeight + window.scrollY >= document.body.scrollHeight - 50){
+    if(page * PAGE_SIZE < filteredData.length) renderNextPage();
+  }
+});
 
 function applyFilters(){
   const keyword = document.getElementById("search").value.toLowerCase();
@@ -142,7 +131,7 @@ function applyFilters(){
   const nation = document.getElementById("nationFilter").value;
   const caVal = parseInt(document.getElementById("caFilter").value)||0;
   const paVal = parseInt(document.getElementById("paFilter").value)||0;
-  const filtered = data.filter(item=>{
+  filteredData = data.filter(item=>{
     const matchText = Object.values(item).some(v=>String(v).toLowerCase().includes(keyword));
     const matchPos = !pos || item[headers[6]]==pos;
     const matchNation = !nation || item[headers[70]]==nation;
@@ -150,7 +139,9 @@ function applyFilters(){
     const matchPA = !paVal || (parseInt(item[headers[4]])>=paVal);
     return matchText && matchPos && matchNation && matchCA && matchPA;
   });
-  render(filtered);
+  page = 0;
+  document.getElementById("list").innerHTML = "";
+  renderNextPage();
 }
 
 ["search","positionFilter","nationFilter","caFilter","paFilter","nationFilterInput"].forEach(id=>{
@@ -159,7 +150,6 @@ function applyFilters(){
 
 document.getElementById("themeToggle").onclick=()=>{ document.body.classList.toggle("dark"); };
 
-// 搜索栏折叠
 document.getElementById("headerToggle").onclick = ()=>{
   const content = document.getElementById("headerContent");
   if(content.style.maxHeight && content.style.maxHeight !== "0px"){
@@ -170,8 +160,16 @@ document.getElementById("headerToggle").onclick = ()=>{
     document.getElementById("headerToggle").textContent = "🔼 筛选 / 搜索栏";
   }
 };
-// 默认展开
 document.getElementById("headerContent").style.maxHeight = document.getElementById("headerContent").scrollHeight + "px";
+
+function openModal(item){
+  const modal=document.getElementById("modal");
+  const body=document.getElementById("modalBody");
+  body.innerHTML=headers.map(h=>`<div class="row"><b>${h}</b>：${item[h]||""}</div>`).join("");
+  modal.style.display="block";
+}
+function closeModal(){ document.getElementById("modal").style.display="none"; }
+
 </script>
 </body>
 </html>

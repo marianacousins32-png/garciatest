@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>联赛系数榜</title>
+
+<style>
+body {
+    margin: 0;
+    background: #0f172a;
+    color: #e5e7eb;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+}
+
+/* 顶部栏 */
+.header {
+    padding: 12px;
+    background: #111827;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.controls {
+    display: flex;
+    gap: 8px;
+}
+
+select {
+    flex: 1;
+    padding: 8px;
+    border-radius: 6px;
+    border: none;
+    background: #1f2933;
+    color: #fff;
+}
+
+/* 列表 */
+.list {
+    padding: 10px;
+}
+
+/* 卡片 */
+.card {
+    background: #1e293b;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: 0.2s;
+    cursor: pointer;
+}
+
+.card:hover {
+    background: #334155;
+}
+
+.left {
+    display: flex;
+    flex-direction: column;
+}
+
+.country {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.level {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.score {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+/* 高亮加西亚 */
+.highlight {
+    border: 2px solid #22c55e;
+    background: rgba(34,197,94,0.15);
+}
+
+/* 弹窗 */
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 99;
+}
+
+.modal-content {
+    background: #1e293b;
+    padding: 20px;
+    border-radius: 12px;
+    max-width: 90%;
+    color: #fff;
+    line-height: 1.6;
+}
+
+/* 隐藏滚动条 */
+::-webkit-scrollbar {
+    display: none;
+}
+body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+    <div class="controls">
+        <select id="countryFilter">
+            <option value="all">全部国家</option>
+        </select>
+
+        <select id="sort">
+            <option value="desc">系数降序</option>
+            <option value="asc">系数升序</option>
+        </select>
+    </div>
+</div>
+
+<div class="list" id="list"></div>
+
+<!-- 弹窗 -->
+<div class="modal" id="modal">
+    <div class="modal-content" id="modalText"></div>
+</div>
+
+<script>
+let rawData = [];
+let filtered = [];
+
+// 读取数据
+fetch("https://angreoli-fagioli-garciatest-html.static.hf.space/%E8%81%94%E8%B5%9B%E7%B3%BB%E6%95%B0.txt")
+.then(res => res.text())
+.then(text => {
+    parseData(text);
+    initFilter();
+    render();
+});
+
+// 解析数据（新增备注解析）
+function parseData(text) {
+    const lines = text.split("\n");
+
+    lines.forEach(line => {
+        line = line.trim();
+        if (!line) return;
+
+        const match = line.match(/(.+?)\s+(T\d)\s+(\d+)(.*)/);
+        if (match) {
+            rawData.push({
+                country: match[1],
+                level: match[2],
+                score: parseInt(match[3]),
+                note: match[4]?.trim() || "",
+                raw: line
+            });
+        }
+    });
+
+    filtered = [...rawData];
+}
+
+// 初始化筛选
+function initFilter() {
+    const select = document.getElementById("countryFilter");
+    const countries = [...new Set(rawData.map(i => i.country))];
+
+    countries.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c;
+        opt.textContent = c;
+        select.appendChild(opt);
+    });
+
+    select.onchange = render;
+    document.getElementById("sort").onchange = render;
+}
+
+// 渲染
+function render() {
+    const country = document.getElementById("countryFilter").value;
+    const sort = document.getElementById("sort").value;
+
+    filtered = rawData.filter(i => 
+        country === "all" || i.country === country
+    );
+
+    filtered.sort((a, b) => {
+        return sort === "desc" ? b.score - a.score : a.score - b.score;
+    });
+
+    const list = document.getElementById("list");
+    list.innerHTML = "";
+
+    filtered.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "card";
+
+        // 加西亚高亮
+        if (item.raw.includes("加西亚")) {
+            div.classList.add("highlight");
+        }
+
+        // 点击弹出备注
+        div.onclick = () => {
+            if (item.note) {
+                document.getElementById("modalText").innerText = item.note;
+                document.getElementById("modal").style.display = "flex";
+            }
+        };
+
+        div.innerHTML = `
+            <div class="left">
+                <div class="country">${item.country}</div>
+                <div class="level">${item.level}</div>
+            </div>
+            <div class="score">${item.score}</div>
+        `;
+
+        list.appendChild(div);
+    });
+}
+
+// 点击关闭弹窗
+document.getElementById("modal").onclick = () => {
+    document.getElementById("modal").style.display = "none";
+};
+</script>
+
+</body>
+</html>

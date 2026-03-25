@@ -83,8 +83,8 @@ function render(list) {
     const name = item[headers[0]] || "未知";
     const team = item["球队"] || "";
     const position = item[headers[6]] || "";
-    const ca = item["CA"] || "";
-    const pa = item["PA"] || "";
+    const ca = item[headers[3]] || "";  // 第四列
+    const pa = item[headers[4]] || "";  // 第五列
 
     const isGarcia = String(name).includes("加西亚");
 
@@ -108,8 +108,8 @@ function applyFilters() {
   const filtered = data.filter(item => {
     const matchText = Object.values(item).some(v => String(v).toLowerCase().includes(keyword));
     const matchPos = !pos || item[headers[6]] == pos;
-    const matchCA = !caVal || (parseInt(item["CA"]) >= caVal);
-    const matchPA = !paVal || (parseInt(item["PA"]) >= paVal);
+    const matchCA = !caVal || (parseInt(item[headers[3]]) >= caVal);
+    const matchPA = !paVal || (parseInt(item[headers[4]]) >= paVal);
 
     return matchText && matchPos && matchCA && matchPA;
   });

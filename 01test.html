@@ -12,7 +12,9 @@
   --bg:#121212; --card:#1e1e1e; --text:#fff; --sub:#aaa;
 }
 body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto; background:var(--bg); color:var(--text); }
-.header { position:sticky; top:0; background:var(--card); padding:10px; border-bottom:1px solid #ddd; z-index:10; }
+.header { position:sticky; top:0; background:var(--card); border-bottom:1px solid #ddd; z-index:10; }
+.header-toggle { width:100%; padding:10px; cursor:pointer; text-align:center; font-weight:bold; border:none; background:var(--card); }
+.header-content { padding:10px; transition:max-height 0.3s ease; overflow:hidden; }
 .search, .select, .input, .btn { width:100%; padding:8px; border-radius:8px; border:1px solid #ccc; margin-bottom:6px; }
 .container { padding:10px; }
 .card { background:var(--card); border-radius:12px; padding:12px; margin-bottom:10px; box-shadow:0 2px 6px rgba(0,0,0,0.1); cursor:pointer; }
@@ -26,14 +28,18 @@ body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
 </style>
 </head>
 <body>
-<div class="header">
+
+<button class="header-toggle" id="headerToggle">🔽 筛选 / 搜索栏</button>
+<div class="header-content" id="headerContent">
   <input id="search" class="search" placeholder="搜索球员 / 球队">
   <select id="positionFilter" class="select"><option value="">全部位置</option></select>
+  <input id="nationFilterInput" class="search" placeholder="输入国籍筛选">
   <select id="nationFilter" class="select"><option value="">全部国籍</option></select>
   <input id="caFilter" class="input" placeholder="最低CA">
   <input id="paFilter" class="input" placeholder="最低PA">
   <button id="themeToggle" class="btn">切换深色/浅色</button>
 </div>
+
 <div class="container" id="list"><div class="loading">加载中...</div></div>
 <div class="modal" id="modal">
   <div class="modal-content">
@@ -41,6 +47,7 @@ body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
     <div id="modalBody"></div>
   </div>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script>
 const url = "https://angreoli-fagioli-garciatest-html.static.hf.space/%E6%90%9CV%E8%A1%A8EXCEL21%E4%BB%A5%E4%B8%8A%E6%89%8D%E8%83%BD%E6%89%93%E5%BC%80%EF%BC%88%E4%BF%AE%E6%94%B9%E6%BC%8F%E6%B4%9E%EF%BC%89.xlsx";
@@ -80,6 +87,16 @@ function initFilters(){
   const nationSelect=document.getElementById("nationFilter");
   nationSet.forEach(n=>{ const opt=document.createElement("option"); opt.value=n; opt.textContent=n; nationSelect.appendChild(opt); });
 }
+
+// 国籍输入过滤下拉列表
+document.getElementById("nationFilterInput").addEventListener("input", function(){
+  const val = this.value.toLowerCase();
+  const nationSelect = document.getElementById("nationFilter");
+  for(let i=0;i<nationSelect.options.length;i++){
+    const opt = nationSelect.options[i];
+    opt.style.display = (opt.text.toLowerCase().includes(val) || opt.value === "") ? "" : "none";
+  }
+});
 
 function render(list){
   const container=document.getElementById("list"); container.innerHTML="";
@@ -127,10 +144,26 @@ function applyFilters(){
   render(filtered);
 }
 
-["search","positionFilter","nationFilter","caFilter","paFilter"].forEach(id=>{document.getElementById(id).addEventListener("input",applyFilters);});
+["search","positionFilter","nationFilter","caFilter","paFilter","nationFilterInput"].forEach(id=>{
+  document.getElementById(id).addEventListener("input",applyFilters);
+});
 
 // 主题切换按钮
 document.getElementById("themeToggle").onclick=()=>{ document.body.classList.toggle("dark"); };
+
+// 折叠/展开搜索栏
+document.getElementById("headerToggle").onclick = ()=>{
+  const content = document.getElementById("headerContent");
+  if(content.style.maxHeight && content.style.maxHeight !== "0px"){
+    content.style.maxHeight = "0px";
+    document.getElementById("headerToggle").textContent = "🔽 筛选 / 搜索栏";
+  } else {
+    content.style.maxHeight = content.scrollHeight + "px";
+    document.getElementById("headerToggle").textContent = "🔼 筛选 / 搜索栏";
+  }
+};
+document.getElementById("headerContent").style.maxHeight = document.getElementById("headerContent").scrollHeight + "px";
 </script>
+
 </body>
 </html>
